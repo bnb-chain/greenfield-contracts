@@ -54,7 +54,7 @@ contract EndPoint {
 
     }
 
-    function retryPackage(address _dstAddress, uint256 _sequence) external payable {
+    function retryPackage(address _dstAddress) external payable {
 
     }
 

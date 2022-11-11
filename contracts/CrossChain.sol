@@ -196,15 +196,15 @@ contract CrossChain is OwnableUpgradeable {
         channelSendSequenceMap[channelId] = sendSequence;
     }
 
-    function cachePackage(uint8 channelId, uint256 sequence, byte32 msgHash, address receiver) external onlyEndpoint {
+    function cachePackage(address dstAddress, uint256 sequence, byte32 msgHash) external onlyEndpoint {
 
     }
 
-    function retryPackage(uint8 channelId, address receiver, bytes msg) external onlyEndpoint {
+    function retryPackage(address dstAddress, bytes memory msg) external onlyEndpoint {
 
     }
 
-    function skipPackage(uint8 channelId, uint256 sequence) external onlyEndpoint {
+    function skipPackage(address dstAddress, uint256 sequence) external onlyEndpoint {
 
     }
 
