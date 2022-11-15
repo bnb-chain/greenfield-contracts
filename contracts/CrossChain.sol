@@ -1,4 +1,4 @@
-pragma solidity =0.8.17;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./middle-layer/BFSValidatorSet.sol";
@@ -118,11 +118,18 @@ contract CrossChain is OwnableUpgradeable {
         __Ownable_init();
     }
 
+    function _RLPEncode(uint8 eventType, bytes memory msgBytes) internal pure returns(bytes memory output) {
+        bytes[] memory elements = new bytes[](2);
+        elements[0] = eventType.encodeUint();
+        elements[1] = msgBytes.encodeBytes();
+        output = elements.encodeList();
+    }
+
     // SYN message is RLP encoded.
     // The failureHandling is to indicate how the application would like to process the failure.
     // The eventType here is used to support different operations in one channel.
     // The appBytes must allow the application layer to add custom fields
-    function encodeSynMessage(uint8 eventType, uint8 failureHandling, address receiver, uint256 gasLimit, bytes memory appBytes) {
+    function encodeSynMessage(uint8 eventType, uint8 failureHandling, address receiver, uint256 gasLimit, address refundAddress, bytes memory appMsg) public returns (bytes memory synMessage){
         // TODO
     }
 
