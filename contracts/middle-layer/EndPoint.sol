@@ -1,5 +1,8 @@
 pragma solidity ^0.8.0;
 import "../CrossChain.sol";
+import "../lib/RLPEncode.sol";
+import "../lib/RLPDecode.sol";
+import "../Config.sol";
 
 interface IApplication {
     function handleAckPackage(uint8 channelID, bytes middleMsg, bytes calldata appMsg) external;
@@ -15,8 +18,14 @@ interface ICrossChain {
     function skipPackage(uint8 channelId,  uint256 sequence) external;
 }
 
-contract EndPoint {
+contract EndPoint is Config {
+    using RLPEncode for *;
+    using RLPDecode for *;
+
+    uint8 public constant EVENT_SEND = 0x01;
+
     uint256 public toBFSRelayerFee;
+    uint256 public callbackGasprice;
     uint8 public channelId;
 
     // ua/_dstAddress => FailureHandleStrategy
@@ -50,14 +59,22 @@ contract EndPoint {
 
         // msg.value is the max fee for the whole cross chain txs including app callback
         // check if msg.value is enough for toBFSRelayerFee + _maxGasLimit * gasPrice
+        require(msg.value >= toBFSRelayerFee + callbackGasprice * _maxGasLimit, "not enough relay fee");
+        uint256 _callbackFee = msg.value - callbackGasprice * _maxGasLimit;
 
-        uint8 eventType = 1;
+        (bool success,) = _refundAddress.call{gas: transferGas}("");
+        require(success, "invalid refundAddress"); // the _refundAddress must be payable
 
-        // TODO
-        // store msg.value
 
-        bytes memory msgBytes = ICrossChain(CrossChain).encodeSynMessage(eventType, failureHandleMap[_appAddress], _appAddress, _maxGasLimit, _refundAddress, _appMsg);
-        ICrossChain(CrossChain).sendSynPackage(channelId, msgBytes, msg.value);
+        bytes[] memory elements = new bytes[](5);
+        elements[0] = _appAddress.encodeAddress();
+        elements[1] = _refundAddress.encodeAddress();
+        elements[2] = _callbackFee.encodeUint();
+        elements[3] = _maxGasLimit.encodeUint();
+        elements[4] = _appMsg.encodeBytes();
+
+        bytes memory msgBytes = _RLPEncode(EVENT_SEND, elements.encodeList());
+        ICrossChain(CrossChain).sendSynPackage(APP_CHANNELID, msgBytes, toBFSRelayerFee);
     }
 
     function retryPayload(address _dstAddress, address payable _refundAddress) external payable {
