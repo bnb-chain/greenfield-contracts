@@ -23,10 +23,11 @@ contract EndPoint is Config {
     using RLPDecode for *;
 
     uint8 public constant EVENT_SEND = 0x01;
+    uint256 public constant TEN_DECIMALS = 1e10;
 
+    address public crosschainContract;
     uint256 public toBFSRelayerFee;
     uint256 public callbackGasprice;
-    uint8 public channelId;
 
     // ua/_dstAddress => FailureHandleStrategy
     mapping(address => FailureHandleStrategy) public failureHandleMap;
@@ -44,6 +45,12 @@ contract EndPoint is Config {
     struct StorePayload {
         address srcAddress;
         bytes appPayload;
+    }
+
+
+    modifier onlyCrossChainContract() {
+        require(msg.sender == crosschainContract, "only cross chain contract");
+        _;
     }
 
     function setFailureHandleStrategy(FailureHandleStrategy _strategy) external {
@@ -71,7 +78,8 @@ contract EndPoint is Config {
         elements[1] = _refundAddress.encodeAddress();
         elements[2] = _callbackFee.encodeUint();
         elements[3] = _maxGasLimit.encodeUint();
-        elements[4] = _appMsg.encodeBytes();
+        elements[4] = uint8(failureHandleMap[_appAddress]).encodeUint();
+        elements[5] = _appMsg.encodeBytes();
 
         bytes memory msgBytes = _RLPEncode(EVENT_SEND, elements.encodeList());
         ICrossChain(CrossChain).sendSynPackage(APP_CHANNELID, msgBytes, toBFSRelayerFee);
@@ -136,5 +144,97 @@ contract EndPoint is Config {
         // 2. Skip
 
         // 3. Cache
+    }
+
+    function handleAckPackage(uint8, bytes calldata msgBytes) external onlyCrossChain {
+        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
+
+        uint8 status;
+        uint8 errCode;
+        bytes memory packBytes;
+        bool success;
+        uint256 idx;
+        while (iter.hasNext()) {
+            if (idx == 0) {
+                status = uint8(iter.next().toUint());
+            } else if (idx == 1) {
+                errCode = uint8(iter.next().toUint());
+            } else if (idx == 2) {
+                packBytes = iter.next().toBytes();
+                success = true;
+            } else {
+                break;
+            }
+            ++idx;
+        }
+        require(success, "rlp decode failed");
+
+        iter = packBytes.toRLPItem().iterator();
+        uint8 eventType = uint8(iter.next().toUint());
+        RLPDecode.Iterator memory paramIter;
+        if (iter.hasNext()) {
+            paramIter = iter.next().toBytes().toRLPItem().iterator();
+        } else {
+            revert("empty ack package");
+        }
+
+        if (eventType == EVENT_SEND) {
+            _handleSendAckPackage(paramIter, status, errCode);
+        } else {
+            revert("unknown event type");
+        }
+    }
+
+
+
+    /***************************** Internal functions *****************************/
+    function _RLPEncode(uint8 eventType, bytes memory msgBytes) internal pure returns(bytes memory output) {
+        bytes[] memory elements = new bytes[](2);
+        elements[0] = eventType.encodeUint();
+        elements[1] = msgBytes.encodeBytes();
+        output = elements.encodeList();
+    }
+
+    /************************* Handle cross-chain package *************************/
+    function _handleSendAckPackage(RLPDecode.Iterator memory paramIter, uint8 status, uint8 errCode) internal {
+        bool success;
+        uint256 idx;
+
+        address _appAddress;
+        address _refundAddress;
+        uint256 _callbackFee;
+        uint256 _maxGasLimit;
+        FailureHandleStrategy _strategy;
+        bytes memory _appMsg;
+
+        while (paramIter.hasNext()) {
+            if (idx == 0) {
+                _appAddress = address(uint160(paramIter.next().toAddress()));
+            } else if (idx == 1) {
+                _refundAddress = address(uint160(paramIter.next().toAddress()));
+            } else if (idx == 2) {
+                _callbackFee = uint256(paramIter.next().toUint());
+            } else if (idx == 3) {
+                _maxGasLimit = uint256(paramIter.next().toUint());
+            } else if (idx == 4) {
+                _strategy = uint8(paramIter.next().toUint());
+            } else if (idx == 5) {
+                _appMsg = uint256(paramIter.next().toBytes());
+                success = true;
+            } else {
+                break;
+            }
+            ++idx;
+        }
+        require(success, "rlp decode failed");
+
+        if (status == CODE_SUCCESS) {
+            require(errCode == 0, "wrong status");
+
+        } else if (status == CODE_FAILED) {
+
+        } else {
+            revert("wrong status");
+        }
     }
 }
