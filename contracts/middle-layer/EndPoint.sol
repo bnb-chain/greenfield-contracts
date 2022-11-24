@@ -68,14 +68,14 @@ contract EndPoint is Config {
     // @notice send a cross-chain application message to BFS
     // @param _appPayload - a custom bytes payload to send to the destination contract
     // @param _refundAddress - if the source transaction is cheaper than the amount of value passed, refund the additional amount to this address
-    function send(bytes calldata _appMsg, address payable _refundAddress, uint256 _maxGasLimit) external payable {
+    function send(bytes calldata _appMsg, address payable _refundAddress, uint256 _gasLimit) external payable {
         address _appAddress = msg.sender;
         require(failureHandleMap[_appAddress] != FailureHandleStrategy.Closed, "application closed");
 
         // msg.value is the max fee for the whole cross chain txs including app callback
-        // check if msg.value is enough for toBFSRelayerFee + _maxGasLimit * gasPrice
-        require(msg.value >= toBFSRelayerFee + callbackGasprice * _maxGasLimit, "not enough relay fee");
-        uint256 _callbackFee = msg.value - callbackGasprice * _maxGasLimit;
+        // check if msg.value is enough for toBFSRelayerFee + _gasLimit * gasPrice
+        require(msg.value >= toBFSRelayerFee + callbackGasprice * _gasLimit, "not enough relay fee");
+        uint256 _callbackFee = msg.value - callbackGasprice * _gasLimit;
 
         (bool success,) = _refundAddress.call{gas: transferGas}("");
         require(success, "invalid refundAddress"); // the _refundAddress must be payable
@@ -85,7 +85,7 @@ contract EndPoint is Config {
         elements[0] = _appAddress.encodeAddress();
         elements[1] = _refundAddress.encodeAddress();
         elements[2] = _callbackFee.encodeUint();
-        elements[3] = _maxGasLimit.encodeUint();
+        elements[3] = _gasLimit.encodeUint();
         elements[4] = uint8(failureHandleMap[_appAddress]).encodeUint();
         elements[5] = _appMsg.encodeBytes();
 
@@ -105,7 +105,7 @@ contract EndPoint is Config {
     // @param _appAddress - the application address
     // @param _gasLimit - the gas limit for external contract execution
     // @param _payload - verified payload to send to the destination contract
-    function _receiveMessage(address _appAddress, uint256 _maxGasLimit, address _refundAddress, bytes calldata _appMsg, bytes calldata _middleMsg, uint256 _remainingFee) internal {
+    function _receiveMessage(address _appAddress, uint256 _gasLimit, address _refundAddress, bytes calldata _appMsg, bytes calldata _middleMsg, uint256 _remainingFee) internal {
 
 
         // TODO
@@ -120,16 +120,16 @@ contract EndPoint is Config {
         bytes memory middleMsg;
         bytes memory appMsg;
 
-        // middleMsg => FailureHandleStrategy failureHandle, address _appAddress, uint256 _maxGasLimit, address _refundAddress, bytes calldata _appMsg, bytes calldata _middleMsg, uint256 _remainingFee
+        // middleMsg => FailureHandleStrategy failureHandle, address _appAddress, uint256 _gasLimit, address _refundAddress, bytes calldata _appMsg, bytes calldata _middleMsg, uint256 _remainingFee
         FailureHandleStrategy failureHandle;
         address _appAddress;
-        uint256 _maxGasLimit;
+        uint256 _gasLimit;
         address _refundAddress;
         bytes memory _appMsg;
         bytes memory _middleMsg;
         uint256 _remainingFee;
 
-        _receiveMessage(_appAddress, _maxGasLimit, _refundAddress, _appMsg, _middleMsg, _remainingFee);
+        _receiveMessage(_appAddress, _gasLimit, _refundAddress, _appMsg, _middleMsg, _remainingFee);
     }
 
     function handleFailAckPackage(uint8 channelId, uint256 sequence, bytes calldata msgBytes) external onlyCrossChain {
@@ -202,7 +202,7 @@ contract EndPoint is Config {
         address _appAddress;
         address _refundAddress;
         uint256 _callbackFee;
-        uint256 _maxGasLimit;
+        uint256 _gasLimit;
         FailureHandleStrategy _strategy;
         bytes memory _appMsg;
 
@@ -214,7 +214,7 @@ contract EndPoint is Config {
             } else if (idx == 2) {
                 _callbackFee = uint256(paramIter.next().toUint());
             } else if (idx == 3) {
-                _maxGasLimit = uint256(paramIter.next().toUint());
+                _gasLimit = uint256(paramIter.next().toUint());
             } else if (idx == 4) {
                 _strategy = uint8(paramIter.next().toUint());
             } else if (idx == 5) {
@@ -228,7 +228,7 @@ contract EndPoint is Config {
         require(success, "rlp decode failed");
 
         uint256 gasBefore = gasleft();
-        try IApplication(_appAddress).handleAckPackage{ gas: _maxGasLimit }(APP_CHANNELID, _appMsg) {
+        try IApplication(_appAddress).handleAckPackage{ gas: _gasLimit}(APP_CHANNELID, _appMsg) {
         } catch (bytes memory reason) {
             packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false);
             retryQueue.pushBack(pkgHash);
