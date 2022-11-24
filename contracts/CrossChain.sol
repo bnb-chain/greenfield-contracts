@@ -118,64 +118,60 @@ contract CrossChain is OwnableUpgradeable {
         __Ownable_init();
     }
 
-    function _RLPEncode(uint8 eventType, bytes memory msgBytes) internal pure returns(bytes memory output) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = eventType.encodeUint();
-        elements[1] = msgBytes.encodeBytes();
-        output = elements.encodeList();
-    }
 
-    // SYN message is RLP encoded.
-    // The failureHandling is to indicate how the application would like to process the failure.
-    // The eventType here is used to support different operations in one channel.
-    // The appBytes must allow the application layer to add custom fields
-    function encodeSynMessage(uint8 eventType, uint8 failureHandling, address receiver, uint256 gasLimit, address refundAddress, bytes memory appMsg) public returns (bytes memory synMessage){
-        // TODO
-    }
-
-    // ACK message is RLP encoded
-    function encodeAckMessage(uint8 eventType, bytes memory appBytes) {
-        // TODO
-    }
-
-    function encodeAppMessage(bytes middleLayerMsg, bytes memory appLayerMsg) returns (bytes memory) {
-        // TODO
-    }
-
-    function encodePayload(uint8 packageType, uint64 timestamp, uint256 relayFee, bytes memory msgBytes) public pure returns (bytes memory) {
-        uint256 payloadLength = msgBytes.length + 33;
-        bytes memory payload = new bytes(payloadLength);
-        // TODO
-        return payload;
-    }
-
-    // | type   | timestamp | relayFee   | package  |
-    // | 1 byte | 8 bytes   | 32 bytes   | bytes    |
-    function decodePayloadHeader(bytes memory payload)
-    internal
-    pure
-    returns (
-        bool success,
-        uint8 packageType,
-        uint64 timestamp,
-        uint256 relayFee,
-        bytes memory msgBytes
-    ) {
-        // TODO
-    }
-
-    function handlePackage(bytes calldata payload, bytes calldata signature, uint256 validatorSetVersion, uint64 packageSequence, uint8 channelId)
+    function handlePackage(bytes calldata payload, bytes calldata signature, uint256 validatorSetBitmap, uint64 packageSequence, uint8 channelId)
     onlyInit
     onlyRelayer
     sequenceInOrder(packageSequence, channelId)
     channelSupported(channelId)
     whenNotSuspended
     external {
-        // TODO
-        // MiddleWare:
-        // 1. BFSValidatorSet
-        // 2. TokenHub
-        // 3. EndPoint
+        bytes memory payloadLocal = payload; // fix error: stack too deep, try removing local variables
+        bytes memory proofLocal = proof; // fix error: stack too deep, try removing local variables
+
+        ILightClient(LIGHT_CLIENT_ADDR).verifyTransaction(payload, signature, validatorSetBitmap, packageSequence, channelId);
+
+        uint64 sequenceLocal = packageSequence; // fix error: stack too deep, try removing local variables
+        uint8 channelIdLocal = channelId; // fix error: stack too deep, try removing local variables
+        (bool success, uint8 packageType, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(payloadLocal);
+        if (!success) {
+            emit unsupportedPackage(sequenceLocal, channelIdLocal, payloadLocal);
+            return;
+        }
+        emit receivedPackage(packageType, sequenceLocal, channelIdLocal);
+        if (packageType == SYN_PACKAGE) {
+            address handlerContract = channelHandlerContractMap[channelIdLocal];
+            try IApplication(handlerContract).handleSynPackage(channelIdLocal, msgBytes) returns (bytes memory responsePayload) {
+                if (responsePayload.length!=0) {
+                    sendPackage(channelSendSequenceMap[channelIdLocal], channelIdLocal, encodePayload(ACK_PACKAGE, 0, responsePayload));
+                    channelSendSequenceMap[channelIdLocal] = channelSendSequenceMap[channelIdLocal] + 1;
+                }
+            } catch Error(string memory reason) {
+                sendPackage(channelSendSequenceMap[channelIdLocal], channelIdLocal, encodePayload(FAIL_ACK_PACKAGE, 0, msgBytes));
+                channelSendSequenceMap[channelIdLocal] = channelSendSequenceMap[channelIdLocal] + 1;
+                emit unexpectedRevertInPackageHandler(handlerContract, reason);
+            } catch (bytes memory lowLevelData) {
+                sendPackage(channelSendSequenceMap[channelIdLocal], channelIdLocal, encodePayload(FAIL_ACK_PACKAGE, 0, msgBytes));
+                channelSendSequenceMap[channelIdLocal] = channelSendSequenceMap[channelIdLocal] + 1;
+                emit unexpectedFailureAssertionInPackageHandler(handlerContract, lowLevelData);
+            }
+        } else if (packageType == ACK_PACKAGE) {
+            address handlerContract = channelHandlerContractMap[channelIdLocal];
+            try IApplication(handlerContract).handleAckPackage(channelIdLocal, msgBytes) {
+            } catch Error(string memory reason) {
+                emit unexpectedRevertInPackageHandler(handlerContract, reason);
+            } catch (bytes memory lowLevelData) {
+                emit unexpectedFailureAssertionInPackageHandler(handlerContract, lowLevelData);
+            }
+        } else if (packageType == FAIL_ACK_PACKAGE) {
+            address handlerContract = channelHandlerContractMap[channelIdLocal];
+            try IApplication(handlerContract).handleFailAckPackage(channelIdLocal, msgBytes) {
+            } catch Error(string memory reason) {
+                emit unexpectedRevertInPackageHandler(handlerContract, reason);
+            } catch (bytes memory lowLevelData) {
+                emit unexpectedFailureAssertionInPackageHandler(handlerContract, lowLevelData);
+            }
+        }
     }
 
     function sendPackage(uint64 packageSequence, uint8 channelId, bytes memory payload) internal whenNotSuspended {
@@ -201,18 +197,6 @@ contract CrossChain is OwnableUpgradeable {
         sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, relayFee, msgBytes));
         sendSequence++;
         channelSendSequenceMap[channelId] = sendSequence;
-    }
-
-    function cachePackage(address dstAddress, uint256 sequence, byte32 msgHash) external onlyEndpoint {
-
-    }
-
-    function retryPackage(address dstAddress, bytes memory msg) external onlyEndpoint {
-
-    }
-
-    function skipPackage(address dstAddress, uint256 sequence) external onlyEndpoint {
-
     }
 
     function suspend() onlyRelayer whenNotSuspended external {
