@@ -1,8 +1,13 @@
 pragma solidity ^0.8.0;
+
+
+import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 import "../CrossChain.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
 import "../Config.sol";
+
+
 
 interface IApplication {
     function handleAckPackage(uint8 channelID, bytes middleMsg, bytes calldata appMsg) external;
@@ -21,6 +26,7 @@ interface ICrossChain {
 contract EndPoint is Config {
     using RLPEncode for *;
     using RLPDecode for *;
+    using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     uint8 public constant EVENT_SEND = 0x01;
     uint256 public constant TEN_DECIMALS = 1e10;
@@ -28,12 +34,14 @@ contract EndPoint is Config {
     address public crosschainContract;
     uint256 public toBFSRelayerFee;
     uint256 public callbackGasprice;
+    uint256 public transferGas;
 
-    // ua/_dstAddress => FailureHandleStrategy
+    // app address => FailureHandleStrategy
     mapping(address => FailureHandleStrategy) public failureHandleMap;
-
-    // ua/_dstAddress => StorePayload from executed ack
-    mapping(address => StorePayload) public storePayload;
+    // app address => retry queue of package hash
+    mapping(address => DoubleEndedQueueUpgradeable.Bytes32Deque) private retryQueue;
+    // app retry package hash => retry package
+    mapping(bytes32 => RetryPackage) public packageMap;
 
     enum FailureHandleStrategy {
         Closed,  // using for pausing
@@ -42,11 +50,11 @@ contract EndPoint is Config {
         Cache
     }
 
-    struct StorePayload {
-        address srcAddress;
-        bytes appPayload;
+    struct RetryPackage {
+        address appAddress;
+        bytes appMsg;
+        bool isFailAck;
     }
-
 
     modifier onlyCrossChainContract() {
         require(msg.sender == crosschainContract, "only cross chain contract");
@@ -85,10 +93,6 @@ contract EndPoint is Config {
         ICrossChain(CrossChain).sendSynPackage(APP_CHANNELID, msgBytes, toBFSRelayerFee);
     }
 
-    function retryPayload(address _dstAddress, address payable _refundAddress) external payable {
-
-    }
-
     function retryPackage(address _dstAddress) external payable {
 
     }
@@ -102,13 +106,7 @@ contract EndPoint is Config {
     // @param _gasLimit - the gas limit for external contract execution
     // @param _payload - verified payload to send to the destination contract
     function _receiveMessage(address _appAddress, uint256 _maxGasLimit, address _refundAddress, bytes calldata _appMsg, bytes calldata _middleMsg, uint256 _remainingFee) internal {
-        // from handleAckPackage
-        try IApplication(_appAddress).handleAckPackage{ gas: _maxGasLimit }(channelId, _middleMsg, _appMsg) {
 
-        } catch (bytes memory reason) {
-            // TODO
-            // store Payload to retry
-        }
 
         // TODO
         // refund
@@ -146,7 +144,7 @@ contract EndPoint is Config {
         // 3. Cache
     }
 
-    function handleAckPackage(uint8, bytes calldata msgBytes) external onlyCrossChain {
+    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes) external onlyCrossChain {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 status;
@@ -179,7 +177,8 @@ contract EndPoint is Config {
         }
 
         if (eventType == EVENT_SEND) {
-            _handleSendAckPackage(paramIter, status, errCode);
+            bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
+            _handleSendAckPackage(pkgHash, paramIter, status, errCode);
         } else {
             revert("unknown event type");
         }
@@ -196,7 +195,7 @@ contract EndPoint is Config {
     }
 
     /************************* Handle cross-chain package *************************/
-    function _handleSendAckPackage(RLPDecode.Iterator memory paramIter, uint8 status, uint8 errCode) internal {
+    function _handleSendAckPackage(bytes32 pkgHash, RLPDecode.Iterator memory paramIter, uint8 status, uint8 errCode) internal {
         bool success;
         uint256 idx;
 
@@ -228,13 +227,17 @@ contract EndPoint is Config {
         }
         require(success, "rlp decode failed");
 
-        if (status == CODE_SUCCESS) {
-            require(errCode == 0, "wrong status");
-
-        } else if (status == CODE_FAILED) {
-
-        } else {
-            revert("wrong status");
+        uint256 gasBefore = gasleft();
+        try IApplication(_appAddress).handleAckPackage{ gas: _maxGasLimit }(APP_CHANNELID, _appMsg) {
+        } catch (bytes memory reason) {
+            packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false);
+            retryQueue.pushBack(pkgHash);
         }
+
+        uint256 gasUsed = gasleft() - gasBefore;
+        uint256 refundFee = _callbackFee - gasUsed * callbackGasprice;
+
+        // refund
+        (bool success,) = _refundAddress.call{ gas: transferGas, value: refundFee }("");
     }
 }
