@@ -11,7 +11,7 @@ import "./Config.sol";
 import "./Governance.sol";
 
 
-contract CrossChainV2 is Config, Governance, OwnableUpgradeable {
+contract CrossChain is Config, Governance, OwnableUpgradeable {
 
     // constant variables
     string constant public STORE_NAME = "ibc";

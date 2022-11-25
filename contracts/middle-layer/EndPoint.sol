@@ -24,7 +24,7 @@ contract EndPoint is Config {
     uint8 public constant EVENT_SEND = 0x01;
     uint256 public constant TEN_DECIMALS = 1e10;
 
-    address public crosschainContract;
+    address public crossChainContract;
     uint256 public toBFSRelayerFee;
     uint256 public callbackGasprice;
     uint256 public transferGas;
@@ -48,11 +48,11 @@ contract EndPoint is Config {
         bytes appMsg;
         bool isFailAck;
         bool isDeleted;
-        string failReason;
+        bytes failReason;
     }
 
-    modifier onlyCrossChainContract() {
-        require(msg.sender == crosschainContract, "only cross chain contract");
+    modifier onlyCrossChain() {
+        require(msg.sender == crossChainContract, "only cross chain contract");
         _;
     }
 
@@ -90,7 +90,7 @@ contract EndPoint is Config {
         elements[5] = _appMsg.encodeBytes();
 
         bytes memory msgBytes = _RLPEncode(EVENT_SEND, elements.encodeList());
-        ICrossChain(CrossChain).sendSynPackage(APP_CHANNELID, msgBytes, toBFSRelayerFee);
+        ICrossChain(crossChainContract).sendSynPackage(APP_CHANNELID, msgBytes, toBFSRelayerFee);
     }
 
 
@@ -154,12 +154,13 @@ contract EndPoint is Config {
     function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) {
         address appAddress = msg.sender;
         require(failureHandleMap[appAddress] != FailureHandleStrategy.Closed, "strategy not allowed");
+        require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
 
         if (failureHandleMap[appAddress] == FailureHandleStrategy.HandleInOrder) {
-            require(retryQueue.front() == pkgHash, "package not on front");
-            retryQueue.popFront();
+            require(retryQueue[appAddress].popFront() == pkgHash, "package not on front");
         }
 
+        bytes memory _appMsg = packageMap[pkgHash].appMsg;
         if (packageMap[pkgHash].isFailAck) {
             IApplication(appAddress).handleFailAckPackage(APP_CHANNELID, _appMsg);
         } else {
@@ -169,9 +170,9 @@ contract EndPoint is Config {
     }
 
     function skipPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) {
+        address appAddress = msg.sender;
         if (failureHandleMap[appAddress] == FailureHandleStrategy.HandleInOrder) {
-            require(retryQueue.front() == pkgHash, "package not on front");
-            retryQueue.popFront();
+            require(retryQueue[appAddress].popFront() == pkgHash, "package not on front");
         }
         packageMap[pkgHash].isDeleted = true;
     }
@@ -207,9 +208,9 @@ contract EndPoint is Config {
             } else if (idx == 3) {
                 _gasLimit = uint256(paramIter.next().toUint());
             } else if (idx == 4) {
-                _strategy = uint8(paramIter.next().toUint());
+                _strategy = FailureHandleStrategy(uint8(paramIter.next().toUint()));
             } else if (idx == 5) {
-                _appMsg = uint256(paramIter.next().toBytes());
+                _appMsg = paramIter.next().toBytes();
                 success = true;
             } else {
                 break;
@@ -222,8 +223,8 @@ contract EndPoint is Config {
         try IApplication(_appAddress).handleAckPackage{ gas: _gasLimit}(APP_CHANNELID, _appMsg) {
         } catch (bytes memory reason) {
             if (_strategy != FailureHandleStrategy.Skip) {
-                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false, reason);
-                retryQueue.pushBack(pkgHash);
+                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false, false, reason);
+                retryQueue[_appAddress].pushBack(pkgHash);
             }
         }
 
@@ -231,7 +232,7 @@ contract EndPoint is Config {
         uint256 refundFee = _callbackFee - gasUsed * callbackGasprice;
 
         // refund
-        (bool success,) = _refundAddress.call{ gas: transferGas, value: refundFee }("");
+        (success,) = _refundAddress.call{ gas: transferGas, value: refundFee }("");
     }
 
     function _handleSendFailAckPackage(bytes32 pkgHash, RLPDecode.Iterator memory paramIter) internal {
@@ -255,9 +256,9 @@ contract EndPoint is Config {
             } else if (idx == 3) {
                 _gasLimit = uint256(paramIter.next().toUint());
             } else if (idx == 4) {
-                _strategy = uint8(paramIter.next().toUint());
+                _strategy = FailureHandleStrategy(uint8(paramIter.next().toUint()));
             } else if (idx == 5) {
-                _appMsg = uint256(paramIter.next().toBytes());
+                _appMsg = paramIter.next().toBytes();
                 success = true;
             } else {
                 break;
@@ -270,14 +271,14 @@ contract EndPoint is Config {
         try IApplication(_appAddress).handleFailAckPackage{ gas: _gasLimit}(APP_CHANNELID, _appMsg) {
         } catch (bytes memory reason) {
             if (_strategy != FailureHandleStrategy.Skip) {
-                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, true, reason);
-                retryQueue.pushBack(pkgHash);
+                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, true, false, reason);
+                retryQueue[_appAddress].pushBack(pkgHash);
             }
         }
         uint256 gasUsed = gasleft() - gasBefore;
         uint256 refundFee = _callbackFee - gasUsed * callbackGasprice;
 
         // refund
-        (bool success,) = _refundAddress.call{ gas: transferGas, value: refundFee }("");
+        (success,) = _refundAddress.call{ gas: transferGas, value: refundFee }("");
     }
 }
