@@ -1,4 +1,4 @@
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 
 library RLPDecode {
     uint8 constant STRING_SHORT_START = 0x80;
@@ -116,7 +116,7 @@ library RLPDecode {
         // 1 byte for the length prefix
         require(item.len == 21);
 
-        return address(toUint(item));
+        return address(uint160(toUint(item)));
     }
 
     function toUint(RLPItem memory item) internal pure returns (uint) {
