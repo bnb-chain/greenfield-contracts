@@ -61,6 +61,16 @@ contract EndPoint is Config {
         _;
     }
 
+    modifier checkFailureStrategy() {
+        address appAddress = msg.sender;
+        require(failureHandleMap[appAddress] != FailureHandleStrategy.Closed, "strategy not allowed");
+        require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
+        if (failureHandleMap[appAddress] == FailureHandleStrategy.HandleInOrder) {
+            require(retryQueue[appAddress].popFront() == pkgHash, "package not on front");
+        }
+        _;
+    }
+
     function setFailureHandleStrategy(FailureHandleStrategy _strategy) external {
         failureHandleMap[msg.sender] = _strategy;
     }
@@ -151,15 +161,8 @@ contract EndPoint is Config {
         }
     }
 
-    function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) {
+    function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy {
         address appAddress = msg.sender;
-        require(failureHandleMap[appAddress] != FailureHandleStrategy.Closed, "strategy not allowed");
-        require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
-
-        if (failureHandleMap[appAddress] == FailureHandleStrategy.HandleInOrder) {
-            require(retryQueue[appAddress].popFront() == pkgHash, "package not on front");
-        }
-
         bytes memory _appMsg = packageMap[pkgHash].appMsg;
         if (packageMap[pkgHash].isFailAck) {
             IApplication(appAddress).handleFailAckPackage(APP_CHANNELID, _appMsg);
@@ -169,14 +172,21 @@ contract EndPoint is Config {
         packageMap[pkgHash].isDeleted = true;
     }
 
-    function skipPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) {
+    function skipPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy {
         address appAddress = msg.sender;
-        if (failureHandleMap[appAddress] == FailureHandleStrategy.HandleInOrder) {
-            require(retryQueue[appAddress].popFront() == pkgHash, "package not on front");
-        }
         packageMap[pkgHash].isDeleted = true;
-    }
 
+        DoubleEndedQueueUpgradeable.Bytes32Deque storage _queue = retryQueue[appAddress];
+        bytes32 _front;
+        while (!_queue.empty()) {
+            _front = _queue.front();
+            if (!packageMap[_front].isDeleted) {
+                break;
+            }
+            _queue.popFront();
+            delete packageMap[_front];
+        }
+    }
 
     /***************************** Internal functions *****************************/
     function _RLPEncode(uint8 eventType, bytes memory msgBytes) internal pure returns(bytes memory output) {
