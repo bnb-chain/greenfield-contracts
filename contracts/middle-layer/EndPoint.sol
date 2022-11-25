@@ -61,7 +61,7 @@ contract EndPoint is Config {
         _;
     }
 
-    modifier checkFailureStrategy() {
+    modifier checkFailureStrategy(bytes32 pkgHash) {
         address appAddress = msg.sender;
         require(failureHandleMap[appAddress] != FailureHandleStrategy.Closed, "strategy not allowed");
         require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
@@ -161,7 +161,7 @@ contract EndPoint is Config {
         }
     }
 
-    function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy {
+    function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
         address appAddress = msg.sender;
         bytes memory _appMsg = packageMap[pkgHash].appMsg;
         if (packageMap[pkgHash].isFailAck) {
@@ -170,12 +170,16 @@ contract EndPoint is Config {
             IApplication(appAddress).handleAckPackage(APP_CHANNELID, _appMsg);
         }
         packageMap[pkgHash].isDeleted = true;
+        _cleanQueue(appAddress);
     }
 
-    function skipPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy {
-        address appAddress = msg.sender;
+    function skipPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
         packageMap[pkgHash].isDeleted = true;
+        _cleanQueue(msg.sender);
+    }
 
+    /***************************** Internal functions *****************************/
+    function _cleanQueue(address appAddress) internal {
         DoubleEndedQueueUpgradeable.Bytes32Deque storage _queue = retryQueue[appAddress];
         bytes32 _front;
         while (!_queue.empty()) {
@@ -188,7 +192,6 @@ contract EndPoint is Config {
         }
     }
 
-    /***************************** Internal functions *****************************/
     function _RLPEncode(uint8 eventType, bytes memory msgBytes) internal pure returns(bytes memory output) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = eventType.encodeUint();
