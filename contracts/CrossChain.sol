@@ -38,7 +38,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     mapping(uint8 => uint64) public channelSyncedHeaderMap;
     
     // event
-    event crossChainPackage(uint16 chainId, uint64 indexed oracleSequence, uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
+    event CrossChainPackage(uint16 chainId, uint64 indexed oracleSequence, uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
     event receivedPackage(uint8 packageType, uint64 indexed packageSequence, uint8 indexed channelId);
     event unsupportedPackage(uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
     event unexpectedRevertInPackageHandler(address indexed contractAddr, string reason);
@@ -112,13 +112,14 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     }
 
     function encodePayload(uint8 packageType, uint256 relayFee, bytes memory msgBytes) public pure returns(bytes memory) {
-        uint256 payloadLength = msgBytes.length + 33;
+        uint64 timestamp = uint64(block.timestamp);
+        uint256 payloadLength = msgBytes.length + 1 + 8 + 32; // packageType, timestamp, relayFee, msgBytes
         bytes memory payload = new bytes(payloadLength);
         uint256 ptr;
         assembly {
             ptr := payload
         }
-        ptr+=33;
+        ptr += 1 + 8 + 32;
 
         assembly {
             mstore(ptr, relayFee)
@@ -127,6 +128,11 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         ptr-=32;
         assembly {
             mstore(ptr, packageType)
+        }
+
+        ptr-=8;
+        assembly {
+            mstore(ptr, timestamp)
         }
 
         ptr-=1;
@@ -241,7 +247,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
                 txCounter = 1;
             }
         }
-        emit crossChainPackage(bscChainID, uint64(oracleSequence), packageSequence, channelId, payload);
+        emit CrossChainPackage(bscChainID, uint64(oracleSequence), packageSequence, channelId, payload);
     }
 
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee)
