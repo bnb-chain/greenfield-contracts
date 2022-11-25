@@ -111,47 +111,15 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         txCounter = 0;
     }
 
-    function encodePayload(uint8 packageType, uint256 relayFee, bytes memory msgBytes) public pure returns(bytes memory) {
-        uint64 timestamp = uint64(block.timestamp);
-        uint256 payloadLength = msgBytes.length + 1 + 8 + 32; // packageType, timestamp, relayFee, msgBytes
-        bytes memory payload = new bytes(payloadLength);
-        uint256 ptr;
-        assembly {
-            ptr := payload
-        }
-        ptr += 1 + 8 + 32;
-
-        assembly {
-            mstore(ptr, relayFee)
-        }
-
-        ptr-=32;
-        assembly {
-            mstore(ptr, packageType)
-        }
-
-        ptr-=8;
-        assembly {
-            mstore(ptr, timestamp)
-        }
-
-        ptr-=1;
-        assembly {
-            mstore(ptr, payloadLength)
-        }
-
-        ptr+=65;
-        (uint256 src,) = Memory.fromBytes(msgBytes);
-        Memory.copy(src, ptr, msgBytes.length);
-
-        return payload;
+    function encodePayload(uint8 packageType, uint256 relayFee, bytes memory msgBytes) public view returns(bytes memory) {
+        return abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
     }
 
-    // | type   | relayFee   |package  |
-    // | 1 byte | 32 bytes   | bytes    |
-    function decodePayloadHeader(bytes memory payload) internal pure returns(bool, uint8, uint256, bytes memory) {
-        if (payload.length < 33) {
-            return (false, 0, 0, new bytes(0));
+    // | packageType |  timestamp  |  relayFee  |  package  |
+    // | 1 byte      |  8 bytes    |  32 bytes  |  bytes    |
+    function decodePayloadHeader(bytes memory payload) internal pure returns(bool, uint8 packageType, uint64 time, uint256 relayFee, bytes memory msgBytes) {
+        if (payload.length < 41) {
+            return (false, 0, 0, 0, new bytes(0));
         }
 
         uint256 ptr;
@@ -159,24 +127,27 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
             ptr := payload
         }
 
-        uint8 packageType;
-        ptr+=1;
+        ptr += 1;
         assembly {
             packageType := mload(ptr)
         }
 
-        uint256 relayFee;
-        ptr+=32;
+        ptr += 8;
+        assembly {
+            time := mload(ptr)
+        }
+
+        ptr += 32;
         assembly {
             relayFee := mload(ptr)
         }
 
-        ptr+=32;
-        bytes memory msgBytes = new bytes(payload.length-33);
+        ptr += 32;
+        msgBytes = new bytes(payload.length - 41);
         (uint256 dst, ) = Memory.fromBytes(msgBytes);
-        Memory.copy(ptr, dst, payload.length-33);
+        Memory.copy(ptr, dst, payload.length - 41);
 
-        return (true, packageType, relayFee, msgBytes);
+        return (true, packageType, time, relayFee, msgBytes);
     }
 
     function handlePackage(bytes calldata payload, bytes calldata proof, uint64 height, uint64 packageSequence, uint8 channelId)
@@ -193,7 +164,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
 
         uint64 sequenceLocal = packageSequence; // fix error: stack too deep, try removing local variables
         uint8 channelIdLocal = channelId; // fix error: stack too deep, try removing local variables
-        (bool success, uint8 packageType, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(payloadLocal);
+        (bool success, uint8 packageType, uint64 time, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(payloadLocal);
         if (!success) {
             emit unsupportedPackage(sequenceLocal, channelIdLocal, payloadLocal);
             return;
