@@ -183,7 +183,7 @@ contract EndPoint is Config {
         bytes32 _front;
         while (!_queue.empty()) {
             _front = _queue.front();
-            if (packageMap[pkgHash].appAddress != address(0)) {
+            if (packageMap[_front].appAddress != address(0)) {
                 break;
             }
             _queue.popFront();
@@ -234,7 +234,7 @@ contract EndPoint is Config {
         try IApplication(_appAddress).handleAckPackage{ gas: _gasLimit}(APP_CHANNELID, _appMsg) {
         } catch (bytes memory reason) {
             if (_strategy != FailureHandleStrategy.Skip) {
-                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false, false, reason);
+                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false, reason);
                 retryQueue[_appAddress].pushBack(pkgHash);
             }
         }
@@ -282,7 +282,7 @@ contract EndPoint is Config {
         try IApplication(_appAddress).handleFailAckPackage{ gas: _gasLimit}(APP_CHANNELID, _appMsg) {
         } catch (bytes memory reason) {
             if (_strategy != FailureHandleStrategy.Skip) {
-                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, true, false, reason);
+                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, true, reason);
                 retryQueue[_appAddress].pushBack(pkgHash);
             }
         }
