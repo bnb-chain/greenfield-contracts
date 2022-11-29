@@ -47,7 +47,6 @@ contract EndPoint is Config {
         address appAddress;
         bytes appMsg;
         bool isFailAck;
-        bool isDeleted;
         bytes failReason;
     }
 
@@ -57,7 +56,7 @@ contract EndPoint is Config {
     }
 
     modifier onlyPackageNotDeleted(bytes32 pkgHash) {
-        require(packageMap[pkgHash].appAddress != address(0) && !packageMap[pkgHash].isDeleted, "package already deleted");
+        require(packageMap[pkgHash].appAddress != address(0), "package already deleted");
         _;
     }
 
@@ -169,12 +168,12 @@ contract EndPoint is Config {
         } else {
             IApplication(appAddress).handleAckPackage(APP_CHANNELID, _appMsg);
         }
-        packageMap[pkgHash].isDeleted = true;
+        delete packageMap[pkgHash];
         _cleanQueue(appAddress);
     }
 
     function skipPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
-        packageMap[pkgHash].isDeleted = true;
+        delete packageMap[pkgHash];
         _cleanQueue(msg.sender);
     }
 
@@ -184,11 +183,10 @@ contract EndPoint is Config {
         bytes32 _front;
         while (!_queue.empty()) {
             _front = _queue.front();
-            if (!packageMap[_front].isDeleted) {
+            if (packageMap[pkgHash].appAddress != address(0)) {
                 break;
             }
             _queue.popFront();
-            delete packageMap[_front];
         }
     }
 
