@@ -24,6 +24,8 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     // governable parameters
     uint256 public batchSizeForOracle;
 
+    uint32 public chainId;
+
     //state variables
     uint256 public previousTxHeight;
     uint256 public txCounter;
@@ -38,7 +40,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     mapping(uint8 => uint64) public channelSyncedHeaderMap;
     
     // event
-    event CrossChainPackage(uint16 chainId, uint64 indexed oracleSequence, uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
+    event CrossChainPackage(uint32 chainId, uint64 indexed oracleSequence, uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
     event receivedPackage(uint8 packageType, uint64 indexed packageSequence, uint8 indexed channelId);
     event unsupportedPackage(uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
     event unexpectedRevertInPackageHandler(address indexed contractAddr, string reason);
@@ -102,6 +104,8 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     function initialize() public initializer
     {
         __Ownable_init();
+
+        chainId = uint32(block.chainid);
 
         // TODO register channels
         batchSizeForOracle = INIT_BATCH_SIZE;
@@ -218,7 +222,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
                 txCounter = 1;
             }
         }
-        emit CrossChainPackage(bscChainID, uint64(oracleSequence), packageSequence, channelId, payload);
+        emit CrossChainPackage(chainId, uint64(oracleSequence), packageSequence, channelId, payload);
     }
 
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee)
