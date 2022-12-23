@@ -1,8 +1,9 @@
 pragma solidity ^0.8.0;
 
 import "./interface/ITokenHub.sol";
+import "./Config.sol";
 
-abstract contract Governance {
+abstract contract Governance is Config {
 
     // BEP-171: Security Enhancement for Cross-Chain Module
     // 0xebbda044f67428d7e9b472f9124983082bcda4f84f5148ca0a9ccbe06350f196
@@ -17,7 +18,6 @@ abstract contract Governance {
     uint16 public constant INIT_REOPEN_QUORUM = 2;
     uint16 public constant INIT_CANCEL_TRANSFER_QUORUM = 2;
     uint256 public constant EMERGENCY_PROPOSAL_EXPIRE_PERIOD = 1 hours;
-
 
     // TODO
     address public TOKEN_HUB_ADDR;
@@ -55,17 +55,6 @@ abstract contract Governance {
         uint64 packageSequence,
         uint8 channelId
     );
-
-    // BEP-171: Security Enhancement for Cross-Chain Module
-    modifier onlyRelayer() {
-        // TODO
-        _;
-    }
-
-    modifier onlyGov() {
-        // TODO
-        _;
-    }
 
     modifier whenNotSuspended() {
         require(!isSuspended, "suspended");
