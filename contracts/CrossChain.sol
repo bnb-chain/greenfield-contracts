@@ -49,7 +49,6 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     event EnableOrDisableChannel(uint8 indexed channelId, bool isEnable);
     event AddChannel(uint8 indexed channelId, address indexed contractAddr);
 
-
     modifier sequenceInOrder(uint64 _sequence, uint8 _channelID) {
         uint64 expectedSequence = channelReceiveSequenceMap[_channelID];
         require(_sequence == expectedSequence, "sequence not in order");
@@ -66,39 +65,6 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     modifier onlyRegisteredContractChannel(uint8 channleId) {
         require(registeredContractChannelMap[msg.sender][channleId], "the contract and channel have not been registered");
         _;
-    }
-
-    modifier headerInOrder(uint64 height, uint8 channelId) {
-        require(height >= channelSyncedHeaderMap[channelId], "too old header");
-        if (height != channelSyncedHeaderMap[channelId]) {
-            channelSyncedHeaderMap[channelId] = height;
-        }
-        _;
-    }
-
-
-    // | length   | prefix | sourceChainID| destinationChainID | channelID | sequence |
-    // | 32 bytes | 1 byte | 2 bytes      | 2 bytes            |  1 bytes  | 8 bytes  |
-    function generateKey(uint64 _sequence, uint8 _channelID) internal pure returns(bytes memory) {
-        uint256 fullCROSS_CHAIN_KEY_PREFIX = CROSS_CHAIN_KEY_PREFIX | _channelID;
-        bytes memory key = new bytes(14);
-
-        uint256 ptr;
-        assembly {
-            ptr := add(key, 14)
-        }
-        assembly {
-            mstore(ptr, _sequence)
-        }
-        ptr -= 8;
-        assembly {
-            mstore(ptr, fullCROSS_CHAIN_KEY_PREFIX)
-        }
-        ptr -= 6;
-        assembly {
-            mstore(ptr, 14)
-        }
-        return key;
     }
 
     function initialize() public initializer
