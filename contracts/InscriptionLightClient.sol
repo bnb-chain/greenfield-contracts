@@ -6,9 +6,14 @@ contract InscriptionLightClient {
     address constant public LIGHT_CLIENT_CONTRACT = 0x0000000000000000000000000000000000003000;
     uint256 constant public BLS_PUBKEY_LENGTH = 48;
 
+    uint8 constant public PREFIX_VERIFY_HEADER = 0x01;
+    uint8 constant public PREFIX_VERIFY_PACKAGE = 0x02;
+
+    uint256 constant public IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
+    uint256 constant public RELAYER_SUBMIT_PACKAGE_INTERVAL = 3 seconds;
+
     /* --------------------- 2. storage --------------------- */
     uint64 public height;
-    bytes32 public appHash;
     bytes32 curValidatorSetHash;
     address[] public validators;
     address[] public relayers;
@@ -16,57 +21,78 @@ contract InscriptionLightClient {
 
     modifier onlyRelayer() {
         bool isRelayer;
-        require(relayers.length > 0, "empty relayers");
-        for (uint256 i = 0; i < relayers.length; i++) {
+        uint256 _totalRelayers = relayers.length;
+        require(_totalRelayers > 0, "empty relayers");
+        for (uint256 i = 0; i < _totalRelayers; i++) {
             if (relayers[i] == msg.sender) {
                 isRelayer = true;
                 break;
             }
         }
-        require(isRelayer, "invalid relayer");
+        require(isRelayer, "only relayer");
 
         _;
     }
 
     function syncTendermintHeader(
-        bytes calldata _headerWithSig,
-        address[] calldata _validators,
-        address[] calldata _relayers,
-        bytes calldata _blsPubKeys
+        bytes calldata _header,
+        uint64 _height,
+        bytes calldata _blsPubKeys,
+        address[] calldata _relayers
     ) external onlyRelayer {
-        require(_validators.length == _relayers.length, "length mismatch between validators and relayers");
-        require(_validators.length == _blsPubKeys.length / BLS_PUBKEY_LENGTH, "length mismatch between validators and _blsPubKeys");
-
-        // verify blsSignature and decode block header
-        bytes memory input = abi.encodePacked(_headerWithSig, _blsPubKeys);
-        (bool success, bytes memory data) = LIGHT_CLIENT_CONTRACT.staticcall(input);
-        (uint64 _height, bytes32 _appHash, bytes32 _curValidatorSetHash) = abi.decode(data, (uint64, bytes32, bytes32));
+        require(_relayers.length == _blsPubKeys.length / BLS_PUBKEY_LENGTH, "length mismatch between _relayers and _blsPubKeys");
         require(_height > height, "invalid block height");
 
-        if (_validators.length == 0) { // validators not changed
-            require(_curValidatorSetHash == curValidatorSetHash, "_curValidatorSetHash changed while validators not changed");
-        } else { // validators changed
+        // verify blsSignature and decode block header
+        bytes memory input = abi.encodePacked(PREFIX_VERIFY_HEADER, _header, _height, _blsPubKeys, _relayers);
+        (bool success, ) = LIGHT_CLIENT_CONTRACT.staticcall(input);
+        require(success, "invalid header");
 
-            // verify _curValidatorSetHash
-            require(getValidatorsHash(_validators, _relayers, _blsPubKeys) == _curValidatorSetHash, "validators hash from header mismatch");
-
+        // validators changed
+        if (_blsPubKeys.length > 0) {
             // update new validators info
-            validators = _validators;
-            relayers = _relayers;
             blsPubKeys = _blsPubKeys;
+            relayers = _relayers;
         }
 
         height = _height;
-        appHash = _appHash;
-        curValidatorSetHash = _curValidatorSetHash;
     }
 
-    function getValidatorsHash(
-        address[] calldata _validators,
-        address[] calldata _relayers,
-        bytes calldata _blsPubKeys
-    ) internal view returns(bytes32 _hash) {
-        // TODO
+    function verifyPackage(
+        bytes calldata payload,
+        bytes calldata blsSignature,
+        uint256 validatorSet,
+        bytes memory pkgKey,
+        address pkgRelayer
+    ) external view {
+        bytes memory input = abi.encodePacked(PREFIX_VERIFY_PACKAGE, payload, blsSignature, pkgKey, validatorSet, blsPubKeys);
+        (bool success, bytes memory data) = LIGHT_CLIENT_CONTRACT.staticcall(input);
+        require(success && data.length > 0, "invalid cross-chain package");
+        (uint64 eventTime) = abi.decode(data, (uint64));
 
+        // check if it is the valid relayer
+        uint256 _totalRelayers = relayers.length;
+        uint256 _currentIndex = uint256(eventTime) % _totalRelayers;
+        if (pkgRelayer != relayers[_currentIndex]) {
+            uint256 diffSeconds = block.timestamp - uint256(eventTime);
+            require(diffSeconds >= IN_TURN_RELAYER_VALIDITY_PERIOD, "not in turn relayer");
+
+            bool isValidRelayer;
+            for (uint256 i; i < _totalRelayers; ++i) {
+                _currentIndex = (_currentIndex + 1) % _totalRelayers;
+                if (pkgRelayer == relayers[_currentIndex]) {
+                    isValidRelayer = true;
+                    break;
+                }
+
+                if (diffSeconds < RELAYER_SUBMIT_PACKAGE_INTERVAL) {
+                    break;
+                }
+                diffSeconds -= RELAYER_SUBMIT_PACKAGE_INTERVAL;
+            }
+
+            require(isValidRelayer, "invalid candidate relayer");
+        }
     }
+
 }
