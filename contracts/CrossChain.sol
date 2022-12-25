@@ -63,8 +63,8 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         _;
     }
 
-    modifier onlyRegisteredContractChannel(uint8 channleId) {
-        require(registeredContractChannelMap[msg.sender][channleId], "the contract and channel have not been registered");
+    modifier onlyRegisteredContractChannel(uint8 channelId) {
+        require(registeredContractChannelMap[msg.sender][channelId], "the contract and channel have not been registered");
         _;
     }
 
