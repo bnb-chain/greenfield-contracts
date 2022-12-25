@@ -59,13 +59,13 @@ contract InscriptionLightClient {
     }
 
     function verifyPackage(
+        bytes memory _pkgKey,
         bytes calldata _payload,
         bytes calldata _blsSignature,
         uint256 _validatorSet,
-        bytes memory _pkgKey,
         address _pkgRelayer
     ) external view {
-        bytes memory input = abi.encodePacked(PREFIX_VERIFY_PACKAGE, _payload, _blsSignature, _pkgKey, _validatorSet, blsPubKeys);
+        bytes memory input = abi.encodePacked(PREFIX_VERIFY_PACKAGE, _pkgKey, _payload, _blsSignature, _validatorSet, blsPubKeys);
         (bool success, bytes memory data) = LIGHT_CLIENT_CONTRACT.staticcall(input);
         require(success && data.length > 0, "invalid cross-chain package");
         (uint64 eventTime) = abi.decode(data, (uint64));

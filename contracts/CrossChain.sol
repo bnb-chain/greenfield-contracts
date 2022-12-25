@@ -15,7 +15,6 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
 
     // constant variables
     string constant public STORE_NAME = "ibc";
-    uint256 constant public CROSS_CHAIN_KEY_PREFIX = 0x01006000; // last 6 bytes
     uint8 constant public SYN_PACKAGE = 0x00;
     uint8 constant public ACK_PACKAGE = 0x01;
     uint8 constant public FAIL_ACK_PACKAGE = 0x02;
@@ -25,6 +24,8 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     uint256 public batchSizeForOracle;
 
     uint32 public chainId;
+    uint32 public insChainId;
+    uint256 public CROSS_CHAIN_KEY_PREFIX = 0x01006000; // last 6 bytes
 
     //state variables
     uint256 public previousTxHeight;
@@ -67,10 +68,11 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         _;
     }
 
-    function initialize() public initializer {
+    function initialize(uint32 _insChainId) public initializer {
         __Ownable_init();
 
         chainId = uint32(block.chainid);
+        insChainId = _insChainId;
 
         // TODO register channels
         batchSizeForOracle = INIT_BATCH_SIZE;
@@ -119,19 +121,26 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         return (true, packageType, time, relayFee, msgBytes);
     }
 
-    function handlePackage(bytes calldata payload, bytes calldata blsSignature, uint256 validatorSet, uint64 packageSequence, uint8 channelId)
+    function handlePackage(
+        bytes calldata payload,
+        bytes calldata blsSignature,
+        uint256 validatorSet,
+        uint64 packageSequence,
+        uint8 channelId
+    ) external
     sequenceInOrder(packageSequence, channelId)
     channelSupported(channelId)
-    whenNotSuspended
-    external {
-        bytes memory _payload = payload; // fix error: stack too deep, try removing local variables
-        require(ILightClient(LIGHT_CLIENT_ADDR).verifyPackage(_payload, blsSignature, validatorSet, packageSequence, channelId), "invalid signature");
-
+    whenNotSuspended {
         uint64 _sequence = packageSequence; // fix error: stack too deep, try removing local variables
         uint8 _channelId = channelId; // fix error: stack too deep, try removing local variables
-        (bool success, uint8 packageType, uint64 pkgTime, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(_payload);
-        require(ILightClient(LIGHT_CLIENT_ADDR).verifyPackageRelayer(msg.sender, pkgTime), "invalid relayer");
+        bytes memory _payload = payload; // fix error: stack too deep, try removing local variables
+        bytes memory _blsSignature = blsSignature; // fix error: stack too deep, try removing local variables
+        uint256 _validatorSet = validatorSet; // fix error: stack too deep, try removing local variables
 
+        bytes memory _pkgKey = abi.encodePacked(insChainId, channelId, packageSequence);
+        ILightClient(LIGHT_CLIENT_ADDR).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorSet, msg.sender);
+
+        (bool success, uint8 packageType, uint64 eventTime, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(_payload);
         if (!success) {
             emit UnsupportedPackage(_sequence, _channelId, _payload);
             return;
