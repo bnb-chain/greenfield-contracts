@@ -59,13 +59,13 @@ contract InscriptionLightClient {
     }
 
     function verifyPackage(
-        bytes calldata payload,
-        bytes calldata blsSignature,
-        uint256 validatorSet,
-        bytes memory pkgKey,
-        address pkgRelayer
+        bytes calldata _payload,
+        bytes calldata _blsSignature,
+        uint256 _validatorSet,
+        bytes memory _pkgKey,
+        address _pkgRelayer
     ) external view {
-        bytes memory input = abi.encodePacked(PREFIX_VERIFY_PACKAGE, payload, blsSignature, pkgKey, validatorSet, blsPubKeys);
+        bytes memory input = abi.encodePacked(PREFIX_VERIFY_PACKAGE, _payload, _blsSignature, _pkgKey, _validatorSet, blsPubKeys);
         (bool success, bytes memory data) = LIGHT_CLIENT_CONTRACT.staticcall(input);
         require(success && data.length > 0, "invalid cross-chain package");
         (uint64 eventTime) = abi.decode(data, (uint64));
@@ -73,14 +73,14 @@ contract InscriptionLightClient {
         // check if it is the valid relayer
         uint256 _totalRelayers = relayers.length;
         uint256 _currentIndex = uint256(eventTime) % _totalRelayers;
-        if (pkgRelayer != relayers[_currentIndex]) {
+        if (_pkgRelayer != relayers[_currentIndex]) {
             uint256 diffSeconds = block.timestamp - uint256(eventTime);
             require(diffSeconds >= IN_TURN_RELAYER_VALIDITY_PERIOD, "not in turn relayer");
 
             bool isValidRelayer;
             for (uint256 i; i < _totalRelayers; ++i) {
                 _currentIndex = (_currentIndex + 1) % _totalRelayers;
-                if (pkgRelayer == relayers[_currentIndex]) {
+                if (_pkgRelayer == relayers[_currentIndex]) {
                     isValidRelayer = true;
                     break;
                 }
