@@ -462,27 +462,6 @@ contract TokenHub is Config, OwnableUpgradeable {
         return true;
     }
 
-    function updateParam(string calldata key, bytes calldata value) external onlyGov{
-        require(value.length == 32, "expected value length is 32");
-        string memory localKey = key;
-        bytes memory localValue = value;
-        bytes32 bytes32Key;
-        assembly {
-            bytes32Key := mload(add(localKey, 32))
-        }
-        if (bytes32Key == bytes32(0x72656c6179466565000000000000000000000000000000000000000000000000)) { // relayFee
-            uint256 newRelayFee;
-            assembly {
-                newRelayFee := mload(add(localValue, 32))
-            }
-            require(newRelayFee <= 1e18 && newRelayFee%(TEN_DECIMALS)==0, "the relayFee out of range");
-            relayFee = newRelayFee;
-        } else {
-            require(false, "unknown param");
-        }
-        emit ParamChange(key, value);
-    }
-
     function getContractAddrByBEP2Symbol(bytes32 bep2Symbol) external view returns(address) {
         return bep2SymbolToContractAddr[bep2Symbol];
     }
