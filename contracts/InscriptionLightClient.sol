@@ -7,10 +7,6 @@ contract InscriptionLightClient {
 
     uint8 constant public PREFIX_VERIFY_HEADER = 0x01;
     uint8 constant public PREFIX_VERIFY_PACKAGE = 0x02;
-
-    uint256 constant public IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
-    uint256 constant public RELAYER_SUBMIT_PACKAGE_INTERVAL = 3 seconds;
-
     /* --------------------- 2. storage --------------------- */
     uint64 public height;
     address[] public relayers;
@@ -59,37 +55,14 @@ contract InscriptionLightClient {
         bytes memory _pkgKey,
         bytes calldata _payload,
         bytes calldata _blsSignature,
-        uint256 _validatorSet,
-        address _pkgRelayer
+        uint256 _validatorSet
     ) external view {
         bytes memory input = abi.encodePacked(PREFIX_VERIFY_PACKAGE, _pkgKey, _payload, _blsSignature, _validatorSet, blsPubKeys);
         (bool success, bytes memory data) = LIGHT_CLIENT_CONTRACT.staticcall(input);
         require(success && data.length > 0, "invalid cross-chain package");
-        (uint64 eventTime) = abi.decode(data, (uint64));
-
-        // check if it is the valid relayer
-        uint256 _totalRelayers = relayers.length;
-        uint256 _currentIndex = uint256(eventTime) % _totalRelayers;
-        if (_pkgRelayer != relayers[_currentIndex]) {
-            uint256 diffSeconds = block.timestamp - uint256(eventTime);
-            require(diffSeconds >= IN_TURN_RELAYER_VALIDITY_PERIOD, "not in turn relayer");
-
-            bool isValidRelayer;
-            for (uint256 i; i < _totalRelayers; ++i) {
-                _currentIndex = (_currentIndex + 1) % _totalRelayers;
-                if (_pkgRelayer == relayers[_currentIndex]) {
-                    isValidRelayer = true;
-                    break;
-                }
-
-                if (diffSeconds < RELAYER_SUBMIT_PACKAGE_INTERVAL) {
-                    break;
-                }
-                diffSeconds -= RELAYER_SUBMIT_PACKAGE_INTERVAL;
-            }
-
-            require(isValidRelayer, "invalid candidate relayer");
-        }
     }
 
+    function getRelayers() external view returns(address[] memory) {
+        return relayers;
+    }
 }

@@ -14,18 +14,19 @@ import "./Governance.sol";
 contract CrossChain is Config, Governance, OwnableUpgradeable {
 
     // constant variables
-    string constant public STORE_NAME = "ibc";
     uint8 constant public SYN_PACKAGE = 0x00;
     uint8 constant public ACK_PACKAGE = 0x01;
     uint8 constant public FAIL_ACK_PACKAGE = 0x02;
     uint256 constant public INIT_BATCH_SIZE = 50;
+
+    uint256 constant public IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
+    uint256 constant public RELAYER_SUBMIT_PACKAGE_INTERVAL = 3 seconds;
 
     // governable parameters
     uint256 public batchSizeForOracle;
 
     uint32 public chainId;
     uint32 public insChainId;
-    uint256 public CROSS_CHAIN_KEY_PREFIX = 0x01006000; // last 6 bytes
 
     //state variables
     uint256 public previousTxHeight;
@@ -138,7 +139,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         uint256 _validatorSet = validatorSet; // fix error: stack too deep, try removing local variables
 
         bytes memory _pkgKey = abi.encodePacked(insChainId, channelId, packageSequence);
-        ILightClient(LIGHT_CLIENT_ADDR).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorSet, msg.sender);
+        ILightClient(LIGHT_CLIENT_ADDR).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorSet);
 
         (bool success, uint8 packageType, uint64 eventTime, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(_payload);
         if (!success) {
@@ -146,6 +147,9 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
             return;
         }
         emit ReceivedPackage(packageType, _sequence, _channelId);
+
+        _checkValidRelayer(eventTime);
+
         if (packageType == SYN_PACKAGE) {
             address handlerContract = channelHandlerContractMap[_channelId];
             try IMiddleLayer(handlerContract).handleSynPackage(_channelId, msgBytes) returns (bytes memory responsePayload) {
@@ -178,6 +182,34 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
             } catch (bytes memory lowLevelData) {
                 emit UnexpectedFailureAssertionInPackageHandler(handlerContract, lowLevelData);
             }
+        }
+    }
+
+    function _checkValidRelayer(uint64 eventTime) internal {
+        address[] memory relayers = ILightClient(LIGHT_CLIENT_ADDR).getRelayers();
+
+        // check if it is the valid relayer
+        uint256 _totalRelayers = relayers.length;
+        uint256 _currentIndex = uint256(eventTime) % _totalRelayers;
+        if (msg.sender != relayers[_currentIndex]) {
+            uint256 diffSeconds = block.timestamp - uint256(eventTime);
+            require(diffSeconds >= IN_TURN_RELAYER_VALIDITY_PERIOD, "not in turn relayer");
+
+            bool isValidRelayer;
+            for (uint256 i; i < _totalRelayers; ++i) {
+                _currentIndex = (_currentIndex + 1) % _totalRelayers;
+                if (msg.sender == relayers[_currentIndex]) {
+                    isValidRelayer = true;
+                    break;
+                }
+
+                if (diffSeconds < RELAYER_SUBMIT_PACKAGE_INTERVAL) {
+                    break;
+                }
+                diffSeconds -= RELAYER_SUBMIT_PACKAGE_INTERVAL;
+            }
+
+            require(isValidRelayer, "invalid candidate relayer");
         }
     }
 
