@@ -38,8 +38,8 @@ contract InscriptionLightClient {
 
         // verify blsSignature and decode block header
         bytes memory input = abi.encodePacked(PREFIX_VERIFY_HEADER, _header, _height, _blsPubKeys, _relayers);
-        (bool success, ) = LIGHT_CLIENT_CONTRACT.staticcall(input);
-        require(success, "invalid header");
+        (bool success, bytes memory data) = LIGHT_CLIENT_CONTRACT.staticcall(input);
+        require(success && data.length > 0, "invalid header");
 
         // validators changed
         if (_blsPubKeys.length > 0) {
