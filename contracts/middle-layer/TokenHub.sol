@@ -70,8 +70,6 @@ contract TokenHub is Config, OwnableUpgradeable {
 
     uint256 constant public INIT_MINIMUM_RELAY_FEE =2e15;
     uint256 constant public REWARD_UPPER_LIMIT =1e18;
-    uint256 constant public TEN_DECIMALS = 1e10;
-
 
     address public CROSS_CHAIN_CONTRACT;
     uint256 public relayFee;
@@ -394,12 +392,10 @@ contract TokenHub is Config, OwnableUpgradeable {
    */
     function transferOut(address contractAddr, address recipient, uint256 amount, uint64 expireTime) external payable returns (bool) {
         require(expireTime>=block.timestamp + 120, "expireTime must be two minutes later");
-        require(msg.value%TEN_DECIMALS==0, "invalid received BNB amount: precision loss in amount conversion");
         bytes32 bep2TokenSymbol;
         uint256 rewardForRelayer;
         if (contractAddr==address(0x0)) {
             require(msg.value>=amount + relayFee, "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee");
-            require(amount%TEN_DECIMALS==0, "invalid transfer amount: precision loss in amount conversion");
             rewardForRelayer=msg.value - amount;
             bep2TokenSymbol=BEP2_TOKEN_SYMBOL_FOR_BNB;
         } else {
@@ -423,42 +419,6 @@ contract TokenHub is Config, OwnableUpgradeable {
         transOutSynPkg.refundAddrs[0]=msg.sender;
         ICrossChain(CROSS_CHAIN_CONTRACT_ADDR).sendSynPackage(TRANSFER_OUT_CHANNELID, encodeTransferOutSynPackage(transOutSynPkg), rewardForRelayer);
         emit TransferOutSuccess(contractAddr, msg.sender, amount, rewardForRelayer);
-        return true;
-    }
-
-    /**
-     * @dev request a batch cross-chain BNB transfers from BSC to INS
-   *
-   * @param recipientAddrs The destination address of the cross-chain transfer on INS.
-   * @param amounts The amounts to transfer
-   * @param refundAddrs The refund addresses that receive the refund funds while failed to cross-chain transfer
-   * @param expireTime The expire time for these cross-chain transfers
-   */
-    function batchTransferOutBNB(address[] calldata recipientAddrs, uint256[] calldata amounts, address[] calldata refundAddrs, uint64 expireTime) external payable returns (bool) {
-        require(recipientAddrs.length == amounts.length, "Length of recipientAddrs doesn't equal to length of amounts");
-        require(recipientAddrs.length == refundAddrs.length, "Length of recipientAddrs doesn't equal to length of refundAddrs");
-        require(expireTime>=block.timestamp + 120, "expireTime must be two minutes later");
-        require(msg.value%TEN_DECIMALS==0, "invalid received BNB amount: precision loss in amount conversion");
-        uint256 batchLength = amounts.length;
-        uint256 totalAmount = 0;
-        uint256 rewardForRelayer;
-        for (uint i = 0; i < batchLength; i++) {
-            require(amounts[i]%TEN_DECIMALS==0, "invalid transfer amount: precision loss in amount conversion");
-            totalAmount = totalAmount + amounts[i];
-        }
-        require(msg.value>=totalAmount + relayFee * batchLength, "received BNB amount should be no less than the sum of transfer BNB amount and relayFee");
-        rewardForRelayer = msg.value - totalAmount;
-
-        TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage({
-        bep2TokenSymbol: BEP2_TOKEN_SYMBOL_FOR_BNB,
-        contractAddr: address(0x00),
-        amounts: amounts,
-        recipients: recipientAddrs,
-        refundAddrs: refundAddrs,
-        expireTime: expireTime
-        });
-        ICrossChain(CROSS_CHAIN_CONTRACT_ADDR).sendSynPackage(TRANSFER_OUT_CHANNELID, encodeTransferOutSynPackage(transOutSynPkg), rewardForRelayer);
-        emit TransferOutSuccess(address(0x0), msg.sender, totalAmount, rewardForRelayer);
         return true;
     }
 
