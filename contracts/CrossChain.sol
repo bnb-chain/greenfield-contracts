@@ -139,7 +139,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         uint256 _validatorSet = validatorSet; // fix error: stack too deep, try removing local variables
 
         bytes memory _pkgKey = abi.encodePacked(insChainId, channelId, packageSequence);
-        ILightClient(LIGHT_CLIENT_ADDR).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorSet);
+        ILightClient(INSCRIPTION_LIGHT_CLIENT_ADDR).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorSet);
 
         (bool success, uint8 packageType, uint64 eventTime, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(_payload);
         if (!success) {
@@ -186,7 +186,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     }
 
     function _checkValidRelayer(uint64 eventTime) internal {
-        address[] memory relayers = ILightClient(LIGHT_CLIENT_ADDR).getRelayers();
+        address[] memory relayers = ILightClient(INSCRIPTION_LIGHT_CLIENT_ADDR).getRelayers();
 
         // check if it is the valid relayer
         uint256 _totalRelayers = relayers.length;

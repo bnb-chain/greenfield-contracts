@@ -4,8 +4,6 @@ import "./interface/ITokenHub.sol";
 import "./Config.sol";
 
 abstract contract Governance is Config {
-
-    // BEP-171: Security Enhancement for Cross-Chain Module
     // 0xebbda044f67428d7e9b472f9124983082bcda4f84f5148ca0a9ccbe06350f196
     bytes32 public constant SUSPEND_PROPOSAL = keccak256("SUSPEND_PROPOSAL");
     // 0xcf82004e82990eca84a75e16ba08aa620238e076e0bc7fc4c641df44bbf5b55a
@@ -19,10 +17,6 @@ abstract contract Governance is Config {
     uint16 public constant INIT_CANCEL_TRANSFER_QUORUM = 2;
     uint256 public constant EMERGENCY_PROPOSAL_EXPIRE_PERIOD = 1 hours;
 
-    // TODO
-    address public TOKEN_HUB_ADDR;
-    address public LIGHT_CLIENT_ADDR;
-
     bool public isSuspended;
     // proposal type hash => latest emergency proposal
     mapping(bytes32 => EmergencyProposal) public emergencyProposals;
@@ -31,7 +25,6 @@ abstract contract Governance is Config {
     // IAVL key hash => is challenged
     mapping(bytes32 => bool) public challenged;
 
-    // BEP-171: Security Enhancement for Cross-Chain Module
     struct EmergencyProposal {
         uint16 quorum;
         uint128 expiredAt;
@@ -40,7 +33,6 @@ abstract contract Governance is Config {
         address[] approvers;
     }
 
-    // BEP-171: Security Enhancement for Cross-Chain Module
     event ProposalSubmitted(
         bytes32 indexed proposalTypeHash,
         address indexed proposer,
@@ -73,14 +65,14 @@ abstract contract Governance is Config {
         return size > 0;
     }
 
-    function suspend() onlyRelayer whenNotSuspended external {
+    function suspend() onlyRelayers whenNotSuspended external {
         bool isExecutable = _approveProposal(SUSPEND_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             _suspend();
         }
     }
 
-    function reopen() onlyRelayer whenSuspended external {
+    function reopen() onlyRelayers whenSuspended external {
         bool isExecutable = _approveProposal(REOPEN_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             isSuspended = false;
@@ -88,7 +80,7 @@ abstract contract Governance is Config {
         }
     }
 
-    function cancelTransfer(address tokenAddr, address attacker) onlyRelayer external {
+    function cancelTransfer(address tokenAddr, address attacker) onlyRelayers external {
         bytes32 _contentHash = keccak256(abi.encode(tokenAddr, attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {

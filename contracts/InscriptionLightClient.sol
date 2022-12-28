@@ -1,12 +1,13 @@
 pragma solidity ^0.8.0;
 
-contract InscriptionLightClient {
+import "./Config.sol";
+
+contract InscriptionLightClient is Config {
     /* --------------------- 1. constant --------------------- */
-    address constant public LIGHT_CLIENT_CONTRACT = 0x0000000000000000000000000000000000003000;
+    address constant public LIGHT_CLIENT_CONTRACT = 0x0000000000000000000000000000000000000065;
+    address constant public PACKAGE_VERIFY_CONTRACT = 0x0000000000000000000000000000000000000066;
     uint256 constant public BLS_PUBKEY_LENGTH = 48;
 
-    uint8 constant public PREFIX_VERIFY_HEADER = 0x01;
-    uint8 constant public PREFIX_VERIFY_PACKAGE = 0x02;
     /* --------------------- 2. storage --------------------- */
     uint64 public height;
     address[] public relayers;
@@ -37,7 +38,7 @@ contract InscriptionLightClient {
         require(_height > height, "invalid block height");
 
         // verify blsSignature and decode block header
-        bytes memory input = abi.encodePacked(PREFIX_VERIFY_HEADER, _header, _height, _blsPubKeys, _relayers);
+        bytes memory input = abi.encodePacked(_header, _height, _blsPubKeys, _relayers);
         (bool success, bytes memory data) = LIGHT_CLIENT_CONTRACT.staticcall(input);
         require(success && data.length > 0, "invalid header");
 
@@ -57,8 +58,8 @@ contract InscriptionLightClient {
         bytes calldata _blsSignature,
         uint256 _validatorSet
     ) external view {
-        bytes memory input = abi.encodePacked(PREFIX_VERIFY_PACKAGE, _pkgKey, _payload, _blsSignature, _validatorSet, blsPubKeys);
-        (bool success, bytes memory data) = LIGHT_CLIENT_CONTRACT.staticcall(input);
+        bytes memory input = abi.encodePacked(_pkgKey, _payload, _blsSignature, _validatorSet, blsPubKeys);
+        (bool success, bytes memory data) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         require(success && data.length > 0, "invalid cross-chain package");
     }
 
