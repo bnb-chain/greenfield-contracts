@@ -24,7 +24,6 @@ contract TokenHub is Config, OwnableUpgradeable {
         uint256[] amounts;
         address[] recipients;
         address[] refundAddrs;
-        uint64  expireTime;
     }
 
     // INS to BSC
@@ -42,7 +41,6 @@ contract TokenHub is Config, OwnableUpgradeable {
         uint256 amount;
         address recipient;
         address refundAddr;
-        uint64  expireTime;
     }
 
     // BSC to INS
@@ -162,10 +160,6 @@ contract TokenHub is Config, OwnableUpgradeable {
             else if (idx == 2) transInSynPkg.amount           = iter.next().toUint();
             else if (idx == 3) transInSynPkg.recipient        = ((iter.next().toAddress()));
             else if (idx == 4) transInSynPkg.refundAddr       = iter.next().toAddress();
-            else if (idx == 5) {
-                transInSynPkg.expireTime       = uint64(iter.next().toUint());
-                success = true;
-            }
             else break;
             idx++;
         }
@@ -200,9 +194,6 @@ contract TokenHub is Config, OwnableUpgradeable {
 
     function doTransferIn(TransferInSynPackage memory transInSynPkg) internal returns (uint32) {
         if (transInSynPkg.contractAddr==address(0x0)) {
-            if (block.timestamp > transInSynPkg.expireTime) {
-                return TRANSFER_IN_FAILURE_TIMEOUT;
-            }
             if (address(this).balance < transInSynPkg.amount) {
                 return TRANSFER_IN_FAILURE_INSUFFICIENT_BALANCE;
             }
@@ -213,9 +204,6 @@ contract TokenHub is Config, OwnableUpgradeable {
             emit TransferInSuccess(transInSynPkg.contractAddr, transInSynPkg.recipient, transInSynPkg.amount);
             return TRANSFER_IN_SUCCESS;
         } else {
-            if (block.timestamp > transInSynPkg.expireTime) {
-                return TRANSFER_IN_FAILURE_TIMEOUT;
-            }
             if (contractAddrToBEP2Symbol[transInSynPkg.contractAddr]!= transInSynPkg.bep2TokenSymbol) {
                 return TRANSFER_IN_FAILURE_UNBOUND_TOKEN;
             }
@@ -326,9 +314,6 @@ contract TokenHub is Config, OwnableUpgradeable {
                 for (uint256 index=0; index<list.length; index++) {
                     transOutSynPkg.refundAddrs[index] = list[index].toAddress();
                 }
-            } else if (idx == 5) {
-                transOutSynPkg.expireTime = uint64(iter.next().toUint());
-                success = true;
             } else {
                 break;
             }
@@ -353,7 +338,7 @@ contract TokenHub is Config, OwnableUpgradeable {
     }
 
     function encodeTransferOutSynPackage(TransferOutSynPackage memory transOutSynPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](6);
+        bytes[] memory elements = new bytes[](5);
 
         elements[0] = uint256(transOutSynPkg.bep2TokenSymbol).encodeUint();
         elements[1] = transOutSynPkg.contractAddr.encodeAddress();
@@ -377,8 +362,6 @@ contract TokenHub is Config, OwnableUpgradeable {
             refundAddrsElements[index] = transOutSynPkg.refundAddrs[index].encodeAddress();
         }
         elements[4] = refundAddrsElements.encodeList();
-
-        elements[5] = uint256(transOutSynPkg.expireTime).encodeUint();
         return elements.encodeList();
     }
 
@@ -388,10 +371,8 @@ contract TokenHub is Config, OwnableUpgradeable {
    * @param contractAddr The token contract which is transferred
    * @param recipient The destination address of the cross-chain transfer on INS.
    * @param amount The amount to transfer
-   * @param expireTime The expire time for the cross-chain transfer
    */
-    function transferOut(address contractAddr, address recipient, uint256 amount, uint64 expireTime) external payable returns (bool) {
-        require(expireTime>=block.timestamp + 120, "expireTime must be two minutes later");
+    function transferOut(address contractAddr, address recipient, uint256 amount) external payable returns (bool) {
         bytes32 bep2TokenSymbol;
         uint256 rewardForRelayer;
         if (contractAddr==address(0x0)) {
@@ -407,12 +388,11 @@ contract TokenHub is Config, OwnableUpgradeable {
             require(IBEP20(contractAddr).transferFrom(msg.sender, address(this), amount));
         }
         TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage({
-        bep2TokenSymbol: bep2TokenSymbol,
-        contractAddr: contractAddr,
-        amounts: new uint256[](1),
-        recipients: new address[](1),
-        refundAddrs: new address[](1),
-        expireTime: expireTime
+            bep2TokenSymbol: bep2TokenSymbol,
+            contractAddr: contractAddr,
+            amounts: new uint256[](1),
+            recipients: new address[](1),
+            refundAddrs: new address[](1)
         });
         transOutSynPkg.amounts[0]=amount;
         transOutSynPkg.recipients[0]=recipient;
