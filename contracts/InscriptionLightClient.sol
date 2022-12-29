@@ -34,7 +34,7 @@ contract InscriptionLightClient is Config {
         bytes calldata _blsPubKeys,
         address[] calldata _relayers
     ) external onlyRelayer {
-        require(_relayers.length == _blsPubKeys.length / BLS_PUBKEY_LENGTH, "length mismatch between _relayers and _blsPubKeys");
+        require(_relayers.length * BLS_PUBKEY_LENGTH == _blsPubKeys.length, "length mismatch between _relayers and _blsPubKeys");
         require(_height > height, "invalid block height");
 
         // verify blsSignature and decode block header
