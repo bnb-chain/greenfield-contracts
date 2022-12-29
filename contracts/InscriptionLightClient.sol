@@ -56,9 +56,9 @@ contract InscriptionLightClient is Config {
         bytes memory _pkgKey,
         bytes calldata _payload,
         bytes calldata _blsSignature,
-        uint256 _validatorSet
+        uint256 _validatorSetBitMap
     ) external view {
-        bytes memory input = abi.encodePacked(_pkgKey, _payload, _blsSignature, _validatorSet, blsPubKeys);
+        bytes memory input = abi.encodePacked(_pkgKey, _payload, _blsSignature, _validatorSetBitMap, blsPubKeys);
         (bool success, bytes memory data) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         require(success && data.length > 0, "invalid cross-chain package");
     }
