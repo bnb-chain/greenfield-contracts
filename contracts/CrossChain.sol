@@ -20,7 +20,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     uint256 constant public INIT_BATCH_SIZE = 50;
 
     uint256 constant public IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
-    uint256 constant public RELAYER_SUBMIT_PACKAGE_INTERVAL = 3 seconds;
+    uint256 constant public OUT_TURN_RELAYER_BACKOFF_PERIOD = 3 seconds;
 
     // governable parameters
     uint256 public batchSizeForOracle;
@@ -203,10 +203,10 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
                     break;
                 }
 
-                if (diffSeconds < RELAYER_SUBMIT_PACKAGE_INTERVAL) {
+                if (diffSeconds < OUT_TURN_RELAYER_BACKOFF_PERIOD) {
                     break;
                 }
-                diffSeconds -= RELAYER_SUBMIT_PACKAGE_INTERVAL;
+                diffSeconds -= OUT_TURN_RELAYER_BACKOFF_PERIOD;
             }
 
             require(isValidRelayer, "invalid candidate relayer");
