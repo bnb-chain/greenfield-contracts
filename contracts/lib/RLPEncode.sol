@@ -25,10 +25,10 @@ library RLPEncode {
     function encodeAddress(address self) internal pure returns (bytes memory) {
         bytes memory b;
         assembly {
-            let m := mload(0x40)
-            mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, self))
-            mstore(0x40, add(m, 52))
-            b := m
+            b := mload(0x40)
+            mstore(b, 0x20)
+            mstore(add(b, 20), xor(0x140000000000000000000000000000000000000000, self))
+            mstore(0x40, add(b, 0x40))
         }
         return encodeBytes(b);
     }
