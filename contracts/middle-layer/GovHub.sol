@@ -50,7 +50,6 @@ contract GovHub is Config {
     }
 
     function notifyUpdates(ParamChangePackage memory proposal) internal returns (uint32) {
-
         if (!isContract(proposal.target)) {
             emit failReasonWithStr("the target is not a contract");
             return ERROR_TARGET_NOT_CONTRACT;
