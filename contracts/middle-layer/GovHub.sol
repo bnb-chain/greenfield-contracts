@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "../interface/IParamSubscriber.sol";
+import "../interface/IProxyAdmin.sol";
 import "../lib/BytesToTypes.sol";
 import "../lib/Memory.sol";
 import "../lib/CmnPkg.sol";
@@ -15,9 +16,13 @@ contract GovHub is Config {
 
     uint32 public constant ERROR_TARGET_NOT_CONTRACT = 101;
     uint32 public constant ERROR_TARGET_CONTRACT_FAIL = 102;
+    uint32 public constant ERROR_INVALID_IMPLEMENTATION = 103;
+    uint32 public constant ERROR_UPGRADE_FAIL = 104;
 
-    event FailReasonWithStr(string message);
-    event FailReasonWithBytes(bytes message);
+    bytes32 public constant UPGRADE_KEY_HASH = keccak256(abi.encodePacked("upgrade"));
+
+    event FailUpgrade(address newImplementation, bytes message);
+    event FailUpdateParam(bytes message);
     event ParamChange(string key, bytes value);
 
     struct ParamChangePackage {
@@ -27,11 +32,11 @@ contract GovHub is Config {
     }
 
     function handleSynPackage(uint8, bytes calldata msgBytes) onlyCrossChainContract external returns (bytes memory responsePayload) {
-        (ParamChangePackage memory proposal, bool success) = decodeSynPackage(msgBytes);
+        (ParamChangePackage memory proposal, bool success) = _decodeSynPackage(msgBytes);
         if (!success) {
             return CmnPkg.encodeCommonAckPackage(ERROR_FAIL_DECODE);
         }
-        uint32 resCode = notifyUpdates(proposal);
+        uint32 resCode = _notifyUpdates(proposal);
         if (resCode == CODE_OK) {
             return new bytes(0);
         } else {
@@ -49,24 +54,39 @@ contract GovHub is Config {
         revert("receive unexpected fail ack package");
     }
 
-    function notifyUpdates(ParamChangePackage memory proposal) internal returns (uint32) {
-        if (!isContract(proposal.target)) {
-            emit FailReasonWithStr("the target is not a contract");
+    function _notifyUpdates(ParamChangePackage memory proposal) internal returns (uint32) {
+        if (!_isContract(proposal.target)) {
+            emit FailUpdateParam("the target is not a contract");
             return ERROR_TARGET_NOT_CONTRACT;
         }
+
+        // upgrade contract
+        if (keccak256(abi.encodePacked(proposal.key)) == UPGRADE_KEY_HASH) {
+            address newImpl = BytesToTypes.bytesToAddress(20, proposal.value);
+            if (proposal.value.length != 20 || !_isContract(newImpl)) {
+                emit FailUpgrade(newImpl, "invalid implementation value");
+                return ERROR_INVALID_IMPLEMENTATION;
+            }
+
+            try IProxyAdmin(PROXY_ADMIN).upgrade(proposal.target, newImpl) {
+            } catch (bytes memory reason) {
+                emit FailUpgrade(newImpl, reason);
+                return ERROR_UPGRADE_FAIL;
+            }
+            return CODE_OK;
+        }
+
+        // update params
         try IParamSubscriber(proposal.target).updateParam(proposal.key, proposal.value) {
-        }catch Error(string memory reason) {
-            emit FailReasonWithStr(reason);
-            return ERROR_TARGET_CONTRACT_FAIL;
-        } catch (bytes memory lowLevelData) {
-            emit FailReasonWithBytes(lowLevelData);
+        } catch (bytes memory reason) {
+            emit FailUpdateParam(reason);
             return ERROR_TARGET_CONTRACT_FAIL;
         }
         return CODE_OK;
     }
 
     //rlp encode & decode function
-    function decodeSynPackage(bytes memory msgBytes) internal pure returns (ParamChangePackage memory, bool) {
+    function _decodeSynPackage(bytes memory msgBytes) internal pure returns (ParamChangePackage memory, bool) {
         ParamChangePackage memory pkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
@@ -88,11 +108,10 @@ contract GovHub is Config {
         return (pkg, success);
     }
 
-
-    // Not reliable, do not use when need strong verify
-    function isContract(address addr) internal view returns (bool) {
-        uint size;
-        assembly {size := extcodesize(addr)}
-        return size > 0;
+    function _isContract(address account) internal view returns (bool) {
+        // This method relies on extcodesize/address.code.length, which returns 0
+        // for contracts in construction, since the code is only stored at the end
+        // of the constructor execution.
+        return account.code.length > 0;
     }
 }

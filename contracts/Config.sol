@@ -8,9 +8,11 @@ abstract contract Config {
     uint8 constant public TRANSFER_OUT_CHANNELID = 0x04;
 
     // TODO
-    address constant public CROSS_CHAIN_CONTRACT_ADDR = 0x0000000000000000000000000000000000003000;
-    address constant public INSCRIPTION_LIGHT_CLIENT_ADDR = 0x0000000000000000000000000000000000003001;
-    address constant public TOKEN_HUB_ADDR = 0x0000000000000000000000000000000000003002;
+    address constant public PROXY_ADMIN = 0x0000000000000000000000000000000000003000;
+    address constant public CROSS_CHAIN_CONTRACT_ADDR = 0x0000000000000000000000000000000000003001;
+    address constant public INSCRIPTION_LIGHT_CLIENT_ADDR = 0x0000000000000000000000000000000000003002;
+    address constant public TOKEN_HUB_ADDR = 0x0000000000000000000000000000000000003003;
+    address constant public GOV_HUB_ADDR = 0x0000000000000000000000000000000000003004;
 
     uint32 public constant CODE_OK = 0;
     uint32 public constant ERROR_FAIL_DECODE = 100;
@@ -21,12 +23,7 @@ abstract contract Config {
     }
 
     modifier onlyGov() {
-        // TODO
-        _;
-    }
-
-    modifier onlyTokenManager() {
-        // TODO
+        require(msg.sender == GOV_HUB_ADDR, "only GovHub contract");
         _;
     }
 
