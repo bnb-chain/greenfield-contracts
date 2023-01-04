@@ -38,9 +38,6 @@ contract TokenHub is Config, OwnableUpgradeable {
     /************************* storage layer *************************/
     address public CROSS_CHAIN_CONTRACT;
     uint256 public relayFee;
-
-    mapping(address => uint256) public bep20ContractDecimals;
-
     /************************* struct / event *************************/
     // BSC to INS
     struct TransferOutSynPackage {
@@ -85,8 +82,6 @@ contract TokenHub is Config, OwnableUpgradeable {
         __Ownable_init();
 
         relayFee = INIT_MINIMUM_RELAY_FEE;
-        bep20ContractDecimals[address(0x0)] = 18;
-        // BNB decimals is 18
     }
 
     receive() external payable {
@@ -174,9 +169,9 @@ contract TokenHub is Config, OwnableUpgradeable {
         uint32 resCode = doTransferIn(transInSynPkg);
         if (resCode != TRANSFER_IN_SUCCESS) {
             TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage({
-            refundAmount : transInSynPkg.amount,
-            refundAddr : transInSynPkg.refundAddr,
-            status : resCode
+                refundAmount : transInSynPkg.amount,
+                refundAddr : transInSynPkg.refundAddr,
+                status : resCode
             });
             return encodeTransferInRefundPackage(transInAckPkg);
         } else {
@@ -244,7 +239,6 @@ contract TokenHub is Config, OwnableUpgradeable {
                 emit RefundSuccess(transOutAckPkg.refundAddrs[index], transOutAckPkg.refundAmounts[index], transOutAckPkg.status);
             }
         }
-
     }
 
     function decodeTransferOutSynPackage(bytes memory msgBytes) internal pure returns (TransferOutSynPackage memory, bool) {
