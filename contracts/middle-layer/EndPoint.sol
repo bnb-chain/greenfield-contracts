@@ -22,11 +22,10 @@ contract EndPoint is Config {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     uint8 public constant EVENT_SEND = 0x01;
-    uint256 public constant TEN_DECIMALS = 1e10;
 
     address public crossChainContract;
     uint256 public toBFSRelayerFee;
-    uint256 public callbackGasprice;
+    uint256 public callbackGasPrice;
     uint256 public transferGas;
 
     // app address => FailureHandleStrategy
@@ -83,8 +82,8 @@ contract EndPoint is Config {
 
         // msg.value is the max fee for the whole cross chain txs including app callback
         // check if msg.value is enough for toBFSRelayerFee + _gasLimit * gasPrice
-        require(msg.value >= toBFSRelayerFee + callbackGasprice * _gasLimit, "not enough relay fee");
-        uint256 _callbackFee = msg.value - callbackGasprice * _gasLimit;
+        require(msg.value >= toBFSRelayerFee + callbackGasPrice * _gasLimit, "not enough relay fee");
+        uint256 _callbackFee = msg.value - callbackGasPrice * _gasLimit;
 
         (bool success,) = _refundAddress.call{gas: transferGas}("");
         require(success, "invalid refundAddress"); // the _refundAddress must be payable
@@ -240,7 +239,7 @@ contract EndPoint is Config {
         }
 
         uint256 gasUsed = gasleft() - gasBefore;
-        uint256 refundFee = _callbackFee - gasUsed * callbackGasprice;
+        uint256 refundFee = _callbackFee - gasUsed * callbackGasPrice;
 
         // refund
         (success,) = _refundAddress.call{ gas: transferGas, value: refundFee }("");
@@ -287,7 +286,7 @@ contract EndPoint is Config {
             }
         }
         uint256 gasUsed = gasleft() - gasBefore;
-        uint256 refundFee = _callbackFee - gasUsed * callbackGasprice;
+        uint256 refundFee = _callbackFee - gasUsed * callbackGasPrice;
 
         // refund
         (success,) = _refundAddress.call{ gas: transferGas, value: refundFee }("");

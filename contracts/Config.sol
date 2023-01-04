@@ -12,6 +12,9 @@ abstract contract Config {
     address constant public INSCRIPTION_LIGHT_CLIENT_ADDR = 0x0000000000000000000000000000000000003001;
     address constant public TOKEN_HUB_ADDR = 0x0000000000000000000000000000000000003002;
 
+    uint32 public constant CODE_OK = 0;
+    uint32 public constant ERROR_FAIL_DECODE = 100;
+
     modifier onlyCrossChainContract() {
         require(msg.sender == CROSS_CHAIN_CONTRACT_ADDR, "only cross chain contract");
         _;
