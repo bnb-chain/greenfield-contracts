@@ -9,7 +9,7 @@ contract InscriptionLightClient is Config {
     uint256 constant public BLS_PUBKEY_LENGTH = 48;
 
     /* --------------------- 2. storage --------------------- */
-    uint64 public height;
+    uint64 public insHeight;
     address[] public relayers;
     bytes public blsPubKeys;
 
@@ -35,7 +35,7 @@ contract InscriptionLightClient is Config {
         address[] calldata _relayers
     ) external onlyRelayer {
         require(_relayers.length * BLS_PUBKEY_LENGTH == _blsPubKeys.length, "length mismatch between _relayers and _blsPubKeys");
-        require(_height > height, "invalid block height");
+        require(_height > insHeight, "invalid block height");
 
         // verify blsSignature and decode block header
         bytes memory input = abi.encodePacked(_header, _height, _blsPubKeys, _relayers);
@@ -49,7 +49,7 @@ contract InscriptionLightClient is Config {
             relayers = _relayers;
         }
 
-        height = _height;
+        insHeight = _height;
     }
 
     function verifyPackage(
