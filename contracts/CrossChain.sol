@@ -185,7 +185,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         }
     }
 
-    function _checkValidRelayer(uint64 eventTime) internal {
+    function _checkValidRelayer(uint64 eventTime) internal view {
         address[] memory relayers = ILightClient(INSCRIPTION_LIGHT_CLIENT_ADDR).getRelayers();
 
         // check if it is the valid relayer

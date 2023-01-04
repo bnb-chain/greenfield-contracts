@@ -58,13 +58,6 @@ abstract contract Governance is Config {
         _;
     }
 
-    // Not reliable, do not use when need strong verify
-    function isContract(address addr) internal view returns (bool) {
-        uint size;
-        assembly { size := extcodesize(addr) }
-        return size > 0;
-    }
-
     function suspend() onlyRelayers whenNotSuspended external {
         bool isExecutable = _approveProposal(SUSPEND_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {

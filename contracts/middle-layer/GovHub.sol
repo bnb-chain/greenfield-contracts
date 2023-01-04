@@ -16,9 +16,9 @@ contract GovHub is Config {
     uint32 public constant ERROR_TARGET_NOT_CONTRACT = 101;
     uint32 public constant ERROR_TARGET_CONTRACT_FAIL = 102;
 
-    event failReasonWithStr(string message);
-    event failReasonWithBytes(bytes message);
-    event paramChange(string key, bytes value);
+    event FailReasonWithStr(string message);
+    event FailReasonWithBytes(bytes message);
+    event ParamChange(string key, bytes value);
 
     struct ParamChangePackage {
         string key;
@@ -51,15 +51,15 @@ contract GovHub is Config {
 
     function notifyUpdates(ParamChangePackage memory proposal) internal returns (uint32) {
         if (!isContract(proposal.target)) {
-            emit failReasonWithStr("the target is not a contract");
+            emit FailReasonWithStr("the target is not a contract");
             return ERROR_TARGET_NOT_CONTRACT;
         }
         try IParamSubscriber(proposal.target).updateParam(proposal.key, proposal.value) {
         }catch Error(string memory reason) {
-            emit failReasonWithStr(reason);
+            emit FailReasonWithStr(reason);
             return ERROR_TARGET_CONTRACT_FAIL;
         } catch (bytes memory lowLevelData) {
-            emit failReasonWithBytes(lowLevelData);
+            emit FailReasonWithBytes(lowLevelData);
             return ERROR_TARGET_CONTRACT_FAIL;
         }
         return CODE_OK;
