@@ -4,6 +4,7 @@ src = 'contracts'
 out = 'out'
 libs = ['lib']
 test = 'foundry-tests'
+script = 'foundry-scripts'
 
 
 ## set only when the `hardhat` profile is selected
