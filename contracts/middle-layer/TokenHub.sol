@@ -26,12 +26,7 @@ contract TokenHub is Config, OwnableUpgradeable {
     uint8 constant public   TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT = 4;
     uint8 constant public   TRANSFER_IN_FAILURE_UNKNOWN = 5;
 
-    uint256 constant public MAX_BEP2_TOTAL_SUPPLY = 9000000000000000000;
-    uint8 constant public   MINIMUM_BEP20_SYMBOL_LEN = 2;
-    uint8 constant public   MAXIMUM_BEP20_SYMBOL_LEN = 8;
-    bytes32 constant public BEP2_TOKEN_SYMBOL_FOR_BNB = 0x424E420000000000000000000000000000000000000000000000000000000000; // "BNB"
     uint256 constant public MAX_GAS_FOR_TRANSFER_BNB = 10000;
-
     uint256 constant public INIT_MINIMUM_RELAY_FEE = 2e15;
     uint256 constant public REWARD_UPPER_LIMIT = 1e18;
 
