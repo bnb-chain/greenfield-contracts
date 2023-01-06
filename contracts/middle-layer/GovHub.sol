@@ -21,6 +21,12 @@ contract GovHub is Config {
 
     bytes32 public constant UPGRADE_KEY_HASH = keccak256(abi.encodePacked("upgrade"));
 
+    // all inscription contract address
+    address public proxyAdmin;
+    address public crosschain;
+    address public lightClient;
+    address public tokenHub;
+
     event FailUpgrade(address newImplementation, bytes message);
     event FailUpdateParam(bytes message);
     event ParamChange(string key, bytes value);
@@ -29,6 +35,11 @@ contract GovHub is Config {
         string key;
         bytes value;
         address target;
+    }
+
+    modifier onlyCrossChainContract() {
+        require(msg.sender == crosschain, "only cross chain contract");
+        _;
     }
 
     function handleSynPackage(uint8, bytes calldata msgBytes) onlyCrossChainContract external returns (bytes memory responsePayload) {
@@ -68,7 +79,7 @@ contract GovHub is Config {
                 return ERROR_INVALID_IMPLEMENTATION;
             }
 
-            try IProxyAdmin(PROXY_ADMIN).upgrade(proposal.target, newImpl) {
+            try IProxyAdmin(proxyAdmin).upgrade(proposal.target, newImpl) {
             } catch (bytes memory reason) {
                 emit FailUpgrade(newImpl, reason);
                 return ERROR_UPGRADE_FAIL;

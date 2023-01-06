@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./interface/IMiddleLayer.sol";
+import "./interface/IGovHub.sol";
 import "./interface/ITokenHub.sol";
 import "./interface/ILightClient.sol";
 import "./interface/IRelayerHub.sol";
@@ -23,10 +24,9 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     uint256 constant public OUT_TURN_RELAYER_BACKOFF_PERIOD = 3 seconds;
 
     // governable parameters
-    uint256 public batchSizeForOracle;
-
     uint32 public chainId;
     uint32 public insChainId;
+    uint256 public batchSizeForOracle;
 
     //state variables
     uint256 public previousTxHeight;
@@ -69,11 +69,15 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         _;
     }
 
-    function initialize(uint32 _insChainId) public initializer {
+    function initialize(uint32 _insChainId, address _govHub) public initializer {
+        require(_insChainId != 0, "zero _insChainId");
+        require(_govHub != address (0), "zero govHub");
+
         __Ownable_init();
 
         chainId = uint32(block.chainid);
         insChainId = _insChainId;
+        govHub = _govHub;
 
         // TODO register channels
         batchSizeForOracle = INIT_BATCH_SIZE;
@@ -139,7 +143,9 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         uint256 _validatorSet = validatorSet; // fix error: stack too deep, try removing local variables
 
         bytes memory _pkgKey = abi.encodePacked(insChainId, channelId, packageSequence);
-        ILightClient(INSCRIPTION_LIGHT_CLIENT_ADDR).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorSet);
+
+        address _lightClient = IGovHub(govHub).lightClient();
+        ILightClient(_lightClient).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorSet);
 
         (bool success, uint8 packageType, uint64 eventTime, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(_payload);
         if (!success) {
@@ -148,7 +154,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         }
         emit ReceivedPackage(packageType, _sequence, _channelId);
 
-        _checkValidRelayer(eventTime);
+        _checkValidRelayer(eventTime, _lightClient);
 
         if (packageType == SYN_PACKAGE) {
             address handlerContract = channelHandlerContractMap[_channelId];
@@ -185,8 +191,8 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         }
     }
 
-    function _checkValidRelayer(uint64 eventTime) internal view {
-        address[] memory relayers = ILightClient(INSCRIPTION_LIGHT_CLIENT_ADDR).getRelayers();
+    function _checkValidRelayer(uint64 eventTime, address _lightClient) internal view {
+        address[] memory relayers = ILightClient(_lightClient).getRelayers();
 
         // check if it is the valid relayer
         uint256 _totalRelayers = relayers.length;

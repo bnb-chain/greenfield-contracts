@@ -1,10 +1,10 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "../interface/IBEP20.sol";
 import "../Config.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
+import "../interface/IGovHub.sol";
 
 interface ICrossChain {
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee) external;
@@ -31,7 +31,7 @@ contract TokenHub is Config, OwnableUpgradeable {
     uint256 constant public REWARD_UPPER_LIMIT = 1e18;
 
     /************************* storage layer *************************/
-    address public CROSS_CHAIN_CONTRACT;
+    address public govHub;
     uint256 public relayFee;
     /************************* struct / event *************************/
     // BSC to INS
@@ -71,11 +71,17 @@ contract TokenHub is Config, OwnableUpgradeable {
     event UnexpectedPackage(uint8 channelId, bytes msgBytes);
     event ParamChange(string key, bytes value);
 
+    modifier onlyCrossChainContract() {
+        require(msg.sender == IGovHub(govHub).crosschain(), "only cross chain contract");
+        _;
+    }
 
     /************************* external / public function *************************/
-    function initialize() public initializer {
+    function initialize(address _govHub) public initializer {
+        require(_govHub != address (0), "zero govHub");
         __Ownable_init();
 
+        govHub = _govHub;
         relayFee = INIT_MINIMUM_RELAY_FEE;
     }
 
@@ -303,7 +309,8 @@ contract TokenHub is Config, OwnableUpgradeable {
         transOutSynPkg.recipients[0] = recipient;
         transOutSynPkg.refundAddrs[0] = msg.sender;
 
-        ICrossChain(CROSS_CHAIN_CONTRACT_ADDR).sendSynPackage(TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), rewardForRelayer);
+        address _crosschain = IGovHub(govHub).crosschain();
+        ICrossChain(_crosschain).sendSynPackage(TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), rewardForRelayer);
         emit TransferOutSuccess(msg.sender, amount, rewardForRelayer);
         return true;
     }

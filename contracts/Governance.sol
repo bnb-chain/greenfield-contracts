@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "./interface/ITokenHub.sol";
+import "./interface/IGovHub.sol";
 import "./Config.sol";
 
 abstract contract Governance is Config {
@@ -17,6 +18,7 @@ abstract contract Governance is Config {
     uint16 public constant INIT_CANCEL_TRANSFER_QUORUM = 2;
     uint256 public constant EMERGENCY_PROPOSAL_EXPIRE_PERIOD = 1 hours;
 
+    address public govHub;
     bool public isSuspended;
     // proposal type hash => latest emergency proposal
     mapping(bytes32 => EmergencyProposal) public emergencyProposals;
@@ -58,14 +60,31 @@ abstract contract Governance is Config {
         _;
     }
 
-    function suspend() onlyRelayers whenNotSuspended external {
+    modifier onlyRelayer() {
+        bool isRelayer;
+        address _lightClient = IGovHub(govHub).lightClient();
+        address[] memory relayers = ILightClient(_lightClient).getRelayers();
+        uint256 _totalRelayers = relayers.length;
+        require(_totalRelayers > 0, "empty relayers");
+        for (uint256 i = 0; i < _totalRelayers; i++) {
+            if (relayers[i] == msg.sender) {
+                isRelayer = true;
+                break;
+            }
+        }
+        require(isRelayer, "only relayer");
+
+        _;
+    }
+
+    function suspend() onlyRelayer whenNotSuspended external {
         bool isExecutable = _approveProposal(SUSPEND_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             _suspend();
         }
     }
 
-    function reopen() onlyRelayers whenSuspended external {
+    function reopen() onlyRelayer whenSuspended external {
         bool isExecutable = _approveProposal(REOPEN_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             isSuspended = false;
@@ -73,11 +92,12 @@ abstract contract Governance is Config {
         }
     }
 
-    function cancelTransfer(address tokenAddr, address attacker) onlyRelayers external {
+    function cancelTransfer(address tokenAddr, address attacker) onlyRelayer external {
         bytes32 _contentHash = keccak256(abi.encode(tokenAddr, attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {
-            ITokenHub(TOKEN_HUB_ADDR).cancelTransferIn(tokenAddr, attacker);
+            address _tokenHub = IGovHub(govHub).tokenHub();
+            ITokenHub(_tokenHub).cancelTransferIn(tokenAddr, attacker);
         }
     }
 
