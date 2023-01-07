@@ -1,5 +1,7 @@
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import "../interface/IParamSubscriber.sol";
 import "../interface/IProxyAdmin.sol";
 import "../lib/BytesToTypes.sol";
@@ -9,7 +11,7 @@ import "../lib/CmnPkg.sol";
 import "../lib/RLPDecode.sol";
 import "../Config.sol";
 
-contract GovHub is Config {
+contract GovHub is Config, Initializable {
     using RLPDecode for *;
 
     uint8 public constant PARAM_UPDATE_MESSAGE_TYPE = 0;
@@ -40,6 +42,23 @@ contract GovHub is Config {
     modifier onlyCrossChainContract() {
         require(msg.sender == crosschain, "only cross chain contract");
         _;
+    }
+
+    function initialize(
+        address _proxyAdmin,
+        address _crosschain,
+        address _lightClient,
+        address _tokenHub
+    ) public initializer {
+        require(_proxyAdmin != address (0), "zero _proxyAdmin");
+        require(_crosschain != address (0), "zero _crosschain");
+        require(_lightClient != address (0), "zero _lightClient");
+        require(_tokenHub != address (0), "zero _tokenHub");
+
+        proxyAdmin = _proxyAdmin;
+        crosschain = _crosschain;
+        lightClient = _lightClient;
+        tokenHub = _tokenHub;
     }
 
     function handleSynPackage(uint8, bytes calldata msgBytes) onlyCrossChainContract external returns (bytes memory responsePayload) {
