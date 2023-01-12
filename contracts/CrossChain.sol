@@ -41,7 +41,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     mapping(uint8 => uint64) public channelSyncedHeaderMap;
     
     // event
-    event CrossChainPackage(uint32 chainId, uint64 indexed oracleSequence, uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
+    event CrossChainPackage(uint32 srcChainId, uint32 dstChainId, uint64 indexed oracleSequence, uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
     event ReceivedPackage(uint8 packageType, uint64 indexed packageSequence, uint8 indexed channelId);
     event UnsupportedPackage(uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
     event UnexpectedRevertInPackageHandler(address indexed contractAddr, string reason);
@@ -141,7 +141,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         bytes memory _blsSignature = blsSignature; // fix error: stack too deep, try removing local variables
         uint256 _validatorsBitSet = validatorsBitSet; // fix error: stack too deep, try removing local variables
 
-        bytes memory _pkgKey = abi.encodePacked(insChainId, channelId, packageSequence);
+        bytes memory _pkgKey = abi.encodePacked(insChainId, chainId, channelId, packageSequence);
 
         address _lightClient = IGovHub(govHub).lightClient();
         ILightClient(_lightClient).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorsBitSet);
@@ -231,7 +231,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
                 txCounter = 1;
             }
         }
-        emit CrossChainPackage(chainId, uint64(oracleSequence), packageSequence, channelId, payload);
+        emit CrossChainPackage(chainId, insChainId, uint64(oracleSequence), packageSequence, channelId, payload);
     }
 
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee)
