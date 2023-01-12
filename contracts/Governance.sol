@@ -13,9 +13,6 @@ abstract contract Governance is Config {
     bytes32 public constant CANCEL_TRANSFER_PROPOSAL = keccak256("CANCEL_TRANSFER_PROPOSAL");
     // 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
     bytes32 public constant EMPTY_CONTENT_HASH = keccak256("");
-    uint16 public constant INIT_SUSPEND_QUORUM = 1;
-    uint16 public constant INIT_REOPEN_QUORUM = 2;
-    uint16 public constant INIT_CANCEL_TRANSFER_QUORUM = 2;
     uint256 public constant EMERGENCY_PROPOSAL_EXPIRE_PERIOD = 1 hours;
 
     address public govHub;
@@ -95,12 +92,6 @@ abstract contract Governance is Config {
     }
 
     function _approveProposal(bytes32 proposalTypeHash, bytes32 _contentHash) internal returns (bool isExecutable) {
-        if (quorumMap[proposalTypeHash] == 0) {
-            quorumMap[SUSPEND_PROPOSAL] = INIT_SUSPEND_QUORUM;
-            quorumMap[REOPEN_PROPOSAL] = INIT_REOPEN_QUORUM;
-            quorumMap[CANCEL_TRANSFER_PROPOSAL] = INIT_CANCEL_TRANSFER_QUORUM;
-        }
-
         EmergencyProposal storage p = emergencyProposals[proposalTypeHash];
 
         // It is ok if there is an evil validator always cancel the previous vote,

@@ -84,6 +84,10 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         oracleSequence = -1;
         previousTxHeight = 0;
         txCounter = 0;
+
+        quorumMap[SUSPEND_PROPOSAL] = 1;
+        quorumMap[REOPEN_PROPOSAL] = 2;
+        quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
     }
 
     function encodePayload(uint8 packageType, uint256 relayFee, bytes memory msgBytes) public view returns(bytes memory) {
