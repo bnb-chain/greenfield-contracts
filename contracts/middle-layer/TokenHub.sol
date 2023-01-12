@@ -20,15 +20,12 @@ contract TokenHub is Config, OwnableUpgradeable {
     /************************* constant *************************/
     // transfer in channel
     uint8 constant public   TRANSFER_IN_SUCCESS = 0;
-    uint8 constant public   TRANSFER_IN_FAILURE_TIMEOUT = 1;
-    uint8 constant public   TRANSFER_IN_FAILURE_UNBOUND_TOKEN = 2;
-    uint8 constant public   TRANSFER_IN_FAILURE_INSUFFICIENT_BALANCE = 3;
-    uint8 constant public   TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT = 4;
-    uint8 constant public   TRANSFER_IN_FAILURE_UNKNOWN = 5;
+    uint8 constant public   TRANSFER_IN_FAILURE_INSUFFICIENT_BALANCE = 1;
+    uint8 constant public   TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT = 2;
+    uint8 constant public   TRANSFER_IN_FAILURE_UNKNOWN = 3;
 
     uint256 constant public MAX_GAS_FOR_TRANSFER_BNB = 10000;
     uint256 constant public INIT_MINIMUM_RELAY_FEE = 2e15;
-    uint256 constant public REWARD_UPPER_LIMIT = 1e18;
 
     /************************* storage layer *************************/
     address public govHub;

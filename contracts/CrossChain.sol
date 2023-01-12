@@ -18,7 +18,6 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     uint8 constant public SYN_PACKAGE = 0x00;
     uint8 constant public ACK_PACKAGE = 0x01;
     uint8 constant public FAIL_ACK_PACKAGE = 0x02;
-    uint256 constant public INIT_BATCH_SIZE = 50;
 
     uint256 constant public IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
     uint256 constant public OUT_TURN_RELAYER_BACKOFF_PERIOD = 3 seconds;
@@ -80,7 +79,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         govHub = _govHub;
 
         // TODO register channels
-        batchSizeForOracle = INIT_BATCH_SIZE;
+        batchSizeForOracle = 50;
 
         oracleSequence = -1;
         previousTxHeight = 0;
@@ -129,7 +128,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     function handlePackage(
         bytes calldata payload,
         bytes calldata blsSignature,
-        uint256 validatorSet,
+        uint256 validatorsBitSet,
         uint64 packageSequence,
         uint8 channelId
     ) external
@@ -140,12 +139,12 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         uint8 _channelId = channelId; // fix error: stack too deep, try removing local variables
         bytes memory _payload = payload; // fix error: stack too deep, try removing local variables
         bytes memory _blsSignature = blsSignature; // fix error: stack too deep, try removing local variables
-        uint256 _validatorSet = validatorSet; // fix error: stack too deep, try removing local variables
+        uint256 _validatorsBitSet = validatorsBitSet; // fix error: stack too deep, try removing local variables
 
         bytes memory _pkgKey = abi.encodePacked(insChainId, channelId, packageSequence);
 
         address _lightClient = IGovHub(govHub).lightClient();
-        ILightClient(_lightClient).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorSet);
+        ILightClient(_lightClient).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorsBitSet);
 
         (bool success, uint8 packageType, uint64 eventTime, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(_payload);
         if (!success) {
