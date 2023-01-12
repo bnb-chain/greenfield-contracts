@@ -200,6 +200,7 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         if (msg.sender != relayers[_currentIndex]) {
             uint256 diffSeconds = block.timestamp - uint256(eventTime);
             require(diffSeconds >= IN_TURN_RELAYER_VALIDITY_PERIOD, "not in turn relayer");
+            diffSeconds -= IN_TURN_RELAYER_VALIDITY_PERIOD;
 
             bool isValidRelayer;
             for (uint256 i; i < _totalRelayers; ++i) {
