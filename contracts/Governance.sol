@@ -24,8 +24,6 @@ abstract contract Governance is Config {
     mapping(bytes32 => EmergencyProposal) public emergencyProposals;
     // proposal type hash => the threshold of proposal approved
     mapping(bytes32 => uint16) public quorumMap;
-    // IAVL key hash => is challenged
-    mapping(bytes32 => bool) public challenged;
 
     struct EmergencyProposal {
         uint16 quorum;
@@ -44,11 +42,6 @@ abstract contract Governance is Config {
     );
     event Suspended(address indexed executor);
     event Reopened(address indexed executor);
-    event SuccessChallenge(
-        address indexed challenger,
-        uint64 packageSequence,
-        uint8 channelId
-    );
 
     modifier whenNotSuspended() {
         require(!isSuspended, "suspended");
@@ -92,12 +85,12 @@ abstract contract Governance is Config {
         }
     }
 
-    function cancelTransfer(address tokenAddr, address attacker) onlyRelayer external {
-        bytes32 _contentHash = keccak256(abi.encode(tokenAddr, attacker));
+    function cancelTransfer(address attacker) onlyRelayer external {
+        bytes32 _contentHash = keccak256(abi.encode(attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {
             address _tokenHub = IGovHub(govHub).tokenHub();
-            ITokenHub(_tokenHub).cancelTransferIn(tokenAddr, attacker);
+            ITokenHub(_tokenHub).cancelTransferIn(attacker);
         }
     }
 

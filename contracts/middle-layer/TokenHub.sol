@@ -36,15 +36,15 @@ contract TokenHub is Config, OwnableUpgradeable {
     /************************* struct / event *************************/
     // BSC to INS
     struct TransferOutSynPackage {
-        uint256[] amounts;
-        address[] recipients;
-        address[] refundAddrs;
+        uint256 amount;
+        address recipient;
+        address refundAddr;
     }
 
     // INS to BSC
     struct TransferOutAckPackage {
-        uint256[] refundAmounts;
-        address[] refundAddrs;
+        uint256 refundAmount;
+        address refundAddr;
         uint32 status;
     }
 
@@ -157,7 +157,7 @@ contract TokenHub is Config, OwnableUpgradeable {
     }
 
     function encodeTransferInRefundPackage(TransferInRefundPackage memory transInAckPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](4);
+        bytes[] memory elements = new bytes[](3);
         elements[0] = transInAckPkg.refundAmount.encodeUint();
         elements[1] = transInAckPkg.refundAddr.encodeAddress();
         elements[2] = uint256(transInAckPkg.status).encodeUint();
@@ -199,27 +199,10 @@ contract TokenHub is Config, OwnableUpgradeable {
         bool success = false;
         uint256 idx = 0;
         while (iter.hasNext()) {
-            if (idx == 0) {
-                RLPDecode.RLPItem[] memory list = iter.next().toList();
-                transOutAckPkg.refundAmounts = new uint256[](list.length);
-                for (uint256 index = 0; index < list.length; index++) {
-                    transOutAckPkg.refundAmounts[index] = list[index].toUint();
-                }
-            }
-            else if (idx == 1) {
-                RLPDecode.RLPItem[] memory list = iter.next().toList();
-                transOutAckPkg.refundAddrs = new address[](list.length);
-                for (uint256 index = 0; index < list.length; index++) {
-                    transOutAckPkg.refundAddrs[index] = list[index].toAddress();
-                }
-            }
-            else if (idx == 2) {
-                transOutAckPkg.status = uint32(iter.next().toUint());
-                success = true;
-            }
-            else {
-                break;
-            }
+            if (idx == 0) transOutAckPkg.refundAmount = iter.next().toUint();
+            else if (idx == 1) transOutAckPkg.refundAddr = ((iter.next().toAddress()));
+            else if (idx == 2) transOutAckPkg.status = uint32(iter.next().toUint());
+            else break;
             idx++;
         }
         return (transOutAckPkg, success);
@@ -232,13 +215,11 @@ contract TokenHub is Config, OwnableUpgradeable {
     }
 
     function doRefund(TransferOutAckPackage memory transOutAckPkg) internal {
-        for (uint256 index = 0; index < transOutAckPkg.refundAmounts.length; index++) {
-            (bool success,) = transOutAckPkg.refundAddrs[index].call{gas : MAX_GAS_FOR_TRANSFER_BNB, value : transOutAckPkg.refundAmounts[index]}("");
-            if (!success) {
-                emit RefundFailure(transOutAckPkg.refundAddrs[index], transOutAckPkg.refundAmounts[index], transOutAckPkg.status);
-            } else {
-                emit RefundSuccess(transOutAckPkg.refundAddrs[index], transOutAckPkg.refundAmounts[index], transOutAckPkg.status);
-            }
+        (bool success,) = transOutAckPkg.refundAddr.call{gas : MAX_GAS_FOR_TRANSFER_BNB, value : transOutAckPkg.refundAmount}("");
+        if (!success) {
+            emit RefundFailure(transOutAckPkg.refundAddr, transOutAckPkg.refundAmount, transOutAckPkg.status);
+        } else {
+            emit RefundSuccess(transOutAckPkg.refundAddr, transOutAckPkg.refundAmount, transOutAckPkg.status);
         }
     }
 
@@ -249,27 +230,10 @@ contract TokenHub is Config, OwnableUpgradeable {
         bool success = false;
         uint256 idx = 0;
         while (iter.hasNext()) {
-            if (idx == 0) {
-                RLPDecode.RLPItem[] memory list = iter.next().toList();
-                transOutSynPkg.amounts = new uint256[](list.length);
-                for (uint256 index = 0; index < list.length; index++) {
-                    transOutSynPkg.amounts[index] = list[index].toUint();
-                }
-            } else if (idx == 1) {
-                RLPDecode.RLPItem[] memory list = iter.next().toList();
-                transOutSynPkg.recipients = new address[](list.length);
-                for (uint256 index = 0; index < list.length; index++) {
-                    transOutSynPkg.recipients[index] = list[index].toAddress();
-                }
-            } else if (idx == 2) {
-                RLPDecode.RLPItem[] memory list = iter.next().toList();
-                transOutSynPkg.refundAddrs = new address[](list.length);
-                for (uint256 index = 0; index < list.length; index++) {
-                    transOutSynPkg.refundAddrs[index] = list[index].toAddress();
-                }
-            } else {
-                break;
-            }
+            if (idx == 0) transOutSynPkg.amount = iter.next().toUint();
+            else if (idx == 1) transOutSynPkg.recipient = ((iter.next().toAddress()));
+            else if (idx == 2) transOutSynPkg.refundAddr = iter.next().toAddress();
+            else break;
             idx++;
         }
         return (transOutSynPkg, success);
@@ -279,11 +243,8 @@ contract TokenHub is Config, OwnableUpgradeable {
         (TransferOutSynPackage memory transOutSynPkg, bool decodeSuccess) = decodeTransferOutSynPackage(msgBytes);
         require(decodeSuccess, "unrecognized transferOut syn package");
         TransferOutAckPackage memory transOutAckPkg;
-        transOutAckPkg.refundAmounts = transOutSynPkg.amounts;
-        for (uint idx = 0; idx < transOutSynPkg.amounts.length; idx++) {
-            transOutSynPkg.amounts[idx] = transOutSynPkg.amounts[idx];
-        }
-        transOutAckPkg.refundAddrs = transOutSynPkg.refundAddrs;
+        transOutAckPkg.refundAmount = transOutSynPkg.amount;
+        transOutAckPkg.refundAddr = transOutSynPkg.refundAddr;
         transOutAckPkg.status = TRANSFER_IN_FAILURE_UNKNOWN;
         doRefund(transOutAckPkg);
     }
@@ -301,13 +262,10 @@ contract TokenHub is Config, OwnableUpgradeable {
         rewardForRelayer = msg.value - amount;
 
         TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage({
-        amounts : new uint256[](1),
-        recipients : new address[](1),
-        refundAddrs : new address[](1)
+            amount: amount,
+            recipient: recipient,
+            refundAddr: msg.sender
         });
-        transOutSynPkg.amounts[0] = amount;
-        transOutSynPkg.recipients[0] = recipient;
-        transOutSynPkg.refundAddrs[0] = msg.sender;
 
         address _crosschain = IGovHub(govHub).crosschain();
         ICrossChain(_crosschain).sendSynPackage(TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), rewardForRelayer);
@@ -317,26 +275,9 @@ contract TokenHub is Config, OwnableUpgradeable {
 
     function _encodeTransferOutSynPackage(TransferOutSynPackage memory transOutSynPkg) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
-
-        uint256 batchLength = transOutSynPkg.amounts.length;
-        bytes[] memory amountsElements = new bytes[](batchLength);
-        for (uint256 index = 0; index < batchLength; index++) {
-            amountsElements[index] = transOutSynPkg.amounts[index].encodeUint();
-        }
-        elements[0] = amountsElements.encodeList();
-
-        bytes[] memory recipientsElements = new bytes[](batchLength);
-        for (uint256 index = 0; index < batchLength; index++) {
-            recipientsElements[index] = transOutSynPkg.recipients[index].encodeAddress();
-        }
-        elements[1] = recipientsElements.encodeList();
-
-        bytes[] memory refundAddrsElements = new bytes[](batchLength);
-        for (uint256 index = 0; index < batchLength; index++) {
-            refundAddrsElements[index] = transOutSynPkg.refundAddrs[index].encodeAddress();
-        }
-
-        elements[2] = refundAddrsElements.encodeList();
+        elements[0] = transOutSynPkg.amount.encodeUint();
+        elements[1] = transOutSynPkg.recipient.encodeAddress();
+        elements[2] = transOutSynPkg.refundAddr.encodeAddress();
         return elements.encodeList();
     }
 }

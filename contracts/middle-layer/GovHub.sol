@@ -92,8 +92,13 @@ contract GovHub is Config, Initializable {
 
         // upgrade contract
         if (keccak256(abi.encodePacked(proposal.key)) == UPGRADE_KEY_HASH) {
+            if (proposal.value.length != 20) {
+                emit FailUpgrade(address(0), "invalid implementation value length");
+                return ERROR_INVALID_IMPLEMENTATION;
+            }
+
             address newImpl = BytesToTypes.bytesToAddress(20, proposal.value);
-            if (proposal.value.length != 20 || !_isContract(newImpl)) {
+            if (!_isContract(newImpl)) {
                 emit FailUpgrade(newImpl, "invalid implementation value");
                 return ERROR_INVALID_IMPLEMENTATION;
             }
