@@ -79,8 +79,9 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         govHub = _govHub;
 
         // TODO register channels
-        channelHandlerContractMap[TRANSFER_IN_CHANNELID] = IGovHub(_govHub).tokenHub();
-        channelHandlerContractMap[TRANSFER_OUT_CHANNELID] = IGovHub(_govHub).tokenHub();
+        address _tokenHub = IGovHub(_govHub).tokenHub();
+        channelHandlerContractMap[TRANSFER_IN_CHANNELID] = _tokenHub;
+        channelHandlerContractMap[TRANSFER_OUT_CHANNELID] = _tokenHub;
         channelHandlerContractMap[GOV_CHANNELID] = _govHub;
 
         batchSizeForOracle = 50;
