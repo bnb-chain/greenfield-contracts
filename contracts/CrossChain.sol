@@ -110,18 +110,37 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
             return (false, 0, 0, 0, 0, 0, 0, "");
         }
 
+        bytes memory _payload = payload;
+        uint256 ptr;
         {
-            (uint16 srcChainId, uint16 dstChainId) = abi.decode(payload[ : 4], (uint16, uint16));
+            uint16 srcChainId;
+            uint16 dstChainId;
+            assembly {
+                ptr := _payload
+
+                srcChainId := mload(add(ptr, 2))
+                dstChainId := mload(add(ptr, 4))
+            }
             require(srcChainId == insChainId, "invalid source chainId");
             require(dstChainId == chainId, "invalid destination chainId");
         }
 
-        (channelId, sequence, packageType, time, synRelayFee) = abi.decode(payload[4 : 54], (uint8, uint64, uint8, uint64, uint256));
+        assembly {
+            channelId := mload(add(ptr, 5))
+            sequence := mload(add(ptr, 13))
+            packageType := mload(add(ptr, 14))
+            time := mload(add(ptr, 22))
+            synRelayFee := mload(add(ptr, 54))
+        }
+
         if (packageType == SYN_PACKAGE) {
             if (payload.length < 54 + 32) {
                 return (false, 0, 0, 0, 0, 0, 0, "");
             }
-            ackRelayFee = abi.decode(payload[54 : 54 + 32], (uint256));
+
+            assembly {
+                ackRelayFee := mload(add(ptr, 86))
+            }
             packageLoad = payload[54 + 32:];
         } else {
             ackRelayFee = 0;
@@ -137,7 +156,8 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         uint256 _validatorsBitSet
     ) external
     whenNotSuspended {
-        // 1. decode and check _payload
+        // 1. decode _payload
+        // 1-1 check if the chainId is valid
         (bool success, uint8 channelId, uint64 sequence, uint8 packageType, uint64 eventTime, uint256 synRelayFee, uint256 ackRelayFee, bytes memory packageLoad) = _checkPayload(_payload);
         if (!success) {
             emit UnsupportedPackage(sequence, channelId, _payload);
@@ -145,9 +165,9 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         }
         emit ReceivedPackage(packageType, sequence, channelId);
 
-        // check if the channel is supported
+        // 1-2 check if the channel is supported
         require(channelHandlerMap[channelId] != address(0), "channel is not supported");
-        // check if the sequence is in order
+        // 1-3 check if the sequence is in order
         require(sequence == channelReceiveSequenceMap[channelId], "sequence not in order");
         channelReceiveSequenceMap[channelId]++;
 
