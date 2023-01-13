@@ -38,7 +38,7 @@ contract DeployScript is Script {
         InscriptionProxy proxyCrossChain = new InscriptionProxy(
             address(implCrossChain),
             address(proxyAdmin),
-            abi.encodeWithSignature("initialize(uint32,address)", insChainId, proxyGovHub)
+            abi.encodeWithSignature("initialize(uint16,address)", insChainId, proxyGovHub)
         );
 
         // 4. TokenHub 
@@ -66,6 +66,12 @@ contract DeployScript is Script {
         );
 
         vm.stopBroadcast();
+
+        console.log('GovHub', address(proxyGovHub));
+        console.log('proxyAdmin', GovHub(address(proxyGovHub)).proxyAdmin());
+        console.log('crossChain', GovHub(address(proxyGovHub)).crosschain());
+        console.log('tokenHub', GovHub(address(proxyGovHub)).tokenHub());
+        console.log('lightClient', GovHub(address(proxyGovHub)).lightClient());
     }
 
 }

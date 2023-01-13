@@ -1,13 +1,7 @@
-# Sample Hardhat Project
-
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
-
-Try running some of the following tasks:
+## Deploy
 
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
+cp .env.example .env
+# modify the env variable `PK1` to your own private key 
+forge script foundry-scripts/deploy.s.sol:DeployScript  --sig "run()" --rpc-url local --private-key $PK1 --broadcast
 ```
