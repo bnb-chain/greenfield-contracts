@@ -23,15 +23,15 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     uint256 constant public OUT_TURN_RELAYER_BACKOFF_PERIOD = 3 seconds;
 
     // governable parameters
-    uint32 public chainId;
-    uint32 public insChainId;
+    uint16 public chainId;
+    uint16 public insChainId;
     uint256 public batchSizeForOracle;
 
     //state variables
     uint256 public previousTxHeight;
     uint256 public txCounter;
     int64 public oracleSequence;
-    mapping(uint8 => address) public channelHandlerContractMap;
+    mapping(uint8 => address) public channelHandlerMap;
     mapping(address => mapping(uint8 => bool))public registeredContractChannelMap;
     mapping(uint8 => uint64) public channelSendSequenceMap;
     mapping(uint8 => uint64) public channelReceiveSequenceMap;
@@ -50,39 +50,26 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     event EnableOrDisableChannel(uint8 indexed channelId, bool isEnable);
     event AddChannel(uint8 indexed channelId, address indexed contractAddr);
 
-    modifier sequenceInOrder(uint64 _sequence, uint8 _channelID) {
-        uint64 expectedSequence = channelReceiveSequenceMap[_channelID];
-        require(_sequence == expectedSequence, "sequence not in order");
-
-        channelReceiveSequenceMap[_channelID]=expectedSequence+1;
-        _;
-    }
-
-    modifier channelSupported(uint8 _channelID) {
-        require(channelHandlerContractMap[_channelID]!=address(0x0), "channel is not supported");
-        _;
-    }
-
     modifier onlyRegisteredContractChannel(uint8 channelId) {
         require(registeredContractChannelMap[msg.sender][channelId], "the contract and channel have not been registered");
         _;
     }
 
-    function initialize(uint32 _insChainId, address _govHub) public initializer {
+    function initialize(uint16 _insChainId, address _govHub) public initializer {
         require(_insChainId != 0, "zero _insChainId");
         require(_govHub != address (0), "zero govHub");
 
         __Ownable_init();
 
-        chainId = uint32(block.chainid);
+        chainId = uint16(block.chainid);
         insChainId = _insChainId;
         govHub = _govHub;
 
         // TODO register channels
         address _tokenHub = IGovHub(_govHub).tokenHub();
-        channelHandlerContractMap[TRANSFER_IN_CHANNELID] = _tokenHub;
-        channelHandlerContractMap[TRANSFER_OUT_CHANNELID] = _tokenHub;
-        channelHandlerContractMap[GOV_CHANNELID] = _govHub;
+        channelHandlerMap[TRANSFER_IN_CHANNELID] = _tokenHub;
+        channelHandlerMap[TRANSFER_OUT_CHANNELID] = _tokenHub;
+        channelHandlerMap[GOV_CHANNELID] = _govHub;
 
         batchSizeForOracle = 50;
 
@@ -99,102 +86,108 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         return abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
     }
 
-    // | packageType |  timestamp  |  relayFee  |  package  |
-    // | 1 byte      |  8 bytes    |  32 bytes  |  bytes    |
-    function decodePayloadHeader(bytes memory payload) internal pure returns(bool, uint8 packageType, uint64 time, uint256 relayFee, bytes memory msgBytes) {
-        if (payload.length < 41) {
-            return (false, 0, 0, 0, new bytes(0));
+    /*
+    | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | SynRelayerFee | AckRelayerFee(optional) | PackageLoad |
+    | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes      | 32 bytes / 0 bytes      |   len bytes |
+    */
+    function _checkPayload(bytes calldata payload)
+    internal
+    view
+    returns(
+        bool success,
+
+        uint8 channelId,
+        uint64 sequence,
+        uint8 packageType,
+        uint64 time,
+        uint256 synRelayFee,
+
+        uint256 ackRelayFee,  // optional
+
+        bytes memory packageLoad
+    ) {
+        if (payload.length < 54) {
+            return (false, 0, 0, 0, 0, 0, 0, "");
         }
 
-        uint256 ptr;
-        assembly {
-            ptr := payload
+        {
+            (uint16 srcChainId, uint16 dstChainId) = abi.decode(payload[ : 4], (uint16, uint16));
+            require(srcChainId == insChainId, "invalid source chainId");
+            require(dstChainId == chainId, "invalid destination chainId");
         }
 
-        ptr += 1;
-        assembly {
-            packageType := mload(ptr)
+        (channelId, sequence, packageType, time, synRelayFee) = abi.decode(payload[4 : 54], (uint8, uint64, uint8, uint64, uint256));
+        if (packageType == SYN_PACKAGE) {
+            if (payload.length < 54 + 32) {
+                return (false, 0, 0, 0, 0, 0, 0, "");
+            }
+            ackRelayFee = abi.decode(payload[54 : 54 + 32], (uint256));
+            packageLoad = payload[54 + 32:];
+        } else {
+            ackRelayFee = 0;
+            packageLoad = payload[54: ];
         }
 
-        ptr += 8;
-        assembly {
-            time := mload(ptr)
-        }
-
-        ptr += 32;
-        assembly {
-            relayFee := mload(ptr)
-        }
-
-        ptr += 32;
-        msgBytes = new bytes(payload.length - 41);
-        (uint256 dst, ) = Memory.fromBytes(msgBytes);
-        Memory.copy(ptr, dst, payload.length - 41);
-
-        return (true, packageType, time, relayFee, msgBytes);
+        success = true;
     }
 
     function handlePackage(
-        bytes calldata payload,
-        bytes calldata blsSignature,
-        uint256 validatorsBitSet,
-        uint64 packageSequence,
-        uint8 channelId
+        bytes calldata _payload,
+        bytes calldata _blsSignature,
+        uint256 _validatorsBitSet
     ) external
-    sequenceInOrder(packageSequence, channelId)
-    channelSupported(channelId)
     whenNotSuspended {
-        uint64 _sequence = packageSequence; // fix error: stack too deep, try removing local variables
-        uint8 _channelId = channelId; // fix error: stack too deep, try removing local variables
-        bytes memory _payload = payload; // fix error: stack too deep, try removing local variables
-        bytes memory _blsSignature = blsSignature; // fix error: stack too deep, try removing local variables
-        uint256 _validatorsBitSet = validatorsBitSet; // fix error: stack too deep, try removing local variables
-
-        bytes memory _pkgKey = abi.encodePacked(insChainId, chainId, channelId, packageSequence);
-
-        address _lightClient = IGovHub(govHub).lightClient();
-        ILightClient(_lightClient).verifyPackage(_pkgKey, _payload, _blsSignature, _validatorsBitSet);
-
-        (bool success, uint8 packageType, uint64 eventTime, uint256 relayFee, bytes memory msgBytes) = decodePayloadHeader(_payload);
+        // 1. decode and check _payload
+        (bool success, uint8 channelId, uint64 sequence, uint8 packageType, uint64 eventTime, uint256 synRelayFee, uint256 ackRelayFee, bytes memory packageLoad) = _checkPayload(_payload);
         if (!success) {
-            emit UnsupportedPackage(_sequence, _channelId, _payload);
+            emit UnsupportedPackage(sequence, channelId, _payload);
             return;
         }
-        emit ReceivedPackage(packageType, _sequence, _channelId);
+        emit ReceivedPackage(packageType, sequence, channelId);
 
+        // check if the channel is supported
+        require(channelHandlerMap[channelId] != address(0), "channel is not supported");
+        // check if the sequence is in order
+        require(sequence == channelReceiveSequenceMap[channelId], "sequence not in order");
+        channelReceiveSequenceMap[channelId]++;
+
+        // 2. check valid relayer
+        address _lightClient = IGovHub(govHub).lightClient();
         _checkValidRelayer(eventTime, _lightClient);
 
+        // 3. verify bls signature
+        ILightClient(_lightClient).verifyPackage(_payload, _blsSignature, _validatorsBitSet);
+
+        // 4. handle package
+        address _handler = channelHandlerMap[channelId];
         if (packageType == SYN_PACKAGE) {
-            address handlerContract = channelHandlerContractMap[_channelId];
-            try IMiddleLayer(handlerContract).handleSynPackage(_channelId, msgBytes) returns (bytes memory responsePayload) {
+            try IMiddleLayer(_handler).handleSynPackage(channelId, packageLoad) returns (bytes memory responsePayload) {
                 if (responsePayload.length!=0) {
-                    _sendPackage(channelSendSequenceMap[_channelId], _channelId, encodePayload(ACK_PACKAGE, 0, responsePayload));
-                    channelSendSequenceMap[_channelId] = channelSendSequenceMap[_channelId] + 1;
+                    _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(ACK_PACKAGE, 0, responsePayload));
+                    channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 }
             } catch Error(string memory reason) {
-                _sendPackage(channelSendSequenceMap[_channelId], _channelId, encodePayload(FAIL_ACK_PACKAGE, 0, msgBytes));
-                channelSendSequenceMap[_channelId] = channelSendSequenceMap[_channelId] + 1;
-                emit UnexpectedRevertInPackageHandler(handlerContract, reason);
+                _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, 0, packageLoad));
+                channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
+                emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
-                _sendPackage(channelSendSequenceMap[_channelId], _channelId, encodePayload(FAIL_ACK_PACKAGE, 0, msgBytes));
-                channelSendSequenceMap[_channelId] = channelSendSequenceMap[_channelId] + 1;
-                emit UnexpectedFailureAssertionInPackageHandler(handlerContract, lowLevelData);
+                _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, 0, packageLoad));
+                channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
+                emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
         } else if (packageType == ACK_PACKAGE) {
-            address handlerContract = channelHandlerContractMap[_channelId];
-            try IMiddleLayer(handlerContract).handleAckPackage(_channelId, msgBytes) {
+            try IMiddleLayer(_handler).handleAckPackage(channelId, packageLoad) {
             } catch Error(string memory reason) {
-                emit UnexpectedRevertInPackageHandler(handlerContract, reason);
+                emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
-                emit UnexpectedFailureAssertionInPackageHandler(handlerContract, lowLevelData);
+                emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
         } else if (packageType == FAIL_ACK_PACKAGE) {
-            address handlerContract = channelHandlerContractMap[_channelId];
-            try IMiddleLayer(handlerContract).handleFailAckPackage(_channelId, msgBytes) {
+            try IMiddleLayer(_handler).handleFailAckPackage(channelId, packageLoad) {
             } catch Error(string memory reason) {
-                emit UnexpectedRevertInPackageHandler(handlerContract, reason);
+                emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
-                emit UnexpectedFailureAssertionInPackageHandler(handlerContract, lowLevelData);
+                emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
         }
     }

@@ -11,11 +11,8 @@ import "./middle-layer/GovHub.sol";
 import "./middle-layer/TokenHub.sol";
 
 contract Deployer {
-    uint32 constant public insChainId = 1;
 
-    constructor(
-
-    ) {
+    constructor(uint16 insChainId) {
         // 1. proxyAdmin
         ProxyAdmin proxyAdmin = new InscriptionProxyAdmin();
         
@@ -61,5 +58,4 @@ contract Deployer {
             address(proxyTokenHub)
         );
     }
-
 }
