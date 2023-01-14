@@ -3,7 +3,7 @@
 ```shell
 cp .env.example .env
 # modify the env variable `PK1` to your own private key 
-forge script foundry-scripts/deploy.s.sol:DeployScript  --sig "run()" --rpc-url local --private-key $PK1 --broadcast
+forge script foundry-scripts/deploy.s.sol:DeployScript  --sig "run(uint16 insChainId)" 48 --rpc-url local --private-key $PK1 --broadcast
 ```
 
 ## Transaction

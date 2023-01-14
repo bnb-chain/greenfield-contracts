@@ -12,9 +12,7 @@ import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
 
 contract DeployScript is Script {
-    uint32 constant public insChainId = 1;
-
-    function run() public {
+    function run(uint16 insChainId) public {
         uint256 privateKey = uint256(vm.envBytes32('PK1'));
         address developer = vm.addr(privateKey);
 

@@ -134,14 +134,14 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         }
 
         if (packageType == SYN_PACKAGE) {
-            if (payload.length < 54 + 32) {
+            if (payload.length < 86) {
                 return (false, 0, 0, 0, 0, 0, 0, "");
             }
 
             assembly {
                 ackRelayFee := mload(add(ptr, 86))
             }
-            packageLoad = payload[54 + 32:];
+            packageLoad = payload[86 : ];
         } else {
             ackRelayFee = 0;
             packageLoad = payload[54: ];
