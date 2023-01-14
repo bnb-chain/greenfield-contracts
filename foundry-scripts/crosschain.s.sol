@@ -12,7 +12,7 @@ import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
 
 contract CrossChainScript is Script {
-    CrossChain private crosschain = CrossChain(address());
+    CrossChain private crosschain;
 
     function run(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorsBitSet) public {
         uint256 privateKey = uint256(vm.envBytes32('PK1'));
