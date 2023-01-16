@@ -12,7 +12,7 @@ import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
 
 contract TokenHubScript is Script {
-    TokenHub private tokenHub = TokenHub();
+    TokenHub private tokenHub;
 
     function run(address proxyTokenHub, address receipt, uint256 amount) public {
         tokenHub = TokenHub(proxyTokenHub);
