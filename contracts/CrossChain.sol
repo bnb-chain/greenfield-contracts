@@ -41,6 +41,11 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
     
     // event
     event CrossChainPackage(uint32 srcChainId, uint32 dstChainId, uint64 indexed oracleSequence, uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
+    /*
+      event.topics => 0-eventHash,  1-oracleSequence 2-packageSequence 3-channelId
+      event.data bytes 119 => 猜测 srcChainId, dstChainId, payload 111字节（ abi.encodePacked(packageType, uint64(block.timestamp), synRelayFee, ackRelayFee, msgBytes) ）
+    */
+
     event ReceivedPackage(uint8 packageType, uint64 indexed packageSequence, uint8 indexed channelId);
     event UnsupportedPackage(uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
     event UnexpectedRevertInPackageHandler(address indexed contractAddr, string reason);

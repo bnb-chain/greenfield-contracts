@@ -1,8 +1,9 @@
 pragma solidity ^0.8.0;
 
 import "./Config.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract InscriptionLightClient is Config {
+contract InscriptionLightClient is Config, Initializable {
     /* --------------------- 1. constant --------------------- */
     address constant public LIGHT_CLIENT_CONTRACT = 0x0000000000000000000000000000000000000065;
     address constant public PACKAGE_VERIFY_CONTRACT = 0x0000000000000000000000000000000000000066;
@@ -26,6 +27,11 @@ contract InscriptionLightClient is Config {
         require(isRelayer, "only relayer");
 
         _;
+    }
+
+    function initialize(bytes memory _blsPubKeys, address[] memory _relayers) public initializer {
+        blsPubKeys = _blsPubKeys;
+        relayers = _relayers;
     }
 
     function syncTendermintHeader(

@@ -12,6 +12,8 @@ import "./middle-layer/TokenHub.sol";
 
 contract Deployer {
     uint16 public insChainId;
+    bytes public blsPubKeys;
+    address[] public relayers;
 
     address public proxyGovHub;
     address public proxyCrossChain;
@@ -23,8 +25,10 @@ contract Deployer {
     address private implTokenHub;
     address private implLightClient;
 
-    constructor(uint16 _insChainId) {
+    constructor(uint16 _insChainId, bytes memory _blsPubKeys, address[] memory _relayers) {
         insChainId = _insChainId;
+        blsPubKeys = _blsPubKeys;
+        relayers = _relayers;
 
         // 1. proxyAdmin
         proxyAdmin = address(new InscriptionProxyAdmin());
@@ -58,5 +62,6 @@ contract Deployer {
         GovHub(payable(proxyGovHub)).initialize(proxyAdmin, address(proxyCrossChain), address(proxyLightClient), address(proxyTokenHub));
         TokenHub(payable(proxyTokenHub)).initialize(proxyGovHub);
         CrossChain(payable(proxyCrossChain)).initialize(insChainId, proxyGovHub);
+        InscriptionLightClient(payable(proxyLightClient)).initialize(blsPubKeys, relayers);
     }
 }
