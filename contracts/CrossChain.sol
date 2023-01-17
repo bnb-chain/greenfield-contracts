@@ -87,8 +87,10 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
     }
 
-    function encodePayload(uint8 packageType, uint256 relayFee, bytes memory msgBytes) public view returns(bytes memory) {
-        return abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
+    function encodePayload(uint8 packageType, uint256 synRelayFee, uint256 ackRelayFee, bytes memory msgBytes) public view returns(bytes memory) {
+        return packageType == SYN_PACKAGE
+            ? abi.encodePacked(packageType, uint64(block.timestamp), synRelayFee, ackRelayFee, msgBytes)
+            : abi.encodePacked(packageType, uint64(block.timestamp), synRelayFee, msgBytes);
     }
 
     /*
@@ -188,15 +190,15 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         if (packageType == SYN_PACKAGE) {
             try IMiddleLayer(_handler).handleSynPackage(channelId, packageLoad) returns (bytes memory responsePayload) {
                 if (responsePayload.length!=0) {
-                    _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(ACK_PACKAGE, 0, responsePayload));
+                    _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(ACK_PACKAGE, ackRelayFee, 0, responsePayload));
                     channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 }
             } catch Error(string memory reason) {
-                _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, 0, packageLoad));
+                _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad));
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
-                _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, 0, packageLoad));
+                _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad));
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
@@ -261,11 +263,11 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         emit CrossChainPackage(chainId, insChainId, uint64(oracleSequence), packageSequence, channelId, payload);
     }
 
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee)
+    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 synRelayFee, uint256 ackRelayFee)
     onlyRegisteredContractChannel(channelId)
     external {
         uint64 sendSequence = channelSendSequenceMap[channelId];
-        _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, relayFee, msgBytes));
+        _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, synRelayFee, ackRelayFee, msgBytes));
         sendSequence++;
         channelSendSequenceMap[channelId] = sendSequence;
     }

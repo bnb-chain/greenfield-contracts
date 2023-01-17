@@ -7,7 +7,7 @@ import "../lib/RLPDecode.sol";
 import "../interface/IGovHub.sol";
 
 interface ICrossChain {
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee) external;
+    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 synRelayFee, uint256 ackRelayFee) external;
 }
 
 contract TokenHub is Config, OwnableUpgradeable {
@@ -25,11 +25,11 @@ contract TokenHub is Config, OwnableUpgradeable {
     uint8 constant public   TRANSFER_IN_FAILURE_UNKNOWN = 3;
 
     uint256 constant public MAX_GAS_FOR_TRANSFER_BNB = 10000;
-    uint256 constant public INIT_MINIMUM_RELAY_FEE = 2e15;
-
     /************************* storage layer *************************/
     address public govHub;
-    uint256 public relayFee;
+    uint256 public synRelayFee;
+    uint256 public ackRelayFee;
+
     /************************* struct / event *************************/
     // BSC to INS
     struct TransferOutSynPackage {
@@ -60,7 +60,7 @@ contract TokenHub is Config, OwnableUpgradeable {
     }
 
     event TransferInSuccess(address refundAddr, uint256 amount);
-    event TransferOutSuccess(address senderAddr, uint256 amount, uint256 relayFee);
+    event TransferOutSuccess(address senderAddr, uint256 amount, uint256 synRelayFee, uint256 ackRelayFee);
     event RefundSuccess(address refundAddr, uint256 amount, uint32 status);
     event RefundFailure(address refundAddr, uint256 amount, uint32 status);
     event RewardTo(address to, uint256 amount);
@@ -79,7 +79,9 @@ contract TokenHub is Config, OwnableUpgradeable {
         __Ownable_init();
 
         govHub = _govHub;
-        relayFee = INIT_MINIMUM_RELAY_FEE;
+
+        synRelayFee = 2e15;
+        ackRelayFee = 2e15;
     }
 
     receive() external payable {
@@ -89,7 +91,7 @@ contract TokenHub is Config, OwnableUpgradeable {
     }
 
     function getMiniRelayFee() external view returns (uint256) {
-        return relayFee;
+        return synRelayFee + ackRelayFee;
     }
 
     /**
@@ -254,9 +256,8 @@ contract TokenHub is Config, OwnableUpgradeable {
    * @param amount The amount to transfer
    */
     function transferOut(address recipient, uint256 amount) external payable returns (bool) {
-        uint256 rewardForRelayer;
-        require(msg.value >= amount + relayFee, "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee");
-        rewardForRelayer = msg.value - amount;
+        require(msg.value >= amount + synRelayFee + ackRelayFee, "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee");
+        uint256 _ackRelayFee = msg.value - amount - synRelayFee;
 
         TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage({
             amount: amount,
@@ -265,8 +266,8 @@ contract TokenHub is Config, OwnableUpgradeable {
         });
 
         address _crosschain = IGovHub(govHub).crosschain();
-        ICrossChain(_crosschain).sendSynPackage(TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), rewardForRelayer);
-        emit TransferOutSuccess(msg.sender, amount, rewardForRelayer);
+        ICrossChain(_crosschain).sendSynPackage(TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), synRelayFee, _ackRelayFee);
+        emit TransferOutSuccess(msg.sender, amount, synRelayFee, _ackRelayFee);
         return true;
     }
 
