@@ -11,55 +11,47 @@ import "./middle-layer/GovHub.sol";
 import "./middle-layer/TokenHub.sol";
 
 contract Deployer {
+    uint16 public insChainId;
+
     address public proxyGovHub;
     address public proxyCrossChain;
     address public proxyTokenHub;
     address public proxyLightClient;
+    address public proxyAdmin;
 
-    constructor(uint16 insChainId) {
+    constructor(uint16 _insChainId) {
+        insChainId = _insChainId;
+
         // 1. proxyAdmin
-        ProxyAdmin proxyAdmin = new InscriptionProxyAdmin();
+        proxyAdmin = address(new InscriptionProxyAdmin());
         
         // 2. GovHub, transfer ownership of proxyAdmin to GovHub
         GovHub implGovHub = new GovHub();
         proxyGovHub = address(new InscriptionProxy(
             address(implGovHub),
-            address(proxyAdmin),
+            proxyAdmin,
             ""
         ));
         // transfer ownership to proxyGovHub
-        proxyAdmin.transferOwnership(address(proxyGovHub));
+        InscriptionProxyAdmin(proxyAdmin).transferOwnership(address(proxyGovHub));
+    }
 
+    function deploy() public {
         // 3. CrossChain
         CrossChain implCrossChain = new CrossChain();
-        proxyCrossChain = address(new InscriptionProxy(
-            address(implCrossChain),
-            address(proxyAdmin),
-            abi.encodeWithSignature("initialize(uint32,address)", insChainId, proxyGovHub)
-        ));
+        proxyCrossChain = address(new InscriptionProxy(address(implCrossChain), proxyAdmin, ""));
 
-        // 4. TokenHub 
+        // 4. TokenHub
         TokenHub implTokenHub = new TokenHub();
-        proxyTokenHub = address(new InscriptionProxy(
-            address(implTokenHub),
-            address(proxyAdmin),
-            abi.encodeWithSignature("initialize(address)", proxyGovHub)
-        ));
+        proxyTokenHub = address(new InscriptionProxy(address(implTokenHub), proxyAdmin, ""));
 
         // 5. InscriptionLightClient
         InscriptionLightClient implLightClient = new InscriptionLightClient();
-        proxyLightClient = address(new InscriptionProxy(
-            address(implLightClient),
-            address(proxyAdmin),
-            ""
-        ));
+        proxyLightClient = address(new InscriptionProxy(address(implLightClient), proxyAdmin, ""));
 
         // 6. init GovHub, set contracts addresses to GovHub
-        GovHub(address(proxyGovHub)).initialize(
-            address(proxyAdmin),
-            address(proxyCrossChain),
-            address(proxyLightClient),
-            address(proxyTokenHub)
-        );
+        GovHub(payable(proxyGovHub)).initialize(proxyAdmin, address(proxyCrossChain), address(proxyLightClient), address(proxyTokenHub));
+        TokenHub(payable(proxyTokenHub)).initialize(proxyGovHub);
+        CrossChain(payable(proxyCrossChain)).initialize(insChainId, proxyGovHub);
     }
 }

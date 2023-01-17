@@ -11,7 +11,6 @@ import "./lib/BytesToTypes.sol";
 import "./Config.sol";
 import "./Governance.sol";
 
-
 contract CrossChain is Config, Governance, OwnableUpgradeable {
 
     // constant variables
@@ -67,9 +66,15 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
 
         // TODO register channels
         address _tokenHub = IGovHub(_govHub).tokenHub();
+
         channelHandlerMap[TRANSFER_IN_CHANNELID] = _tokenHub;
+        registeredContractChannelMap[_tokenHub][TRANSFER_IN_CHANNELID] = true;
+
         channelHandlerMap[TRANSFER_OUT_CHANNELID] = _tokenHub;
+        registeredContractChannelMap[_tokenHub][TRANSFER_OUT_CHANNELID] = true;
+
         channelHandlerMap[GOV_CHANNELID] = _govHub;
+        registeredContractChannelMap[_tokenHub][GOV_CHANNELID] = true;
 
         batchSizeForOracle = 50;
 
