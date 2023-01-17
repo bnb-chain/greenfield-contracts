@@ -19,6 +19,10 @@ contract Deployer {
     address public proxyLightClient;
     address public proxyAdmin;
 
+    address private implCrossChain;
+    address private implTokenHub;
+    address private implLightClient;
+
     constructor(uint16 _insChainId) {
         insChainId = _insChainId;
 
@@ -34,19 +38,20 @@ contract Deployer {
         ));
         // transfer ownership to proxyGovHub
         InscriptionProxyAdmin(proxyAdmin).transferOwnership(address(proxyGovHub));
+
+        implCrossChain = address(new CrossChain());
+        implTokenHub = address(new TokenHub());
+        implLightClient = address(new InscriptionLightClient());
     }
 
     function deploy() public {
         // 3. CrossChain
-        CrossChain implCrossChain = new CrossChain();
-        proxyCrossChain = address(new InscriptionProxy(address(implCrossChain), proxyAdmin, ""));
+        proxyCrossChain = address(new InscriptionProxy(implCrossChain, proxyAdmin, ""));
 
         // 4. TokenHub
-        TokenHub implTokenHub = new TokenHub();
-        proxyTokenHub = address(new InscriptionProxy(address(implTokenHub), proxyAdmin, ""));
+        proxyTokenHub = address(new InscriptionProxy(implTokenHub, proxyAdmin, ""));
 
         // 5. InscriptionLightClient
-        InscriptionLightClient implLightClient = new InscriptionLightClient();
         proxyLightClient = address(new InscriptionProxy(address(implLightClient), proxyAdmin, ""));
 
         // 6. init GovHub, set contracts addresses to GovHub
