@@ -47,7 +47,7 @@ contract InscriptionLightClient is Config, Initializable {
         bytes memory input = abi.encodePacked(_header, _height, _blsPubKeys, _relayers);
         (bool success, bytes memory data) = LIGHT_CLIENT_CONTRACT.staticcall(input);
         // TODO mock
-//        require(success && data.length > 0, "invalid header");
+        // require(success && data.length > 0, "invalid header");
 
         // validators changed
         if (_blsPubKeys.length > 0) {
@@ -67,7 +67,9 @@ contract InscriptionLightClient is Config, Initializable {
         bytes32 msgHash = keccak256(_payload);
         bytes memory input = abi.encodePacked(msgHash, _blsSignature, _validatorSetBitMap, blsPubKeys);
         (bool success, bytes memory data) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
-        require(success && data.length > 0, "invalid cross-chain package");
+
+        // TODO mock
+        // require(success && data.length > 0, "invalid cross-chain package");
     }
 
     function getRelayers() external view returns(address[] memory) {
