@@ -25,6 +25,7 @@ contract TokenHub is Config, OwnableUpgradeable {
     uint8 constant public   TRANSFER_IN_FAILURE_UNKNOWN = 3;
 
     uint256 constant public MAX_GAS_FOR_TRANSFER_BNB = 10000;
+
     /************************* storage layer *************************/
     address public govHub;
     uint256 public synRelayFee;
@@ -90,10 +91,6 @@ contract TokenHub is Config, OwnableUpgradeable {
         }
     }
 
-    function getMiniRelayFee() external view returns (uint256) {
-        return synRelayFee + ackRelayFee;
-    }
-
     /**
      * @dev handle sync cross-chain package from BSC to INS
    *
@@ -102,7 +99,7 @@ contract TokenHub is Config, OwnableUpgradeable {
    */
     function handleSynPackage(uint8 channelId, bytes calldata msgBytes) onlyCrossChainContract external returns (bytes memory) {
         if (channelId == TRANSFER_IN_CHANNELID) {
-            return handleTransferInSynPackage(msgBytes);
+            return _handleTransferInSynPackage(msgBytes);
         } else {
             // should not happen
             require(false, "unrecognized syn package");
@@ -119,7 +116,7 @@ contract TokenHub is Config, OwnableUpgradeable {
    */
     function handleAckPackage(uint8 channelId, bytes calldata msgBytes) onlyCrossChainContract external {
         if (channelId == TRANSFER_OUT_CHANNELID) {
-            handleTransferOutAckPackage(msgBytes);
+            _handleTransferOutAckPackage(msgBytes);
         } else {
             emit UnexpectedPackage(channelId, msgBytes);
         }
@@ -138,116 +135,6 @@ contract TokenHub is Config, OwnableUpgradeable {
             emit UnexpectedPackage(channelId, msgBytes);
         }
     }
-
-    function decodeTransferInSynPackage(bytes memory msgBytes) internal pure returns (TransferInSynPackage memory, bool) {
-        TransferInSynPackage memory transInSynPkg;
-
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
-        while (iter.hasNext()) {
-            if (idx == 0) transInSynPkg.amount = iter.next().toUint();
-            else if (idx == 1) transInSynPkg.recipient = ((iter.next().toAddress()));
-            else if (idx == 2) transInSynPkg.refundAddr = iter.next().toAddress();
-            else break;
-            idx++;
-        }
-        return (transInSynPkg, success);
-    }
-
-    function encodeTransferInRefundPackage(TransferInRefundPackage memory transInAckPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = transInAckPkg.refundAmount.encodeUint();
-        elements[1] = transInAckPkg.refundAddr.encodeAddress();
-        elements[2] = uint256(transInAckPkg.status).encodeUint();
-        return elements.encodeList();
-    }
-
-    function handleTransferInSynPackage(bytes memory msgBytes) internal returns (bytes memory) {
-        (TransferInSynPackage memory transInSynPkg, bool success) = decodeTransferInSynPackage(msgBytes);
-        require(success, "unrecognized transferIn package");
-        uint32 resCode = doTransferIn(transInSynPkg);
-        if (resCode != TRANSFER_IN_SUCCESS) {
-            TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage({
-                refundAmount : transInSynPkg.amount,
-                refundAddr : transInSynPkg.refundAddr,
-                status : resCode
-            });
-            return encodeTransferInRefundPackage(transInAckPkg);
-        } else {
-            return new bytes(0);
-        }
-    }
-
-    function doTransferIn(TransferInSynPackage memory transInSynPkg) internal returns (uint32) {
-        if (address(this).balance < transInSynPkg.amount) {
-            return TRANSFER_IN_FAILURE_INSUFFICIENT_BALANCE;
-        }
-        (bool success,) = transInSynPkg.recipient.call{gas : MAX_GAS_FOR_TRANSFER_BNB, value : transInSynPkg.amount}("");
-        if (!success) {
-            return TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT;
-        }
-        emit TransferInSuccess(transInSynPkg.recipient, transInSynPkg.amount);
-        return TRANSFER_IN_SUCCESS;
-    }
-
-    function decodeTransferOutAckPackage(bytes memory msgBytes) internal pure returns (TransferOutAckPackage memory, bool) {
-        TransferOutAckPackage memory transOutAckPkg;
-
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
-        while (iter.hasNext()) {
-            if (idx == 0) transOutAckPkg.refundAmount = iter.next().toUint();
-            else if (idx == 1) transOutAckPkg.refundAddr = ((iter.next().toAddress()));
-            else if (idx == 2) transOutAckPkg.status = uint32(iter.next().toUint());
-            else break;
-            idx++;
-        }
-        return (transOutAckPkg, success);
-    }
-
-    function handleTransferOutAckPackage(bytes memory msgBytes) internal {
-        (TransferOutAckPackage memory transOutAckPkg, bool decodeSuccess) = decodeTransferOutAckPackage(msgBytes);
-        require(decodeSuccess, "unrecognized transferOut ack package");
-        doRefund(transOutAckPkg);
-    }
-
-    function doRefund(TransferOutAckPackage memory transOutAckPkg) internal {
-        (bool success,) = transOutAckPkg.refundAddr.call{gas : MAX_GAS_FOR_TRANSFER_BNB, value : transOutAckPkg.refundAmount}("");
-        if (!success) {
-            emit RefundFailure(transOutAckPkg.refundAddr, transOutAckPkg.refundAmount, transOutAckPkg.status);
-        } else {
-            emit RefundSuccess(transOutAckPkg.refundAddr, transOutAckPkg.refundAmount, transOutAckPkg.status);
-        }
-    }
-
-    function decodeTransferOutSynPackage(bytes memory msgBytes) internal pure returns (TransferOutSynPackage memory, bool) {
-        TransferOutSynPackage memory transOutSynPkg;
-
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
-        while (iter.hasNext()) {
-            if (idx == 0) transOutSynPkg.amount = iter.next().toUint();
-            else if (idx == 1) transOutSynPkg.recipient = ((iter.next().toAddress()));
-            else if (idx == 2) transOutSynPkg.refundAddr = iter.next().toAddress();
-            else break;
-            idx++;
-        }
-        return (transOutSynPkg, success);
-    }
-
-    function _handleTransferOutFailAckPackage(bytes memory msgBytes) internal {
-        (TransferOutSynPackage memory transOutSynPkg, bool decodeSuccess) = decodeTransferOutSynPackage(msgBytes);
-        require(decodeSuccess, "unrecognized transferOut syn package");
-        TransferOutAckPackage memory transOutAckPkg;
-        transOutAckPkg.refundAmount = transOutSynPkg.amount;
-        transOutAckPkg.refundAddr = transOutSynPkg.refundAddr;
-        transOutAckPkg.status = TRANSFER_IN_FAILURE_UNKNOWN;
-        doRefund(transOutAckPkg);
-    }
-
 
     /**
      * @dev request a cross-chain transfer from BSC to INS
@@ -269,6 +156,116 @@ contract TokenHub is Config, OwnableUpgradeable {
         ICrossChain(_crosschain).sendSynPackage(TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), synRelayFee, _ackRelayFee);
         emit TransferOutSuccess(msg.sender, amount, synRelayFee, _ackRelayFee);
         return true;
+    }
+
+    /************************* internal function *************************/
+    function _decodeTransferInSynPackage(bytes memory msgBytes) internal pure returns (TransferInSynPackage memory, bool) {
+        TransferInSynPackage memory transInSynPkg;
+
+        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
+        bool success = false;
+        uint256 idx = 0;
+        while (iter.hasNext()) {
+            if (idx == 0) transInSynPkg.amount = iter.next().toUint();
+            else if (idx == 1) transInSynPkg.recipient = ((iter.next().toAddress()));
+            else if (idx == 2) transInSynPkg.refundAddr = iter.next().toAddress();
+            else break;
+            idx++;
+        }
+        return (transInSynPkg, success);
+    }
+
+    function _encodeTransferInRefundPackage(TransferInRefundPackage memory transInAckPkg) internal pure returns (bytes memory) {
+        bytes[] memory elements = new bytes[](3);
+        elements[0] = transInAckPkg.refundAmount.encodeUint();
+        elements[1] = transInAckPkg.refundAddr.encodeAddress();
+        elements[2] = uint256(transInAckPkg.status).encodeUint();
+        return elements.encodeList();
+    }
+
+    function _handleTransferInSynPackage(bytes memory msgBytes) internal returns (bytes memory) {
+        (TransferInSynPackage memory transInSynPkg, bool success) = _decodeTransferInSynPackage(msgBytes);
+        require(success, "unrecognized transferIn package");
+        uint32 resCode = _doTransferIn(transInSynPkg);
+        if (resCode != TRANSFER_IN_SUCCESS) {
+            TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage({
+            refundAmount : transInSynPkg.amount,
+            refundAddr : transInSynPkg.refundAddr,
+            status : resCode
+            });
+            return _encodeTransferInRefundPackage(transInAckPkg);
+        } else {
+            return new bytes(0);
+        }
+    }
+
+    function _doTransferIn(TransferInSynPackage memory transInSynPkg) internal returns (uint32) {
+        if (address(this).balance < transInSynPkg.amount) {
+            return TRANSFER_IN_FAILURE_INSUFFICIENT_BALANCE;
+        }
+        (bool success,) = transInSynPkg.recipient.call{gas : MAX_GAS_FOR_TRANSFER_BNB, value : transInSynPkg.amount}("");
+        if (!success) {
+            return TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT;
+        }
+        emit TransferInSuccess(transInSynPkg.recipient, transInSynPkg.amount);
+        return TRANSFER_IN_SUCCESS;
+    }
+
+    function _decodeTransferOutAckPackage(bytes memory msgBytes) internal pure returns (TransferOutAckPackage memory, bool) {
+        TransferOutAckPackage memory transOutAckPkg;
+
+        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
+        bool success = false;
+        uint256 idx = 0;
+        while (iter.hasNext()) {
+            if (idx == 0) transOutAckPkg.refundAmount = iter.next().toUint();
+            else if (idx == 1) transOutAckPkg.refundAddr = ((iter.next().toAddress()));
+            else if (idx == 2) transOutAckPkg.status = uint32(iter.next().toUint());
+            else break;
+            idx++;
+        }
+        return (transOutAckPkg, success);
+    }
+
+    function _handleTransferOutAckPackage(bytes memory msgBytes) internal {
+        (TransferOutAckPackage memory transOutAckPkg, bool decodeSuccess) = _decodeTransferOutAckPackage(msgBytes);
+        require(decodeSuccess, "unrecognized transferOut ack package");
+        _doRefund(transOutAckPkg);
+    }
+
+    function _doRefund(TransferOutAckPackage memory transOutAckPkg) internal {
+        (bool success,) = transOutAckPkg.refundAddr.call{gas : MAX_GAS_FOR_TRANSFER_BNB, value : transOutAckPkg.refundAmount}("");
+        if (!success) {
+            emit RefundFailure(transOutAckPkg.refundAddr, transOutAckPkg.refundAmount, transOutAckPkg.status);
+        } else {
+            emit RefundSuccess(transOutAckPkg.refundAddr, transOutAckPkg.refundAmount, transOutAckPkg.status);
+        }
+    }
+
+    function _decodeTransferOutSynPackage(bytes memory msgBytes) internal pure returns (TransferOutSynPackage memory, bool) {
+        TransferOutSynPackage memory transOutSynPkg;
+
+        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
+        bool success = false;
+        uint256 idx = 0;
+        while (iter.hasNext()) {
+            if (idx == 0) transOutSynPkg.amount = iter.next().toUint();
+            else if (idx == 1) transOutSynPkg.recipient = ((iter.next().toAddress()));
+            else if (idx == 2) transOutSynPkg.refundAddr = iter.next().toAddress();
+            else break;
+            idx++;
+        }
+        return (transOutSynPkg, success);
+    }
+
+    function _handleTransferOutFailAckPackage(bytes memory msgBytes) internal {
+        (TransferOutSynPackage memory transOutSynPkg, bool decodeSuccess) = _decodeTransferOutSynPackage(msgBytes);
+        require(decodeSuccess, "unrecognized transferOut syn package");
+        TransferOutAckPackage memory transOutAckPkg;
+        transOutAckPkg.refundAmount = transOutSynPkg.amount;
+        transOutAckPkg.refundAddr = transOutSynPkg.refundAddr;
+        transOutAckPkg.status = TRANSFER_IN_FAILURE_UNKNOWN;
+        _doRefund(transOutAckPkg);
     }
 
     function _encodeTransferOutSynPackage(TransferOutSynPackage memory transOutSynPkg) internal pure returns (bytes memory) {

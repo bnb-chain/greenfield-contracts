@@ -23,8 +23,12 @@ contract DeployScript is Script {
 
         vm.startBroadcast();
 
+        // deployer contracts
         deployer = new Deployer(_insChainId, blsPubKeys, relayers);
         deployer.deploy();
+
+        // init balance to test
+        deployer.proxyTokenHub().transfer(100 ether);
 
         vm.stopBroadcast();
 
