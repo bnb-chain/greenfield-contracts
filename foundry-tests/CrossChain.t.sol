@@ -35,7 +35,7 @@ contract CrossChainTest is Test {
         vm.deal(developer, 10000 ether);
     }
 
-    function test_correct_case1() public {
+    function test_transferOut() public {
         address receipt = user1;
         uint256 amount = 1 ether;
         tokenHub.transferOut{ value: amount + 1 ether }(receipt, amount);

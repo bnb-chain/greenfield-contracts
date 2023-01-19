@@ -167,7 +167,10 @@ contract TokenHub is Initializable, Config {
         while (iter.hasNext()) {
             if (idx == 0) transInSynPkg.amount = iter.next().toUint();
             else if (idx == 1) transInSynPkg.recipient = iter.next().toAddress();
-            else if (idx == 2) transInSynPkg.refundAddr = iter.next().toAddress();
+            else if (idx == 2) {
+                transInSynPkg.refundAddr = iter.next().toAddress();
+                success = true;
+            }
             else break;
             idx++;
         }
@@ -219,7 +222,10 @@ contract TokenHub is Initializable, Config {
         while (iter.hasNext()) {
             if (idx == 0) transOutAckPkg.refundAmount = iter.next().toUint();
             else if (idx == 1) transOutAckPkg.refundAddr = ((iter.next().toAddress()));
-            else if (idx == 2) transOutAckPkg.status = uint32(iter.next().toUint());
+            else if (idx == 2) {
+                transOutAckPkg.status = uint32(iter.next().toUint());
+                success = true;
+            }
             else break;
             idx++;
         }
@@ -250,7 +256,10 @@ contract TokenHub is Initializable, Config {
         while (iter.hasNext()) {
             if (idx == 0) transOutSynPkg.amount = iter.next().toUint();
             else if (idx == 1) transOutSynPkg.recipient = ((iter.next().toAddress()));
-            else if (idx == 2) transOutSynPkg.refundAddr = iter.next().toAddress();
+            else if (idx == 2) {
+                transOutSynPkg.refundAddr = iter.next().toAddress();
+                success = true;
+            }
             else break;
             idx++;
         }
