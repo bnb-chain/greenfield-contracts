@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interface/IMiddleLayer.sol";
 import "./interface/IGovHub.sol";
 import "./interface/ITokenHub.sol";
@@ -11,7 +11,7 @@ import "./lib/BytesToTypes.sol";
 import "./Config.sol";
 import "./Governance.sol";
 
-contract CrossChain is Config, Governance, OwnableUpgradeable {
+contract CrossChain is Initializable, Config, Governance {
 
     // constant variables
     uint8 constant public SYN_PACKAGE = 0x00;
@@ -63,13 +63,11 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         require(_insChainId != 0, "zero _insChainId");
         require(_govHub != address (0), "zero govHub");
 
-        __Ownable_init();
-
         chainId = uint16(block.chainid);
         insChainId = _insChainId;
         govHub = _govHub;
 
-        // TODO register channels
+        // TODO register other channels
         address _tokenHub = IGovHub(_govHub).tokenHub();
 
         channelHandlerMap[TRANSFER_IN_CHANNELID] = _tokenHub;
@@ -91,6 +89,10 @@ contract CrossChain is Config, Governance, OwnableUpgradeable {
         quorumMap[REOPEN_PROPOSAL] = 2;
         quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
     }
+
+    /*
+0x020000000063c7b8440000000000000000000000000000000000000000000000000000000000000000eb0a94dde14f15006b0afda9b09bebe6689f5f8bce0aea9450e3f659803ffdf09813bdef9be4a14ad85f31f8
+    */
 
     function encodePayload(uint8 packageType, uint256 synRelayFee, uint256 ackRelayFee, bytes memory msgBytes) public view returns(bytes memory) {
         return packageType == SYN_PACKAGE

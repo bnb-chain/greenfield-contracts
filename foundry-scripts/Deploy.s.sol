@@ -28,7 +28,7 @@ contract DeployScript is Script {
         deployer.deploy();
 
         // init balance to test
-        deployer.proxyTokenHub().transfer(100 ether);
+        payable(deployer.proxyTokenHub()).transfer(100 ether);
 
         vm.stopBroadcast();
 

@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Config.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
@@ -10,7 +10,7 @@ interface ICrossChain {
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 synRelayFee, uint256 ackRelayFee) external;
 }
 
-contract TokenHub is Config, OwnableUpgradeable {
+contract TokenHub is Initializable, Config {
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -77,7 +77,6 @@ contract TokenHub is Config, OwnableUpgradeable {
     /************************* external / public function *************************/
     function initialize(address _govHub) public initializer {
         require(_govHub != address (0), "zero govHub");
-        __Ownable_init();
 
         govHub = _govHub;
 
@@ -167,7 +166,7 @@ contract TokenHub is Config, OwnableUpgradeable {
         uint256 idx = 0;
         while (iter.hasNext()) {
             if (idx == 0) transInSynPkg.amount = iter.next().toUint();
-            else if (idx == 1) transInSynPkg.recipient = ((iter.next().toAddress()));
+            else if (idx == 1) transInSynPkg.recipient = iter.next().toAddress();
             else if (idx == 2) transInSynPkg.refundAddr = iter.next().toAddress();
             else break;
             idx++;
