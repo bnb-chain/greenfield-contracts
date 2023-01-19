@@ -33,11 +33,25 @@ contract TokenHubTest is Test, TokenHub {
     function test_rlp_fuzzy_test_case_1(uint256 amount, address recipient, address refundAddr) public {
         TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage(amount, recipient, refundAddr);
         bytes memory msgBytes = _encodeTransferOutSynPackage(transOutSynPkg);
+
         (TransferInSynPackage memory transInSynPkg, bool success) = _decodeTransferInSynPackage(msgBytes);
-        assertEq(success, true, "decode failed");
+
+        assertEq(success, true, "decode transInSynPkg failed");
         assertEq(amount, transInSynPkg.amount);
         assertEq(recipient, transInSynPkg.recipient);
         assertEq(refundAddr, transInSynPkg.refundAddr);
+    }
+
+    function test_rlp_fuzzy_test_case_2(uint256 refundAmount, address refundAddr, uint32 status) public {
+        TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
+        bytes memory msgBytes = _encodeTransferInRefundPackage(transInAckPkg);
+
+        (TransferOutAckPackage memory transferOutAckPkg, bool success) = _decodeTransferOutAckPackage(msgBytes);
+
+        assertEq(success, true, "decode transferOutAckPkg failed");
+        assertEq(refundAmount, transInAckPkg.refundAmount);
+        assertEq(refundAddr, transInAckPkg.refundAddr);
+        assertEq(status, transInAckPkg.status);
     }
 }
 
