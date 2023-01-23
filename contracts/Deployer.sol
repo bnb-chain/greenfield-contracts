@@ -32,14 +32,16 @@ contract Deployer {
 
         // 1. proxyAdmin
         proxyAdmin = address(new InscriptionProxyAdmin());
-        
+
         // 2. GovHub, transfer ownership of proxyAdmin to GovHub
         GovHub implGovHub = new GovHub();
-        proxyGovHub = address(new InscriptionProxy(
-            address(implGovHub),
-            proxyAdmin,
-            ""
-        ));
+        proxyGovHub = address(
+            new InscriptionProxy(
+                                    address(implGovHub),
+                                    proxyAdmin,
+                                    ""
+                                )
+        );
         // transfer ownership to proxyGovHub
         InscriptionProxyAdmin(proxyAdmin).transferOwnership(address(proxyGovHub));
 
@@ -59,7 +61,9 @@ contract Deployer {
         proxyLightClient = address(new InscriptionProxy(address(implLightClient), proxyAdmin, ""));
 
         // 6. init GovHub, set contracts addresses to GovHub
-        GovHub(payable(proxyGovHub)).initialize(proxyAdmin, address(proxyCrossChain), address(proxyLightClient), address(proxyTokenHub));
+        GovHub(payable(proxyGovHub)).initialize(
+            proxyAdmin, address(proxyCrossChain), address(proxyLightClient), address(proxyTokenHub)
+        );
         TokenHub(payable(proxyTokenHub)).initialize(proxyGovHub);
         CrossChain(payable(proxyCrossChain)).initialize(insChainId, proxyGovHub);
         InscriptionLightClient(payable(proxyLightClient)).initialize(blsPubKeys, relayers);

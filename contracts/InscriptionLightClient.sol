@@ -5,9 +5,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract InscriptionLightClient is Initializable, Config {
     /* --------------------- 1. constant --------------------- */
-    address constant public LIGHT_CLIENT_CONTRACT = 0x0000000000000000000000000000000000000065;
-    address constant public PACKAGE_VERIFY_CONTRACT = 0x0000000000000000000000000000000000000066;
-    uint256 constant public BLS_PUBKEY_LENGTH = 48;
+    address public constant LIGHT_CLIENT_CONTRACT = 0x0000000000000000000000000000000000000065;
+    address public constant PACKAGE_VERIFY_CONTRACT = 0x0000000000000000000000000000000000000066;
+    uint256 public constant BLS_PUBKEY_LENGTH = 48;
 
     /* --------------------- 2. storage --------------------- */
     uint64 public insHeight;
@@ -39,8 +39,14 @@ contract InscriptionLightClient is Initializable, Config {
         uint64 _height,
         bytes calldata _blsPubKeys,
         address[] calldata _relayers
-    ) external onlyRelayer {
-        require(_relayers.length * BLS_PUBKEY_LENGTH == _blsPubKeys.length, "length mismatch between _relayers and _blsPubKeys");
+    )
+        external
+        onlyRelayer
+    {
+        require(
+            _relayers.length * BLS_PUBKEY_LENGTH == _blsPubKeys.length,
+            "length mismatch between _relayers and _blsPubKeys"
+        );
         require(_height > insHeight, "invalid block height");
 
         // verify blsSignature and decode block header
@@ -59,11 +65,10 @@ contract InscriptionLightClient is Initializable, Config {
         insHeight = _height;
     }
 
-    function verifyPackage(
-        bytes calldata _payload,
-        bytes calldata _blsSignature,
-        uint256 _validatorSetBitMap
-    ) external view {
+    function verifyPackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorSetBitMap)
+        external
+        view
+    {
         bytes32 msgHash = keccak256(_payload);
         bytes memory input = abi.encodePacked(msgHash, _blsSignature, _validatorSetBitMap, blsPubKeys);
         (bool success, bytes memory data) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
@@ -72,7 +77,7 @@ contract InscriptionLightClient is Initializable, Config {
         // require(success && data.length > 0, "invalid cross-chain package");
     }
 
-    function getRelayers() external view returns(address[] memory) {
+    function getRelayers() external view returns (address[] memory) {
         return relayers;
     }
 }

@@ -12,14 +12,13 @@ import "./Config.sol";
 import "./Governance.sol";
 
 contract CrossChain is Initializable, Config, Governance {
-
     // constant variables
-    uint8 constant public SYN_PACKAGE = 0x00;
-    uint8 constant public ACK_PACKAGE = 0x01;
-    uint8 constant public FAIL_ACK_PACKAGE = 0x02;
+    uint8 public constant SYN_PACKAGE = 0x00;
+    uint8 public constant ACK_PACKAGE = 0x01;
+    uint8 public constant FAIL_ACK_PACKAGE = 0x02;
 
-    uint256 constant public IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
-    uint256 constant public OUT_TURN_RELAYER_BACKOFF_PERIOD = 3 seconds;
+    uint256 public constant IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
+    uint256 public constant OUT_TURN_RELAYER_BACKOFF_PERIOD = 3 seconds;
 
     // governable parameters
     uint16 public chainId;
@@ -31,16 +30,23 @@ contract CrossChain is Initializable, Config, Governance {
     uint256 public txCounter;
     int64 public oracleSequence;
     mapping(uint8 => address) public channelHandlerMap;
-    mapping(address => mapping(uint8 => bool))public registeredContractChannelMap;
+    mapping(address => mapping(uint8 => bool)) public registeredContractChannelMap;
     mapping(uint8 => uint64) public channelSendSequenceMap;
     mapping(uint8 => uint64) public channelReceiveSequenceMap;
     mapping(uint8 => bool) public isRelayRewardFromSystemReward;
 
     // to prevent the utilization of ancient block header
     mapping(uint8 => uint64) public channelSyncedHeaderMap;
-    
+
     // event
-    event CrossChainPackage(uint32 srcChainId, uint32 dstChainId, uint64 indexed oracleSequence, uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
+    event CrossChainPackage(
+        uint32 srcChainId,
+        uint32 dstChainId,
+        uint64 indexed oracleSequence,
+        uint64 indexed packageSequence,
+        uint8 indexed channelId,
+        bytes payload
+    );
     /*
       event.topics => 0-eventHash,  1-oracleSequence 2-packageSequence 3-channelId
       event.data bytes 119 => 猜测 srcChainId, dstChainId, payload 111字节（ abi.encodePacked(packageType, uint64(block.timestamp), synRelayFee, ackRelayFee, msgBytes) ）
@@ -55,13 +61,15 @@ contract CrossChain is Initializable, Config, Governance {
     event AddChannel(uint8 indexed channelId, address indexed contractAddr);
 
     modifier onlyRegisteredContractChannel(uint8 channelId) {
-        require(registeredContractChannelMap[msg.sender][channelId], "the contract and channel have not been registered");
+        require(
+            registeredContractChannelMap[msg.sender][channelId], "the contract and channel have not been registered"
+        );
         _;
     }
 
     function initialize(uint16 _insChainId, address _govHub) public initializer {
         require(_insChainId != 0, "zero _insChainId");
-        require(_govHub != address (0), "zero govHub");
+        require(_govHub != address(0), "zero govHub");
 
         chainId = uint16(block.chainid);
         insChainId = _insChainId;
@@ -94,8 +102,13 @@ contract CrossChain is Initializable, Config, Governance {
 0x020000000063c7b8440000000000000000000000000000000000000000000000000000000000000000eb0a94dde14f15006b0afda9b09bebe6689f5f8bce0aea9450e3f659803ffdf09813bdef9be4a14ad85f31f8
     */
 
-    function encodePayload(uint8 packageType, uint256 synRelayFee, uint256 ackRelayFee, bytes memory msgBytes) public view returns(bytes memory) {
-        return packageType == SYN_PACKAGE
+    function encodePayload(uint8 packageType, uint256 synRelayFee, uint256 ackRelayFee, bytes memory msgBytes)
+        public
+        view
+        returns (bytes memory)
+    {
+        return
+            packageType == SYN_PACKAGE
             ? abi.encodePacked(packageType, uint64(block.timestamp), synRelayFee, ackRelayFee, msgBytes)
             : abi.encodePacked(packageType, uint64(block.timestamp), synRelayFee, msgBytes);
     }
@@ -105,21 +118,19 @@ contract CrossChain is Initializable, Config, Governance {
     | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes      | 32 bytes / 0 bytes      |   len bytes |
     */
     function _checkPayload(bytes calldata payload)
-    internal
-    view
-    returns(
-        bool success,
-
-        uint8 channelId,
-        uint64 sequence,
-        uint8 packageType,
-        uint64 time,
-        uint256 synRelayFee,
-
-        uint256 ackRelayFee,  // optional
-
-        bytes memory packageLoad
-    ) {
+        internal
+        view
+        returns (
+            bool success,
+            uint8 channelId,
+            uint64 sequence,
+            uint8 packageType,
+            uint64 time,
+            uint256 synRelayFee,
+            uint256 ackRelayFee, // optional
+            bytes memory packageLoad
+        )
+    {
         if (payload.length < 54) {
             return (false, 0, 0, 0, 0, 0, 0, "");
         }
@@ -155,24 +166,31 @@ contract CrossChain is Initializable, Config, Governance {
             assembly {
                 ackRelayFee := mload(add(ptr, 86))
             }
-            packageLoad = payload[86 : ];
+            packageLoad = payload[86:];
         } else {
             ackRelayFee = 0;
-            packageLoad = payload[54: ];
+            packageLoad = payload[54:];
         }
 
         success = true;
     }
 
-    function handlePackage(
-        bytes calldata _payload,
-        bytes calldata _blsSignature,
-        uint256 _validatorsBitSet
-    ) external
-    whenNotSuspended {
+    function handlePackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorsBitSet)
+        external
+        whenNotSuspended
+    {
         // 1. decode _payload
         // 1-1 check if the chainId is valid
-        (bool success, uint8 channelId, uint64 sequence, uint8 packageType, uint64 eventTime, uint256 synRelayFee, uint256 ackRelayFee, bytes memory packageLoad) = _checkPayload(_payload);
+        (
+            bool success,
+            uint8 channelId,
+            uint64 sequence,
+            uint8 packageType,
+            uint64 eventTime,
+            uint256 synRelayFee,
+            uint256 ackRelayFee,
+            bytes memory packageLoad
+        ) = _checkPayload(_payload);
         if (!success) {
             emit UnsupportedPackage(sequence, channelId, _payload);
             return;
@@ -196,29 +214,37 @@ contract CrossChain is Initializable, Config, Governance {
         address _handler = channelHandlerMap[channelId];
         if (packageType == SYN_PACKAGE) {
             try IMiddleLayer(_handler).handleSynPackage(channelId, packageLoad) returns (bytes memory responsePayload) {
-                if (responsePayload.length!=0) {
-                    _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(ACK_PACKAGE, ackRelayFee, 0, responsePayload));
+                if (responsePayload.length != 0) {
+                    _sendPackage(
+                        channelSendSequenceMap[channelId],
+                        channelId,
+                        encodePayload(ACK_PACKAGE, ackRelayFee, 0, responsePayload)
+                    );
                     channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 }
             } catch Error(string memory reason) {
-                _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad));
+                _sendPackage(
+                    channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
-                _sendPackage(channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad));
+                _sendPackage(
+                    channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
         } else if (packageType == ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleAckPackage(channelId, packageLoad) {
-            } catch Error(string memory reason) {
+            try IMiddleLayer(_handler).handleAckPackage(channelId, packageLoad) {}
+            catch Error(string memory reason) {
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
         } else if (packageType == FAIL_ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleFailAckPackage(channelId, packageLoad) {
-            } catch Error(string memory reason) {
+            try IMiddleLayer(_handler).handleFailAckPackage(channelId, packageLoad) {}
+            catch Error(string memory reason) {
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
@@ -271,8 +297,9 @@ contract CrossChain is Initializable, Config, Governance {
     }
 
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 synRelayFee, uint256 ackRelayFee)
-    onlyRegisteredContractChannel(channelId)
-    external {
+        external
+        onlyRegisteredContractChannel(channelId)
+    {
         uint64 sendSequence = channelSendSequenceMap[channelId];
         _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, synRelayFee, ackRelayFee, msgBytes));
         sendSequence++;

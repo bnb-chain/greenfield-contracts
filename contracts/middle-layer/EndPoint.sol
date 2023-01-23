@@ -1,6 +1,5 @@
 pragma solidity ^0.8.0;
 
-
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 import "../CrossChain.sol";
 import "../lib/RLPEncode.sol";
@@ -36,7 +35,7 @@ contract EndPoint is Config {
     mapping(bytes32 => RetryPackage) public packageMap;
 
     enum FailureHandleStrategy {
-        Closed,  // using for pausing
+        Closed, // using for pausing
         HandleInOrder,
         Skip,
         Cache
@@ -88,7 +87,6 @@ contract EndPoint is Config {
         (bool success,) = _refundAddress.call{gas: transferGas}("");
         require(success, "invalid refundAddress"); // the _refundAddress must be payable
 
-
         bytes[] memory elements = new bytes[](5);
         elements[0] = _appAddress.encodeAddress();
         elements[1] = _refundAddress.encodeAddress();
@@ -100,7 +98,6 @@ contract EndPoint is Config {
         bytes memory msgBytes = _RLPEncode(EVENT_SEND, elements.encodeList());
         ICrossChain(crossChainContract).sendSynPackage(APP_CHANNELID, msgBytes, toBFSRelayerFee);
     }
-
 
     function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes) external onlyCrossChain {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
@@ -176,7 +173,9 @@ contract EndPoint is Config {
         _cleanQueue(msg.sender);
     }
 
-    /***************************** Internal functions *****************************/
+    /**
+     * Internal functions ****************************
+     */
     function _cleanQueue(address appAddress) internal {
         DoubleEndedQueueUpgradeable.Bytes32Deque storage _queue = retryQueue[appAddress];
         bytes32 _front;
@@ -189,14 +188,16 @@ contract EndPoint is Config {
         }
     }
 
-    function _RLPEncode(uint8 eventType, bytes memory msgBytes) internal pure returns(bytes memory output) {
+    function _RLPEncode(uint8 eventType, bytes memory msgBytes) internal pure returns (bytes memory output) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = eventType.encodeUint();
         elements[1] = msgBytes.encodeBytes();
         output = elements.encodeList();
     }
 
-    /************************* Handle cross-chain package *************************/
+    /**
+     * Handle cross-chain package ************************
+     */
     function _handleSendAckPackage(bytes32 pkgHash, RLPDecode.Iterator memory paramIter) internal {
         bool success;
         uint256 idx;
@@ -230,8 +231,8 @@ contract EndPoint is Config {
         require(success, "rlp decode failed");
 
         uint256 gasBefore = gasleft();
-        try IApplication(_appAddress).handleAckPackage{ gas: _gasLimit}(APP_CHANNELID, _appMsg) {
-        } catch (bytes memory reason) {
+        try IApplication(_appAddress).handleAckPackage{gas: _gasLimit}(APP_CHANNELID, _appMsg) {}
+        catch (bytes memory reason) {
             if (_strategy != FailureHandleStrategy.Skip) {
                 packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false, reason);
                 retryQueue[_appAddress].pushBack(pkgHash);
@@ -242,7 +243,7 @@ contract EndPoint is Config {
         uint256 refundFee = _callbackFee - gasUsed * callbackGasPrice;
 
         // refund
-        (success,) = _refundAddress.call{ gas: transferGas, value: refundFee }("");
+        (success,) = _refundAddress.call{gas: transferGas, value: refundFee}("");
     }
 
     function _handleSendFailAckPackage(bytes32 pkgHash, RLPDecode.Iterator memory paramIter) internal {
@@ -278,8 +279,8 @@ contract EndPoint is Config {
         require(success, "rlp decode failed");
 
         uint256 gasBefore = gasleft();
-        try IApplication(_appAddress).handleFailAckPackage{ gas: _gasLimit}(APP_CHANNELID, _appMsg) {
-        } catch (bytes memory reason) {
+        try IApplication(_appAddress).handleFailAckPackage{gas: _gasLimit}(APP_CHANNELID, _appMsg) {}
+        catch (bytes memory reason) {
             if (_strategy != FailureHandleStrategy.Skip) {
                 packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, true, reason);
                 retryQueue[_appAddress].pushBack(pkgHash);
@@ -289,6 +290,6 @@ contract EndPoint is Config {
         uint256 refundFee = _callbackFee - gasUsed * callbackGasPrice;
 
         // refund
-        (success,) = _refundAddress.call{ gas: transferGas, value: refundFee }("");
+        (success,) = _refundAddress.call{gas: transferGas, value: refundFee}("");
     }
 }

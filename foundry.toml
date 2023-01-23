@@ -6,7 +6,20 @@ libs = ['lib']
 test = 'foundry-tests'
 script = 'foundry-scripts'
 
-[fuzz]
+[profile.fmt]
+# These are all the `forge fmt` defaults.
+line_length = 140
+tab_width = 4
+bracket_spacing = false
+int_types = 'long'
+multiline_func_header = 'attributes_first'
+quote_style = 'double'
+number_underscore = 'preserve'
+single_line_statement_blocks = 'preserve'
+ignore = ["src/console.sol", "src/console2.sol"]
+
+
+[profile.fuzz]
 runs = 10000
 max_test_rejects = 65536
 seed = '0x3e8'

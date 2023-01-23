@@ -4,7 +4,9 @@ interface IMiddleLayer {
     /**
      * @dev Handle syn package
      */
-    function handleSynPackage(uint8 channelId, bytes calldata msgBytes) external returns(bytes memory responsePayload);
+    function handleSynPackage(uint8 channelId, bytes calldata msgBytes)
+        external
+        returns (bytes memory responsePayload);
 
     /**
      * @dev Handle ack package

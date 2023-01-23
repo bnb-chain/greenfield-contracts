@@ -1,3 +1,8 @@
+## Code Format
+```shell
+forge fmt
+```
+
 ## Env
 ```shell
 cp .env.example .env

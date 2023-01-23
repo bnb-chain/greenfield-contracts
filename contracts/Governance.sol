@@ -26,7 +26,6 @@ abstract contract Governance is Config {
         uint16 quorum;
         uint128 expiredAt;
         bytes32 contentHash;
-
         address[] approvers;
     }
 
@@ -67,14 +66,14 @@ abstract contract Governance is Config {
         _;
     }
 
-    function suspend() onlyRelayer whenNotSuspended external {
+    function suspend() external onlyRelayer whenNotSuspended {
         bool isExecutable = _approveProposal(SUSPEND_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             _suspend();
         }
     }
 
-    function reopen() onlyRelayer whenSuspended external {
+    function reopen() external onlyRelayer whenSuspended {
         bool isExecutable = _approveProposal(REOPEN_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             isSuspended = false;
@@ -82,7 +81,7 @@ abstract contract Governance is Config {
         }
     }
 
-    function cancelTransfer(address attacker) onlyRelayer external {
+    function cancelTransfer(address attacker) external onlyRelayer {
         bytes32 _contentHash = keccak256(abi.encode(attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {
@@ -123,7 +122,7 @@ abstract contract Governance is Config {
         return false;
     }
 
-    function _suspend() whenNotSuspended internal {
+    function _suspend() internal whenNotSuspended {
         isSuspended = true;
         emit Suspended(msg.sender);
     }

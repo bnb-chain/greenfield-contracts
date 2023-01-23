@@ -1,4 +1,5 @@
 pragma solidity ^0.8.0;
+
 import "forge-std/Script.sol";
 
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
@@ -12,13 +13,12 @@ import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
 
 contract genPayloadScript is Script {
-    uint32 constant public insChainId = 1;
-    uint32 constant public SYN_PACKAGE = 0;
+    uint32 public constant insChainId = 1;
+    uint32 public constant SYN_PACKAGE = 0;
 
-    function run() public {
-    }
+    function run() public {}
 
-    function genPayload() public returns(bytes memory){
+    function genPayload() public returns (bytes memory) {
         uint16 srcChainid = 1;
         uint16 dstChainid = 2;
         uint8 channelId = 2;
@@ -28,9 +28,11 @@ contract genPayloadScript is Script {
         uint256 synRelayFee = 1e18;
         uint256 ackRelayFee = 5e17;
 
-        bytes memory packageLoad = hex'1234567890';
+        bytes memory packageLoad = hex"1234567890";
 
-        bytes memory payload = abi.encodePacked(srcChainid, dstChainid, channelId, sequence, packageType, time, synRelayFee, ackRelayFee, packageLoad);
+        bytes memory payload = abi.encodePacked(
+            srcChainid, dstChainid, channelId, sequence, packageType, time, synRelayFee, ackRelayFee, packageLoad
+        );
         return payload;
     }
 
@@ -39,21 +41,19 @@ contract genPayloadScript is Script {
     }
 
     function _checkPayload(bytes calldata payload)
-    internal
-    view
-    returns(
-        bool success,
-
-        uint8 channelId,
-        uint64 sequence,
-        uint8 packageType,
-        uint64 time,
-        uint256 synRelayFee,
-
-        uint256 ackRelayFee,  // optional
-
-        bytes memory packageLoad
-    ) {
+        internal
+        view
+        returns (
+            bool success,
+            uint8 channelId,
+            uint64 sequence,
+            uint8 packageType,
+            uint64 time,
+            uint256 synRelayFee,
+            uint256 ackRelayFee, // optional
+            bytes memory packageLoad
+        )
+    {
         bytes memory _payload = payload;
 
         if (_payload.length < 54) {
@@ -71,8 +71,8 @@ contract genPayloadScript is Script {
                 dstChainId := mload(add(ptr, 4))
             }
 
-            console.log('srcChainId', srcChainId);
-            console.log('dstChainId', dstChainId);
+            console.log("srcChainId", srcChainId);
+            console.log("dstChainId", dstChainId);
         }
 
         assembly {
@@ -94,18 +94,17 @@ contract genPayloadScript is Script {
             packageLoad = payload[54 + 32:];
         } else {
             ackRelayFee = 0;
-            packageLoad = payload[54: ];
+            packageLoad = payload[54:];
         }
 
-        console.log('channelId', channelId);
-        console.log('sequence', sequence);
-        console.log('packageType', packageType);
-        console.log('time', time);
-        console.log('synRelayFee', synRelayFee);
-        console.log('ackRelayFee', ackRelayFee);
-        console.log('packageLoad', iToHex(packageLoad));
+        console.log("channelId", channelId);
+        console.log("sequence", sequence);
+        console.log("packageType", packageType);
+        console.log("time", time);
+        console.log("synRelayFee", synRelayFee);
+        console.log("ackRelayFee", ackRelayFee);
+        console.log("packageLoad", iToHex(packageLoad));
     }
-
 
     function iToHex(bytes memory buffer) public pure returns (string memory) {
         // Fixed buffer size for hexadecimal convertion
