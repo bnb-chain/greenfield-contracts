@@ -7,8 +7,7 @@ import "../lib/RLPDecode.sol";
 import "../interface/IGovHub.sol";
 
 interface ICrossChain {
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)
-        external;
+    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee) external;
 }
 
 contract TokenHub is Initializable, Config {
@@ -28,6 +27,7 @@ contract TokenHub is Initializable, Config {
     uint8 public constant TRANSFER_IN_FAILURE_UNKNOWN = 3;
 
     uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 10000;
+    uint256 constant public REWARD_UPPER_LIMIT =1e18;
 
     /**
      * storage layer ************************
@@ -77,7 +77,12 @@ contract TokenHub is Initializable, Config {
     event ParamChange(string key, bytes value);
 
     modifier onlyCrossChainContract() {
-        require(msg.sender == IGovHub(govHub).crosschain(), "only cross chain contract");
+        require(msg.sender == IGovHub(govHub).crosschain(), "only CrossChain contract");
+        _;
+    }
+
+    modifier onlyRelayerHub() {
+        require(msg.sender == IGovHub(govHub).relayerHub(), "only RelayerHub contract");
         _;
     }
 
@@ -161,15 +166,32 @@ contract TokenHub is Initializable, Config {
         );
         uint256 _ackRelayFee = msg.value - amount - relayFee;
 
-        TransferOutSynPackage memory transOutSynPkg =
-            TransferOutSynPackage({amount: amount, recipient: recipient, refundAddr: msg.sender});
+        TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage({
+            amount: amount,
+            recipient: recipient,
+            refundAddr: msg.sender
+        });
 
         address _crosschain = IGovHub(govHub).crosschain();
-        ICrossChain(_crosschain).sendSynPackage(
-            TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee
-        );
+        ICrossChain(_crosschain).sendSynPackage(TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee);
         emit TransferOutSuccess(msg.sender, amount, relayFee, _ackRelayFee);
         return true;
+    }
+
+    function claimRewards(address payable to, uint256 amount) onlyRelayerHub external returns(uint256) {
+        uint256 actualAmount = amount < address(this).balance ? amount : address(this).balance;
+
+        if (actualAmount > REWARD_UPPER_LIMIT) {
+            return 0;
+        }
+
+        if (actualAmount > 0) {
+            (bool success,) = to.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: actualAmount}("");
+            require(success, "transfer bnb error");
+            emit RewardTo(to, actualAmount);
+        }
+
+        return actualAmount;
     }
 
     /**

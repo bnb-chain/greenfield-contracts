@@ -5,4 +5,5 @@ interface IGovHub {
     function crosschain() external view returns (address);
     function lightClient() external view returns (address);
     function tokenHub() external view returns (address);
+    function relayerHub() external view returns (address);
 }

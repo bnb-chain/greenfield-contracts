@@ -40,10 +40,11 @@ contract DeployScript is Script {
 
         address proxyGovHub = deployer.proxyGovHub();
 
-        console.log("GovHub", proxyGovHub);
+        console.log("govHub", proxyGovHub);
         console.log("proxyAdmin", GovHub(proxyGovHub).proxyAdmin());
         console.log("crossChain", GovHub(proxyGovHub).crosschain());
         console.log("tokenHub", GovHub(proxyGovHub).tokenHub());
         console.log("lightClient", GovHub(proxyGovHub).lightClient());
+        console.log("relayerHub", GovHub(proxyGovHub).relayerHub());
     }
 }

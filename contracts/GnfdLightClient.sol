@@ -39,10 +39,7 @@ contract GnfdLightClient is Initializable, Config {
         uint64 _height,
         bytes calldata _blsPubKeys,
         address[] calldata _relayers
-    )
-        external
-        onlyRelayer
-    {
+    ) external onlyRelayer {
         require(
             _relayers.length * BLS_PUBKEY_LENGTH == _blsPubKeys.length,
             "length mismatch between _relayers and _blsPubKeys"

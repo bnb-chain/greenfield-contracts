@@ -1,5 +1,5 @@
 pragma solidity ^0.8.0;
 
 interface IRelayerHub {
-    function isRelayer(address sender) external view returns (bool);
+    function addReward(address _relayer, uint256 _reward) external;
 }

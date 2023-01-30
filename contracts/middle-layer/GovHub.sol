@@ -25,9 +25,11 @@ contract GovHub is Config, Initializable {
 
     // all inscription contract address
     address public proxyAdmin;
+
     address public crosschain;
-    address public lightClient;
     address public tokenHub;
+    address public lightClient;
+    address public relayerHub;
 
     event FailUpgrade(address newImplementation, bytes message);
     event FailUpdateParam(bytes message);
@@ -44,19 +46,24 @@ contract GovHub is Config, Initializable {
         _;
     }
 
-    function initialize(address _proxyAdmin, address _crosschain, address _lightClient, address _tokenHub)
-        public
-        initializer
-    {
+    function initialize(
+        address _proxyAdmin,
+        address _crosschain,
+        address _tokenHub,
+        address _lightClient,
+        address _relayerHub
+    ) public initializer {
         require(_proxyAdmin != address(0), "zero _proxyAdmin");
         require(_crosschain != address(0), "zero _crosschain");
-        require(_lightClient != address(0), "zero _lightClient");
         require(_tokenHub != address(0), "zero _tokenHub");
+        require(_lightClient != address(0), "zero _lightClient");
+        require(_relayerHub != address(0), "zero _relayerHub");
 
         proxyAdmin = _proxyAdmin;
         crosschain = _crosschain;
-        lightClient = _lightClient;
         tokenHub = _tokenHub;
+        lightClient = _lightClient;
+        relayerHub = _relayerHub;
     }
 
     function handleSynPackage(uint8, bytes calldata msgBytes)

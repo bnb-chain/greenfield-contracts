@@ -99,8 +99,7 @@ contract CrossChain is Initializable, Config, Governance {
         view
         returns (bytes memory)
     {
-        return
-            packageType == SYN_PACKAGE
+        return packageType == SYN_PACKAGE
             ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, msgBytes)
             : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
     }
@@ -216,13 +215,17 @@ contract CrossChain is Initializable, Config, Governance {
                 }
             } catch Error(string memory reason) {
                 _sendPackage(
-                    channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    channelSendSequenceMap[channelId],
+                    channelId,
+                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
                 _sendPackage(
-                    channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    channelSendSequenceMap[channelId],
+                    channelId,
+                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
@@ -242,6 +245,9 @@ contract CrossChain is Initializable, Config, Governance {
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
         }
+
+        address _relayerHub = IGovHub(govHub).relayerHub();
+        IRelayerHub(_relayerHub).addReward(msg.sender, relayFee);
     }
 
     function _checkValidRelayer(uint64 eventTime, address _lightClient) internal view {
