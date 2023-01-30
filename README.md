@@ -11,7 +11,7 @@ cp .env.example .env
 
 ## Deploy
 ```shell
-forge script foundry-scripts/Deploy.s.sol:DeployScript  --sig "run(uint16 insChainId)" 1 --rpc-url local --private-key $PK1 --legacy --broadcast
+forge script foundry-scripts/Deploy.s.sol:DeployScript  --sig "run(uint16 gnfdChainId)" 1 --rpc-url local --private-key $PK1 --legacy --broadcast
 ```
 
 ## Transaction

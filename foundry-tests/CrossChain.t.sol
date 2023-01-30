@@ -4,14 +4,14 @@ import "forge-std/Test.sol";
 
 import "../contracts/Deployer.sol";
 import "../contracts/CrossChain.sol";
-import "../contracts/InscriptionProxy.sol";
-import "../contracts/InscriptionProxyAdmin.sol";
-import "../contracts/InscriptionLightClient.sol";
+import "../contracts/GnfdProxy.sol";
+import "../contracts/GnfdProxyAdmin.sol";
+import "../contracts/GnfdLightClient.sol";
 import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
 
 contract CrossChainTest is Test {
-    uint16 public constant insChainId = 1;
+    uint16 public constant gnfdChainId = 1;
     bytes public constant blsPubKeys =
         hex"8ec21505e290d7c15f789c7b4c522179bb7d70171319bfe2d6b2aae2461a1279566782907593cc526a5f2611c0721d60b4a78719a34817cc1d085b6eed110ed1d1ca59a35c9cf4d094e4e71b0b8b76ac2d30ba0762ec9acfaca8b8b369d914e980e970c25a8580cb0d840dce6fff3adc830e16ec8660fb91c8811a28d8ada91d539f82d2730496549e7783a34167498c";
     address[] public relayers = [
@@ -24,18 +24,18 @@ contract CrossChainTest is Test {
     GovHub public govHub;
     CrossChain public crossChain;
     TokenHub public tokenHub;
-    InscriptionLightClient public lightClient;
+    GnfdLightClient public lightClient;
 
     address private developer = 0x0000000000000000000000000000000012345678;
     address private user1 = 0x1000000000000000000000000000000012345678;
 
     function setUp() public {
-        deployer = new Deployer(insChainId, blsPubKeys, relayers);
+        deployer = new Deployer(gnfdChainId, blsPubKeys, relayers);
         deployer.deploy();
         govHub = GovHub(payable(deployer.proxyGovHub()));
         crossChain = CrossChain(payable(deployer.proxyCrossChain()));
         tokenHub = TokenHub(payable(deployer.proxyTokenHub()));
-        lightClient = InscriptionLightClient(payable(deployer.proxyLightClient()));
+        lightClient = GnfdLightClient(payable(deployer.proxyLightClient()));
 
         vm.deal(developer, 10000 ether);
     }

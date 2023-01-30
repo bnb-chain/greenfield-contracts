@@ -22,7 +22,7 @@ contract CrossChain is Initializable, Config, Governance {
 
     // governable parameters
     uint16 public chainId;
-    uint16 public insChainId;
+    uint16 public gnfdChainId;
     uint256 public batchSizeForOracle;
 
     //state variables
@@ -63,12 +63,12 @@ contract CrossChain is Initializable, Config, Governance {
         _;
     }
 
-    function initialize(uint16 _insChainId, address _govHub) public initializer {
-        require(_insChainId != 0, "zero _insChainId");
+    function initialize(uint16 _gnfdChainId, address _govHub) public initializer {
+        require(_gnfdChainId != 0, "zero _gnfdChainId");
         require(_govHub != address(0), "zero _govHub");
 
         chainId = uint16(block.chainid);
-        insChainId = _insChainId;
+        gnfdChainId = _gnfdChainId;
         govHub = _govHub;
 
         // TODO register other channels
@@ -138,7 +138,7 @@ contract CrossChain is Initializable, Config, Governance {
                 srcChainId := mload(add(ptr, 2))
                 dstChainId := mload(add(ptr, 4))
             }
-            require(srcChainId == insChainId, "invalid source chainId");
+            require(srcChainId == gnfdChainId, "invalid source chainId");
             require(dstChainId == chainId, "invalid destination chainId");
         }
 
@@ -285,7 +285,7 @@ contract CrossChain is Initializable, Config, Governance {
                 txCounter = 1;
             }
         }
-        emit CrossChainPackage(chainId, insChainId, uint64(oracleSequence), packageSequence, channelId, payload);
+        emit CrossChainPackage(chainId, gnfdChainId, uint64(oracleSequence), packageSequence, channelId, payload);
     }
 
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)

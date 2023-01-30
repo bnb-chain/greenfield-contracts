@@ -5,9 +5,9 @@ import "forge-std/Script.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "../contracts/InscriptionProxy.sol";
-import "../contracts/InscriptionProxyAdmin.sol";
-import "../contracts/InscriptionLightClient.sol";
+import "../contracts/GnfdProxy.sol";
+import "../contracts/GnfdProxyAdmin.sol";
+import "../contracts/GnfdLightClient.sol";
 import "../contracts/CrossChain.sol";
 import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";

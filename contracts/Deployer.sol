@@ -3,15 +3,15 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "./InscriptionProxy.sol";
-import "./InscriptionProxyAdmin.sol";
-import "./InscriptionLightClient.sol";
+import "./GnfdProxy.sol";
+import "./GnfdProxyAdmin.sol";
+import "./GnfdLightClient.sol";
 import "./CrossChain.sol";
 import "./middle-layer/GovHub.sol";
 import "./middle-layer/TokenHub.sol";
 
 contract Deployer {
-    uint16 public insChainId;
+    uint16 public gnfdChainId;
     bytes public blsPubKeys;
     address[] public relayers;
 
@@ -25,47 +25,47 @@ contract Deployer {
     address private implTokenHub;
     address private implLightClient;
 
-    constructor(uint16 _insChainId, bytes memory _blsPubKeys, address[] memory _relayers) {
-        insChainId = _insChainId;
+    constructor(uint16 _gnfdChainId, bytes memory _blsPubKeys, address[] memory _relayers) {
+        gnfdChainId = _gnfdChainId;
         blsPubKeys = _blsPubKeys;
         relayers = _relayers;
 
         // 1. proxyAdmin
-        proxyAdmin = address(new InscriptionProxyAdmin());
+        proxyAdmin = address(new GnfdProxyAdmin());
 
         // 2. GovHub, transfer ownership of proxyAdmin to GovHub
         GovHub implGovHub = new GovHub();
         proxyGovHub = address(
-            new InscriptionProxy(
+            new GnfdProxy(
                                     address(implGovHub),
                                     proxyAdmin,
                                     ""
                                 )
         );
         // transfer ownership to proxyGovHub
-        InscriptionProxyAdmin(proxyAdmin).transferOwnership(address(proxyGovHub));
+        GnfdProxyAdmin(proxyAdmin).transferOwnership(address(proxyGovHub));
 
         implCrossChain = address(new CrossChain());
         implTokenHub = address(new TokenHub());
-        implLightClient = address(new InscriptionLightClient());
+        implLightClient = address(new GnfdLightClient());
     }
 
     function deploy() public {
         // 3. CrossChain
-        proxyCrossChain = address(new InscriptionProxy(implCrossChain, proxyAdmin, ""));
+        proxyCrossChain = address(new GnfdProxy(implCrossChain, proxyAdmin, ""));
 
         // 4. TokenHub
-        proxyTokenHub = address(new InscriptionProxy(implTokenHub, proxyAdmin, ""));
+        proxyTokenHub = address(new GnfdProxy(implTokenHub, proxyAdmin, ""));
 
-        // 5. InscriptionLightClient
-        proxyLightClient = address(new InscriptionProxy(address(implLightClient), proxyAdmin, ""));
+        // 5. GnfdLightClient
+        proxyLightClient = address(new GnfdProxy(address(implLightClient), proxyAdmin, ""));
 
         // 6. init GovHub, set contracts addresses to GovHub
         GovHub(payable(proxyGovHub)).initialize(
             proxyAdmin, address(proxyCrossChain), address(proxyLightClient), address(proxyTokenHub)
         );
         TokenHub(payable(proxyTokenHub)).initialize(proxyGovHub);
-        CrossChain(payable(proxyCrossChain)).initialize(insChainId, proxyGovHub);
-        InscriptionLightClient(payable(proxyLightClient)).initialize(blsPubKeys, relayers);
+        CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId, proxyGovHub);
+        GnfdLightClient(payable(proxyLightClient)).initialize(blsPubKeys, relayers);
     }
 }

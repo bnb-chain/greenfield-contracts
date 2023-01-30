@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import "./Config.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract InscriptionLightClient is Initializable, Config {
+contract GnfdLightClient is Initializable, Config {
     /* --------------------- 1. constant --------------------- */
     address public constant LIGHT_CLIENT_CONTRACT = 0x0000000000000000000000000000000000000065;
     address public constant PACKAGE_VERIFY_CONTRACT = 0x0000000000000000000000000000000000000066;

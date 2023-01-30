@@ -5,9 +5,9 @@ import "forge-std/Script.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "../contracts/InscriptionProxy.sol";
-import "../contracts/InscriptionProxyAdmin.sol";
-import "../contracts/InscriptionLightClient.sol";
+import "../contracts/GnfdProxy.sol";
+import "../contracts/GnfdProxyAdmin.sol";
+import "../contracts/GnfdLightClient.sol";
 import "../contracts/CrossChain.sol";
 import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
@@ -23,14 +23,14 @@ contract DeployScript is Script {
         0xE7B8E0894FF97dd5c846c8A031becDb06E2390ea
     ];
 
-    function run(uint16 _insChainId) public {
+    function run(uint16 _gnfdChainId) public {
         uint256 privateKey = uint256(vm.envBytes32("PK1"));
         address developer = vm.addr(privateKey);
 
         vm.startBroadcast();
 
         // deployer contracts
-        deployer = new Deployer(_insChainId, blsPubKeys, relayers);
+        deployer = new Deployer(_gnfdChainId, blsPubKeys, relayers);
         deployer.deploy();
 
         // init balance to test

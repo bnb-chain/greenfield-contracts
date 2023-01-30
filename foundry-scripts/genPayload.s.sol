@@ -5,15 +5,15 @@ import "forge-std/Script.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import "../contracts/InscriptionProxy.sol";
-import "../contracts/InscriptionProxyAdmin.sol";
-import "../contracts/InscriptionLightClient.sol";
+import "../contracts/GnfdProxy.sol";
+import "../contracts/GnfdProxyAdmin.sol";
+import "../contracts/GnfdLightClient.sol";
 import "../contracts/CrossChain.sol";
 import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
 
 contract genPayloadScript is Script {
-    uint32 public constant insChainId = 1;
+    uint32 public constant gnfdChainId = 1;
     uint32 public constant SYN_PACKAGE = 0;
 
     function run() public {}
