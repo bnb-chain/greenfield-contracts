@@ -7,7 +7,7 @@ import "../lib/RLPDecode.sol";
 import "../interface/IGovHub.sol";
 
 interface ICrossChain {
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 synRelayFee, uint256 ackRelayFee)
+    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)
         external;
 }
 
@@ -33,7 +33,7 @@ contract TokenHub is Initializable, Config {
      * storage layer ************************
      */
     address public govHub;
-    uint256 public synRelayFee;
+    uint256 public relayFee;
     uint256 public ackRelayFee;
 
     /**
@@ -68,7 +68,7 @@ contract TokenHub is Initializable, Config {
     }
 
     event TransferInSuccess(address refundAddr, uint256 amount);
-    event TransferOutSuccess(address senderAddr, uint256 amount, uint256 synRelayFee, uint256 ackRelayFee);
+    event TransferOutSuccess(address senderAddr, uint256 amount, uint256 relayFee, uint256 ackRelayFee);
     event RefundSuccess(address refundAddr, uint256 amount, uint32 status);
     event RefundFailure(address refundAddr, uint256 amount, uint32 status);
     event RewardTo(address to, uint256 amount);
@@ -85,11 +85,11 @@ contract TokenHub is Initializable, Config {
      * external / public function ************************
      */
     function initialize(address _govHub) public initializer {
-        require(_govHub != address(0), "zero govHub");
+        require(_govHub != address(0), "zero _govHub");
 
         govHub = _govHub;
 
-        synRelayFee = 2e15;
+        relayFee = 2e15;
         ackRelayFee = 2e15;
     }
 
@@ -156,19 +156,19 @@ contract TokenHub is Initializable, Config {
      */
     function transferOut(address recipient, uint256 amount) external payable returns (bool) {
         require(
-            msg.value >= amount + synRelayFee + ackRelayFee,
+            msg.value >= amount + relayFee + ackRelayFee,
             "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee"
         );
-        uint256 _ackRelayFee = msg.value - amount - synRelayFee;
+        uint256 _ackRelayFee = msg.value - amount - relayFee;
 
         TransferOutSynPackage memory transOutSynPkg =
             TransferOutSynPackage({amount: amount, recipient: recipient, refundAddr: msg.sender});
 
         address _crosschain = IGovHub(govHub).crosschain();
         ICrossChain(_crosschain).sendSynPackage(
-            TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), synRelayFee, _ackRelayFee
+            TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee
         );
-        emit TransferOutSuccess(msg.sender, amount, synRelayFee, _ackRelayFee);
+        emit TransferOutSuccess(msg.sender, amount, relayFee, _ackRelayFee);
         return true;
     }
 

@@ -25,13 +25,13 @@ contract genPayloadScript is Script {
         uint64 sequence = 1778;
         uint8 packageType = 0;
         uint64 time = 1673564596;
-        uint256 synRelayFee = 1e18;
+        uint256 relayFee = 1e18;
         uint256 ackRelayFee = 5e17;
 
         bytes memory packageLoad = hex"1234567890";
 
         bytes memory payload = abi.encodePacked(
-            srcChainid, dstChainid, channelId, sequence, packageType, time, synRelayFee, ackRelayFee, packageLoad
+            srcChainid, dstChainid, channelId, sequence, packageType, time, relayFee, ackRelayFee, packageLoad
         );
         return payload;
     }
@@ -49,7 +49,7 @@ contract genPayloadScript is Script {
             uint64 sequence,
             uint8 packageType,
             uint64 time,
-            uint256 synRelayFee,
+            uint256 relayFee,
             uint256 ackRelayFee, // optional
             bytes memory packageLoad
         )
@@ -80,7 +80,7 @@ contract genPayloadScript is Script {
             sequence := mload(add(ptr, 13))
             packageType := mload(add(ptr, 14))
             time := mload(add(ptr, 22))
-            synRelayFee := mload(add(ptr, 54))
+            relayFee := mload(add(ptr, 54))
         }
 
         if (packageType == SYN_PACKAGE) {
@@ -101,7 +101,7 @@ contract genPayloadScript is Script {
         console.log("sequence", sequence);
         console.log("packageType", packageType);
         console.log("time", time);
-        console.log("synRelayFee", synRelayFee);
+        console.log("relayFee", relayFee);
         console.log("ackRelayFee", ackRelayFee);
         console.log("packageLoad", iToHex(packageLoad));
     }

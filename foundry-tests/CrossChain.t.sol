@@ -76,7 +76,7 @@ contract CrossChainTest is Test {
             uint64 sequence,
             uint8 packageType,
             uint64 time,
-            uint256 synRelayFee,
+            uint256 relayFee,
             uint256 ackRelayFee, // optional
             bytes memory packageLoad
         )
@@ -106,7 +106,7 @@ contract CrossChainTest is Test {
             sequence := mload(add(ptr, 13))
             packageType := mload(add(ptr, 14))
             time := mload(add(ptr, 22))
-            synRelayFee := mload(add(ptr, 54))
+            relayFee := mload(add(ptr, 54))
         }
 
         if (packageType == 0) {

@@ -44,16 +44,14 @@ contract GovHub is Config, Initializable {
         _;
     }
 
-    function initialize(
-        address _proxyAdmin,
-        address _crosschain,
-        address _lightClient,
-        address _tokenHub
-    ) public initializer {
-        require(_proxyAdmin != address (0), "zero _proxyAdmin");
-        require(_crosschain != address (0), "zero _crosschain");
-        require(_lightClient != address (0), "zero _lightClient");
-        require(_tokenHub != address (0), "zero _tokenHub");
+    function initialize(address _proxyAdmin, address _crosschain, address _lightClient, address _tokenHub)
+        public
+        initializer
+    {
+        require(_proxyAdmin != address(0), "zero _proxyAdmin");
+        require(_crosschain != address(0), "zero _crosschain");
+        require(_lightClient != address(0), "zero _lightClient");
+        require(_tokenHub != address(0), "zero _tokenHub");
 
         proxyAdmin = _proxyAdmin;
         crosschain = _crosschain;
@@ -61,7 +59,11 @@ contract GovHub is Config, Initializable {
         tokenHub = _tokenHub;
     }
 
-    function handleSynPackage(uint8, bytes calldata msgBytes) onlyCrossChainContract external returns (bytes memory responsePayload) {
+    function handleSynPackage(uint8, bytes calldata msgBytes)
+        external
+        onlyCrossChainContract
+        returns (bytes memory responsePayload)
+    {
         (ParamChangePackage memory proposal, bool success) = _decodeSynPackage(msgBytes);
         if (!success) {
             return CmnPkg.encodeCommonAckPackage(ERROR_FAIL_DECODE);
@@ -103,8 +105,8 @@ contract GovHub is Config, Initializable {
                 return ERROR_INVALID_IMPLEMENTATION;
             }
 
-            try IProxyAdmin(proxyAdmin).upgrade(proposal.target, newImpl) {
-            } catch (bytes memory reason) {
+            try IProxyAdmin(proxyAdmin).upgrade(proposal.target, newImpl) {}
+            catch (bytes memory reason) {
                 emit FailUpgrade(newImpl, reason);
                 return ERROR_UPGRADE_FAIL;
             }
@@ -112,8 +114,8 @@ contract GovHub is Config, Initializable {
         }
 
         // update params
-        try IParamSubscriber(proposal.target).updateParam(proposal.key, proposal.value) {
-        } catch (bytes memory reason) {
+        try IParamSubscriber(proposal.target).updateParam(proposal.key, proposal.value) {}
+        catch (bytes memory reason) {
             emit FailUpdateParam(reason);
             return ERROR_TARGET_CONTRACT_FAIL;
         }

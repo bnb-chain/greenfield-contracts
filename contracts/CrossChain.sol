@@ -47,10 +47,6 @@ contract CrossChain is Initializable, Config, Governance {
         uint8 indexed channelId,
         bytes payload
     );
-    /*
-      event.topics => 0-eventHash,  1-oracleSequence 2-packageSequence 3-channelId
-      event.data bytes 119 => 猜测 srcChainId, dstChainId, payload 111字节（ abi.encodePacked(packageType, uint64(block.timestamp), synRelayFee, ackRelayFee, msgBytes) ）
-    */
 
     event ReceivedPackage(uint8 packageType, uint64 indexed packageSequence, uint8 indexed channelId);
     event UnsupportedPackage(uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
@@ -69,7 +65,7 @@ contract CrossChain is Initializable, Config, Governance {
 
     function initialize(uint16 _insChainId, address _govHub) public initializer {
         require(_insChainId != 0, "zero _insChainId");
-        require(_govHub != address(0), "zero govHub");
+        require(_govHub != address(0), "zero _govHub");
 
         chainId = uint16(block.chainid);
         insChainId = _insChainId;
@@ -98,19 +94,15 @@ contract CrossChain is Initializable, Config, Governance {
         quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
     }
 
-    /*
-0x020000000063c7b8440000000000000000000000000000000000000000000000000000000000000000eb0a94dde14f15006b0afda9b09bebe6689f5f8bce0aea9450e3f659803ffdf09813bdef9be4a14ad85f31f8
-    */
-
-    function encodePayload(uint8 packageType, uint256 synRelayFee, uint256 ackRelayFee, bytes memory msgBytes)
+    function encodePayload(uint8 packageType, uint256 relayFee, uint256 ackRelayFee, bytes memory msgBytes)
         public
         view
         returns (bytes memory)
     {
         return
             packageType == SYN_PACKAGE
-            ? abi.encodePacked(packageType, uint64(block.timestamp), synRelayFee, ackRelayFee, msgBytes)
-            : abi.encodePacked(packageType, uint64(block.timestamp), synRelayFee, msgBytes);
+            ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, msgBytes)
+            : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
     }
 
     /*
@@ -126,7 +118,7 @@ contract CrossChain is Initializable, Config, Governance {
             uint64 sequence,
             uint8 packageType,
             uint64 time,
-            uint256 synRelayFee,
+            uint256 relayFee,
             uint256 ackRelayFee, // optional
             bytes memory packageLoad
         )
@@ -155,7 +147,7 @@ contract CrossChain is Initializable, Config, Governance {
             sequence := mload(add(ptr, 13))
             packageType := mload(add(ptr, 14))
             time := mload(add(ptr, 22))
-            synRelayFee := mload(add(ptr, 54))
+            relayFee := mload(add(ptr, 54))
         }
 
         if (packageType == SYN_PACKAGE) {
@@ -187,7 +179,7 @@ contract CrossChain is Initializable, Config, Governance {
             uint64 sequence,
             uint8 packageType,
             uint64 eventTime,
-            uint256 synRelayFee,
+            uint256 relayFee,
             uint256 ackRelayFee,
             bytes memory packageLoad
         ) = _checkPayload(_payload);
@@ -296,12 +288,12 @@ contract CrossChain is Initializable, Config, Governance {
         emit CrossChainPackage(chainId, insChainId, uint64(oracleSequence), packageSequence, channelId, payload);
     }
 
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 synRelayFee, uint256 ackRelayFee)
+    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)
         external
         onlyRegisteredContractChannel(channelId)
     {
         uint64 sendSequence = channelSendSequenceMap[channelId];
-        _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, synRelayFee, ackRelayFee, msgBytes));
+        _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, relayFee, ackRelayFee, msgBytes));
         sendSequence++;
         channelSendSequenceMap[channelId] = sendSequence;
     }
