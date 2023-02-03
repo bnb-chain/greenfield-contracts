@@ -74,7 +74,7 @@ contract Deployer {
         );
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId, proxyGovHub);
         TokenHub(payable(proxyTokenHub)).initialize(proxyGovHub);
-        GnfdLightClient(payable(proxyLightClient)).initialize(blsPubKeys, relayers);
+        GnfdLightClient(payable(proxyLightClient)).initialize("");
         RelayerHub(payable(proxyRelayerHub)).initialize(proxyGovHub);
     }
 }
