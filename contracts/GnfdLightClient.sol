@@ -4,6 +4,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Config.sol";
 import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
+import "hardhat/console.sol";
 
 contract GnfdLightClient is Initializable, Config {
 
@@ -19,16 +20,19 @@ contract GnfdLightClient is Initializable, Config {
     uint256 constant public HEIGHT_LENGTH = 8;
     uint256 constant public VALIDATOR_SET_HASH_LENGTH = 32;
     uint256 constant public CONSENSUS_STATE_BASE_LENGTH = CHAIN_ID_LENGTH + HEIGHT_LENGTH + VALIDATOR_SET_HASH_LENGTH;
+
     uint256 constant public VALIDATOR_PUB_KEY_LENGTH = 32;
     uint256 constant public VALIDATOR_VOTING_POWER_LENGTH = 8;
-    uint256 constant public RELAYER_ADDRESS_LENGTH = 32;
+    uint256 constant public RELAYER_ADDRESS_LENGTH = 20;
     uint256 constant public RELAYER_BLS_KEY_LENGTH = 48;
+
     uint256 constant public VALIDATOR_BYTES_LENGTH = VALIDATOR_PUB_KEY_LENGTH + VALIDATOR_VOTING_POWER_LENGTH + RELAYER_ADDRESS_LENGTH + RELAYER_BLS_KEY_LENGTH;
     uint256 constant public MESSAGE_HASH_LENGTH = 32;
     uint256 constant public BLS_SIGNATURE_LENGTH = 96;
 
     /* --------------------- 2. storage --------------------- */
     uint64 public initialHeight;
+
     bytes32 public chainID;
     uint64  public height;
     bytes32 public nextValidatorSetHash;
@@ -222,15 +226,17 @@ contract GnfdLightClient is Initializable, Config {
     // | 32 bytes  | 8 bytes  | 32 bytes             | [{32 bytes, 8 bytes, 20 bytes, 48 bytes}]                               |
     function decodeConsensusState(uint256 ptr, uint256 size, bool validatorSetChanged) internal {
         require(size > CONSENSUS_STATE_BASE_LENGTH, "cs length too short");
-        require((size - CONSENSUS_STATE_BASE_LENGTH) % VALIDATOR_BYTES_LENGTH != 0, "invalid cs length");
+        require((size - CONSENSUS_STATE_BASE_LENGTH) % VALIDATOR_BYTES_LENGTH == 0, "invalid cs length");
 
         ptr = ptr + HEIGHT_LENGTH;
+        uint64 tmpHeight;
         assembly {
-            sstore(height.slot, mload(ptr))
+            tmpHeight := mload(ptr)
         }
-        height = height & 0xffffffffffffffff;
+        height = tmpHeight;
+        console.log("height", height);
 
-        ptr = ptr + CHAIN_ID_LENGTH;
+        ptr = ptr + VALIDATOR_SET_HASH_LENGTH;
         assembly {
             sstore(nextValidatorSetHash.slot, mload(ptr))
         }
@@ -239,7 +245,9 @@ contract GnfdLightClient is Initializable, Config {
             return;
         }
 
-        ptr = ptr + VALIDATOR_SET_HASH_LENGTH;
+        ptr = ptr + CHAIN_ID_LENGTH;
+        console.log("246 size, CONSENSUS_STATE_BASE_LENGTH, VALIDATOR_BYTES_LENGTH", size, CONSENSUS_STATE_BASE_LENGTH, VALIDATOR_BYTES_LENGTH);
+
         uint256 valNum = (size - CONSENSUS_STATE_BASE_LENGTH) / VALIDATOR_BYTES_LENGTH;
         Validator[] memory newValidatorSet = new Validator[](valNum);
         for (uint i = 0; i < valNum; i++) {
@@ -249,6 +257,9 @@ contract GnfdLightClient is Initializable, Config {
 
         uint i = 0;
         uint curValidatorSetLen = validatorSet.length;
+
+        console.log("254 valNum, curValidatorSetLen", valNum, curValidatorSetLen);
+
         for (i = 0; i < valNum && i < curValidatorSetLen; i++) {
             validatorSet[i] = newValidatorSet[i];
         }
@@ -260,11 +271,15 @@ contract GnfdLightClient is Initializable, Config {
         for (; i < valNum; i++) {
             validatorSet.push(newValidatorSet[i]);
         }
+
+        console.log("264 validatorSet.length", validatorSet.length);
+
     }
 
     function decodeValidator(uint256 ptr, uint256 size) internal returns (Validator memory val) {
         require(size == VALIDATOR_BYTES_LENGTH, "invalid validator bytes length");
 
+        // [32bytes][8bytes][20bytes][48bytes]
         uint256 dst;
         bytes32 tmpPubKey;
 
@@ -273,17 +288,30 @@ contract GnfdLightClient is Initializable, Config {
         }
         val.pubKey = tmpPubKey;
 
-        ptr = ptr + VALIDATOR_PUB_KEY_LENGTH;
-        (dst, ) = Memory.fromBytes(abi.encodePacked(val.votingPower));
-        Memory.copy(ptr, dst, VALIDATOR_VOTING_POWER_LENGTH);
 
         ptr = ptr + VALIDATOR_VOTING_POWER_LENGTH;
-        (dst, ) = Memory.fromBytes(abi.encodePacked(uint160(val.relayerAddress)));
-        Memory.copy(ptr, dst, RELAYER_ADDRESS_LENGTH);
+        int64 tmpVotingPower;
+        assembly {
+            tmpVotingPower := mload(ptr)
+        }
+        val.votingPower = tmpVotingPower;
+        console.log("tmpVotingPower", uint64(tmpVotingPower));
+
 
         ptr = ptr + RELAYER_ADDRESS_LENGTH;
-        (dst, ) = Memory.fromBytes(val.relayerBlsKey);
-        Memory.copy(ptr, dst, RELAYER_BLS_KEY_LENGTH);
+        address tmpRelayerAddress;
+        assembly {
+            tmpRelayerAddress := mload(ptr)
+        }
+        val.relayerAddress = tmpRelayerAddress;
+        console.log("tmpRelayerAddress", tmpRelayerAddress);
+
+
+        ptr = ptr + 32;
+        val.relayerBlsKey = Memory.toBytes(ptr, RELAYER_BLS_KEY_LENGTH);
+        console.log("tmpBlsKey");
+        console.logBytes(val.relayerBlsKey);
+
 
         return val;
     }
