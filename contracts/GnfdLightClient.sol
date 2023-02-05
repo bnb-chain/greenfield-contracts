@@ -19,6 +19,7 @@ contract GnfdLightClient is Initializable, Config {
     uint256 public constant CHAIN_ID_LENGTH = 32;
     uint256 public constant HEIGHT_LENGTH = 8;
     uint256 public constant VALIDATOR_SET_HASH_LENGTH = 32;
+    uint256 public constant CONSENSUS_STATE_BYTES_LENGTH = 32;
     uint256 public constant CONSENSUS_STATE_BASE_LENGTH = CHAIN_ID_LENGTH + HEIGHT_LENGTH + VALIDATOR_SET_HASH_LENGTH;
 
     uint256 public constant VALIDATOR_PUB_KEY_LENGTH = 32;
@@ -95,9 +96,16 @@ contract GnfdLightClient is Initializable, Config {
 //        Memory.copy(src, ptr, _header.length);
 
         bytes memory tmpHeader = _header;
-        bytes memory input = BytesLib.concat(consensusStateBytes, tmpHeader);
+        bytes memory input = BytesLib.concat(abi.encode(consensusStateBytes.length), consensusStateBytes);
+        input = BytesLib.concat(input, tmpHeader);
 
-//        uint256 totalLength = input.length + 32;
+        console.log('---------------------------');
+        console.log('call 67 precompile, input = ');
+        console.logBytes(input);
+        console.log('---------------------------');
+
+
+        //        uint256 totalLength = input.length + 32;
 //        bytes32[128] memory result; // Maximum validator quantity is 99
 //        assembly {
 //            // call gnfdLightBlockValidate precompile contract
@@ -107,27 +115,28 @@ contract GnfdLightClient is Initializable, Config {
 
         address HEADER_VALIDATE_CONTRACT = address(0x0000000000000000000000000000000000000067);
         (bool success, bytes memory result) = HEADER_VALIDATE_CONTRACT.staticcall(input);
-        require(success, "header validate failed");
+        require(success && result.length > 0, "header validate failed");
 
-        uint256 ptr;
+        uint256 ptr = Memory.dataPtr(result);
+        uint256 tmp;
         assembly {
-            ptr := mload(add(result, 0))
+            tmp := mload(ptr)
         }
-        bool validatorSetChanged = false;
-        if ((ptr & (0x01 << 248)) != 0x00) {
-            validatorSetChanged = true;
-        }
-        uint256 length = ptr & 0xffffffffffffffff;
+        bool validatorSetChanged = (tmp >> 248) != 0x00;
 
-        assembly {
-            ptr := add(result, 32)
-        }
-        decodeConsensusState(ptr, length, validatorSetChanged);
+        uint256 consensusStateLength = tmp & 0xffffffffffffffff;
+
+
+        ptr += CONSENSUS_STATE_BYTES_LENGTH;
+        decodeConsensusState(ptr, consensusStateLength, validatorSetChanged);
 
         require(height == _height, "invalid header height");
-        consensusStateBytes = Memory.toBytes(ptr, length);
-        submitters[_height] = payable(msg.sender);
 
+        if (validatorSetChanged) {
+            consensusStateBytes = Memory.toBytes(ptr, consensusStateLength);
+        }
+
+        submitters[_height] = payable(msg.sender);
         emit updateConsensusState(_height, validatorSetChanged);
 
         return true;
