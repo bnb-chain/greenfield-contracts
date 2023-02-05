@@ -52,7 +52,10 @@ contract GovHub is Config, Initializable {
         address _tokenHub,
         address _lightClient,
         address _relayerHub
-    ) public initializer {
+    )
+        public
+        initializer
+    {
         require(_proxyAdmin != address(0), "zero _proxyAdmin");
         require(_crosschain != address(0), "zero _crosschain");
         require(_tokenHub != address(0), "zero _tokenHub");
