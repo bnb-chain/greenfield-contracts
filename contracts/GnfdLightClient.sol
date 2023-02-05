@@ -4,6 +4,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Config.sol";
 import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
+import "./lib/BytesLib.sol";
 import "hardhat/console.sol";
 
 contract GnfdLightClient is Initializable, Config {
@@ -126,41 +127,83 @@ contract GnfdLightClient is Initializable, Config {
     function verifyPackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorSetBitMap) external view {
         require(_blsSignature.length == BLS_SIGNATURE_LENGTH, "invalid signature length");
 
+        console.log('129, _blsSignature.length', _blsSignature.length);
+
         uint256 src;
-        bytes memory input = new bytes(MESSAGE_HASH_LENGTH + BLS_SIGNATURE_LENGTH + RELAYER_BLS_KEY_LENGTH*validatorSet.length);
-        uint256 ptr = Memory.dataPtr(input);
+
+        console.log("MESSAGE_HASH_LENGTH + BLS_SIGNATURE_LENGTH + RELAYER_BLS_KEY_LENGTH*validatorSet.length", MESSAGE_HASH_LENGTH + BLS_SIGNATURE_LENGTH + RELAYER_BLS_KEY_LENGTH*validatorSet.length);
+
+//        bytes memory input = new bytes(MESSAGE_HASH_LENGTH + BLS_SIGNATURE_LENGTH + RELAYER_BLS_KEY_LENGTH*validatorSet.length);
+//        uint256 ptr = Memory.dataPtr(input);
 
         bytes32 msgHash = keccak256(_payload);
+
+        console.log("msgHash");
+        console.logBytes32(msgHash);
+/*
+
         assembly {
             mstore(ptr, msgHash)
         }
 
-        ptr = ptr + MESSAGE_HASH_LENGTH;
-        (src, ) = Memory.fromBytes(_blsSignature);
-        Memory.copy(src, ptr, _blsSignature.length);
+        console.log('input: ');
+        console.logBytes(input);
 
-        ptr = ptr + BLS_SIGNATURE_LENGTH;
+        ptr = ptr + MESSAGE_HASH_LENGTH;
+        bytes memory tmpBlsSig = _blsSignature;
+        (src, ) = Memory.fromBytes(tmpBlsSig);
+
+        console.log('src: ', src);
+
+        Memory.copy(src, ptr, tmpBlsSig.length);
+
+        console.log('2 input: ');
+        console.logBytes(input);
+*/
+
+        bytes memory tmpBlsSig = _blsSignature;
+        bytes memory input = BytesLib.concat(abi.encode(msgHash), tmpBlsSig);
+//        ptr = Memory.dataPtr(input);
+
+        console.log("168 newInput");
+        console.logBytes(input);
+
+//        ptr = ptr + BLS_SIGNATURE_LENGTH;
         uint256 totalLength = MESSAGE_HASH_LENGTH + BLS_SIGNATURE_LENGTH;
         for (uint i = 0; i < validatorSet.length; i++) {
             if ((_validatorSetBitMap & (0x1 << i)) != 0 ) {
-                (src, ) = Memory.fromBytes(validatorSet[i].relayerBlsKey);
-                Memory.copy(src, ptr, RELAYER_BLS_KEY_LENGTH);
-                ptr = ptr + RELAYER_BLS_KEY_LENGTH;
+//                (src, ) = Memory.fromBytes(validatorSet[i].relayerBlsKey);
+//                Memory.copy(src, ptr, RELAYER_BLS_KEY_LENGTH);
+//                ptr = ptr + RELAYER_BLS_KEY_LENGTH;
+
+                input = BytesLib.concat(input, validatorSet[i].relayerBlsKey);
                 totalLength = totalLength + RELAYER_BLS_KEY_LENGTH;
             }
         }
+        console.log("183 newInput");
+        console.logBytes(input);
 
-        bytes memory result = new bytes(1);
-        assembly {
-            // call blsSignatureVerify precompile contract
-            // Contract address: 0x66
-            let len := mload(input)
-            if iszero(staticcall(not(0), 0x66, add(input, 0x20), len, add(result, 0x20), 0x01)) {
-                revert(0, 0)
-            }
-        }
 
-        require(BytesToTypes.bytesToBool(0, result), "bls verification failed");
+
+//        bytes memory result = new bytes(1);
+//        assembly {
+//            // call blsSignatureVerify precompile contract
+//            // Contract address: 0x66
+//            let len := mload(input)
+//            if iszero(staticcall(not(0), 0x66, add(input, 0x20), len, add(result, 0x20), 0x01)) {
+//                revert(0, 0)
+//            }
+//        }
+//
+//        require(BytesToTypes.bytesToBool(0, result), "bls verification failed");
+
+        address PACKAGE_VERIFY_CONTRACT = address(0x66);
+        (bool success, bytes memory data) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
+
+        console.log(success);
+        console.logBytes(data);
+
+         require(success && data.length > 0, "invalid cross-chain package");
     }
 
     function getRelayers() external view returns (address[] memory) {
