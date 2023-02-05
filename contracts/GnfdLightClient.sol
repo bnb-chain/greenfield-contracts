@@ -37,6 +37,7 @@ contract GnfdLightClient is Initializable, Config {
     bytes32 public chainID;
     uint64 public height;
     bytes32 public nextValidatorSetHash;
+    bytes public consensusStateBytes;
     Validator[] public validatorSet;
     mapping(uint64 => address payable) public submitters;
 
@@ -73,6 +74,7 @@ contract GnfdLightClient is Initializable, Config {
         chainID = tmpChainID;
         decodeConsensusState(ptr, len, true);
         initialHeight = height;
+        consensusStateBytes = _initConsensusStateBytes;
 
         emit initConsensusState(height);
     }
@@ -81,25 +83,33 @@ contract GnfdLightClient is Initializable, Config {
         require(submitters[_height] == address(0x0), "can't sync duplicated header");
         require(_height > height, "can't sync header before latest height");
 
-        uint256 consensusLength = CONSENSUS_STATE_BASE_LENGTH + validatorSet.length * VALIDATOR_BYTES_LENGTH;
-        bytes memory input = new bytes(consensusLength + _header.length);
-        uint256 ptr = Memory.dataPtr(input);
-        uint256 src;
+//        uint256 consensusLength = CONSENSUS_STATE_BASE_LENGTH + validatorSet.length * VALIDATOR_BYTES_LENGTH;
+//        bytes memory input = new bytes(consensusLength + _header.length);
+//        uint256 ptr = Memory.dataPtr(input);
+//        uint256 src;
+//
+//        encodeConsensusState(ptr, consensusLength);
+//
+//        ptr = ptr + consensusLength;
+//        (src,) = Memory.fromBytes(_header);
+//        Memory.copy(src, ptr, _header.length);
 
-        encodeConsensusState(ptr, consensusLength);
+        bytes memory tmpHeader = _header;
+        bytes memory input = BytesLib.concat(consensusStateBytes, tmpHeader);
 
-        ptr = ptr + consensusLength;
-        (src,) = Memory.fromBytes(_header);
-        Memory.copy(src, ptr, _header.length);
+//        uint256 totalLength = input.length + 32;
+//        bytes32[128] memory result; // Maximum validator quantity is 99
+//        assembly {
+//            // call gnfdLightBlockValidate precompile contract
+//            // Contract address: 0x67
+//            if iszero(staticcall(not(0), 0x67, input, totalLength, result, 4096)) { revert(0, 0) }
+//        }
 
-        uint256 totalLength = input.length + 32;
-        bytes32[128] memory result; // Maximum validator quantity is 99
-        assembly {
-            // call gnfdLightBlockValidate precompile contract
-            // Contract address: 0x67
-            if iszero(staticcall(not(0), 0x67, input, totalLength, result, 4096)) { revert(0, 0) }
-        }
+        address HEADER_VALIDATE_CONTRACT = address(0x0000000000000000000000000000000000000067);
+        (bool success, bytes memory result) = HEADER_VALIDATE_CONTRACT.staticcall(input);
+        require(success, "header validate failed");
 
+        uint256 ptr;
         assembly {
             ptr := mload(add(result, 0))
         }
@@ -107,14 +117,15 @@ contract GnfdLightClient is Initializable, Config {
         if ((ptr & (0x01 << 248)) != 0x00) {
             validatorSetChanged = true;
         }
-        totalLength = ptr & 0xffffffffffffffff;
+        uint256 length = ptr & 0xffffffffffffffff;
 
         assembly {
             ptr := add(result, 32)
         }
-        decodeConsensusState(ptr, totalLength, validatorSetChanged);
+        decodeConsensusState(ptr, length, validatorSetChanged);
 
         require(height == _height, "invalid header height");
+        consensusStateBytes = Memory.toBytes(ptr, length);
         submitters[_height] = payable(msg.sender);
 
         emit updateConsensusState(_height, validatorSetChanged);
@@ -126,8 +137,6 @@ contract GnfdLightClient is Initializable, Config {
         external
         view
     {
-
-
         console.log("validatorSet pubkeys");
         for (uint i ; i < validatorSet.length; i++) {
             console.logBytes(validatorSet[i].relayerBlsKey);
@@ -135,90 +144,34 @@ contract GnfdLightClient is Initializable, Config {
 
         require(_blsSignature.length == BLS_SIGNATURE_LENGTH, "invalid signature length");
 
-        console.log("129, _blsSignature.length", _blsSignature.length);
-
-        uint256 src;
-
-        console.log(
-            "MESSAGE_HASH_LENGTH + BLS_SIGNATURE_LENGTH + RELAYER_BLS_KEY_LENGTH*validatorSet.length",
-            MESSAGE_HASH_LENGTH + BLS_SIGNATURE_LENGTH + RELAYER_BLS_KEY_LENGTH * validatorSet.length
-        );
-
-        //        bytes memory input = new bytes(MESSAGE_HASH_LENGTH + BLS_SIGNATURE_LENGTH + RELAYER_BLS_KEY_LENGTH*validatorSet.length);
-        //        uint256 ptr = Memory.dataPtr(input);
-
         bytes32 msgHash = keccak256(_payload);
-
         console.log("msgHash");
         console.logBytes32(msgHash);
-        /*
-
-        assembly {
-            mstore(ptr, msgHash)
-        }
-
-        console.log('input: ');
-        console.logBytes(input);
-
-        ptr = ptr + MESSAGE_HASH_LENGTH;
-        bytes memory tmpBlsSig = _blsSignature;
-        (src, ) = Memory.fromBytes(tmpBlsSig);
-
-        console.log('src: ', src);
-
-        Memory.copy(src, ptr, tmpBlsSig.length);
-
-        console.log('2 input: ');
-        console.logBytes(input);
-    */
 
         bytes memory tmpBlsSig = _blsSignature;
         bytes memory input = BytesLib.concat(abi.encode(msgHash), tmpBlsSig);
-        //        ptr = Memory.dataPtr(input);
-
         console.log("168 newInput");
         console.logBytes(input);
 
-        //        ptr = ptr + BLS_SIGNATURE_LENGTH;
-        uint256 totalLength = MESSAGE_HASH_LENGTH + BLS_SIGNATURE_LENGTH;
+        uint256 bitCount;
         for (uint256 i = 0; i < validatorSet.length; i++) {
             if ((_validatorSetBitMap & (0x1 << i)) != 0) {
-                //                (src, ) = Memory.fromBytes(validatorSet[i].relayerBlsKey);
-                //                Memory.copy(src, ptr, RELAYER_BLS_KEY_LENGTH);
-                //                ptr = ptr + RELAYER_BLS_KEY_LENGTH;
-
+                bitCount++;
                 input = BytesLib.concat(input, validatorSet[i].relayerBlsKey);
-                totalLength = totalLength + RELAYER_BLS_KEY_LENGTH;
             }
         }
+        require(bitCount >= validatorSet.length*2/3, "no majority validators");
+
         console.log("183 newInput");
         console.logBytes(input);
 
-        //        bytes memory result = new bytes(1);
-        //        assembly {
-        //            // call blsSignatureVerify precompile contract
-        //            // Contract address: 0x66
-        //            let len := mload(input)
-        //            if iszero(staticcall(not(0), 0x66, add(input, 0x20), len, add(result, 0x20), 0x01)) {
-        //                revert(0, 0)
-        //            }
-        //        }
-        //
-        //        require(BytesToTypes.bytesToBool(0, result), "bls verification failed");
-
         address PACKAGE_VERIFY_CONTRACT = address(0x0000000000000000000000000000000000000066);
-        address SHA_CONTRACT = address(0x02);
-        (bool success, bytes memory data) = SHA_CONTRACT.staticcall(input);
-        console.log('SHA_CONTRACT', success);
-        console.logBytes(data);
-        console.logBytes32(sha256(input));
-
-        (success, data) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
+        (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
 
         console.log('0x66 ins precompile', success);
-        console.logBytes(data);
+        console.logBytes(result);
 
-        require(success && data.length > 0, "invalid cross-chain package");
+        require(success && result.length > 0, "invalid cross-chain package");
     }
 
     function getRelayers() external view returns (address[] memory) {
@@ -341,7 +294,6 @@ contract GnfdLightClient is Initializable, Config {
     function decodeValidator(uint256 ptr, uint256 size) internal returns (Validator memory val) {
         require(size == VALIDATOR_BYTES_LENGTH, "invalid validator bytes length");
 
-        // [32bytes][8bytes][20bytes][48bytes]
         uint256 dst;
         bytes32 tmpPubKey;
 
@@ -366,7 +318,7 @@ contract GnfdLightClient is Initializable, Config {
         val.relayerAddress = tmpRelayerAddress;
         console.log("tmpRelayerAddress", tmpRelayerAddress);
 
-        ptr = ptr + 32;
+        ptr = ptr + VALIDATOR_PUB_KEY_LENGTH;
         val.relayerBlsKey = Memory.toBytes(ptr, RELAYER_BLS_KEY_LENGTH);
         console.log("tmpBlsKey");
         console.logBytes(val.relayerBlsKey);
