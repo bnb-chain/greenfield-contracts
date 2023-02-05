@@ -81,13 +81,13 @@ contract GnfdLightClient is Initializable, Config {
         emit initConsensusState(height);
     }
 
-    function syncTendermintHeader(bytes calldata _header, uint64 _height) external onlyRelayer returns (bool) {
+    function syncLightBlock(bytes calldata _lightBlock, uint64 _height) external onlyRelayer returns (bool) {
         require(submitters[_height] == address(0x0), "can't sync duplicated header");
         require(_height > height, "can't sync header before latest height");
 
         bytes memory input = BytesLib.concat(abi.encode(consensusStateBytes.length), consensusStateBytes);
-        bytes memory tmpHeader = _header;
-        input = BytesLib.concat(input, tmpHeader);
+        bytes memory tmpBlock = _lightBlock;
+        input = BytesLib.concat(input, tmpBlock);
         (bool success, bytes memory result) = HEADER_VALIDATE_CONTRACT.staticcall(input);
         require(success && result.length > 0, "header validate failed");
 
