@@ -30,10 +30,6 @@ contract RelayerHub is Initializable, Config {
 
         uint256 _fixedReward = _reward * fixedRelayerRewardRatio / REWARD_RATIO_SCALE;
         rewardMap[_relayer] += _fixedReward;
-
-        if (_reward > _fixedReward) {
-            _distributeRewards(_reward - _fixedReward);
-        }
     }
 
     function claimReward(address payable _relayer) external {
@@ -45,19 +41,5 @@ contract RelayerHub is Initializable, Config {
         _relayer.transfer(_reward);
 
         emit RewardToRelayer(_relayer, _reward);
-    }
-
-    /*----------------- internal function -----------------*/
-    function _distributeRewards(uint256 _reward) internal {
-        address[] memory relayers = ILightClient(LIGHT_CLIENT).getRelayers();
-
-        uint256 _rewardEach = _reward / relayers.length;
-        uint256 _remaining = _reward;
-        for (uint256 i = 0; i < relayers.length - 1; i++) {
-            rewardMap[relayers[i]] += _rewardEach;
-            _remaining -= _rewardEach;
-        }
-
-        rewardMap[relayers[relayers.length - 1]] += _remaining;
     }
 }
