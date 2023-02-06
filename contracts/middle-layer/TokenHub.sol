@@ -4,7 +4,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Config.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
-import "../interface/IGovHub.sol";
 
 interface ICrossChain {
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee) external;

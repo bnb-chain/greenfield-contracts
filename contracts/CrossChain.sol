@@ -2,7 +2,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./interface/IMiddleLayer.sol";
-import "./interface/IGovHub.sol";
 import "./interface/ITokenHub.sol";
 import "./interface/ILightClient.sol";
 import "./interface/IRelayerHub.sol";
