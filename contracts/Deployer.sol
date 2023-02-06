@@ -13,8 +13,7 @@ import "./middle-layer/TokenHub.sol";
 
 contract Deployer {
     uint16 public gnfdChainId;
-    bytes public blsPubKeys;
-    address[] public relayers;
+    bytes public initConsensusStateBytes;
 
     address public proxyAdmin;
 
@@ -30,10 +29,8 @@ contract Deployer {
     address private implLightClient;
     address private implRelayerHub;
 
-    constructor(uint16 _gnfdChainId, bytes memory _blsPubKeys, address[] memory _relayers) {
+    constructor(uint16 _gnfdChainId) {
         gnfdChainId = _gnfdChainId;
-        blsPubKeys = _blsPubKeys;
-        relayers = _relayers;
 
         // 1. proxyAdmin
         proxyAdmin = address(new GnfdProxyAdmin());
@@ -43,15 +40,26 @@ contract Deployer {
         proxyGovHub = address(new GnfdProxy(implGovHub, proxyAdmin, ""));
         // transfer ownership to proxyGovHub
         GnfdProxyAdmin(proxyAdmin).transferOwnership(address(proxyGovHub));
-
-        // 3. deploy implementation contracts
-        implCrossChain = address(new CrossChain());
-        implTokenHub = address(new TokenHub());
-        implLightClient = address(new GnfdLightClient());
-        implRelayerHub = address(new RelayerHub());
     }
 
-    function deploy() public {
+    function deploy(
+        bytes calldata _initConsensusStateBytes,
+        address _implCrossChain,
+        address _implTokenHub,
+        address _implLightClient,
+        address _implRelayerHub
+    ) public {
+        require(_isContract(_implCrossChain), "invalid _implCrossChain");
+        require(_isContract(_implTokenHub), "invalid _implTokenHub");
+        require(_isContract(_implLightClient), "invalid _implLightClient");
+        require(_isContract(_implRelayerHub), "invalid _implRelayerHub");
+
+        initConsensusStateBytes = _initConsensusStateBytes;
+        implCrossChain = _implCrossChain;
+        implTokenHub = _implTokenHub;
+        implLightClient = _implLightClient;
+        implRelayerHub = _implRelayerHub;
+
         // 4. CrossChain
         proxyCrossChain = address(new GnfdProxy(implCrossChain, proxyAdmin, ""));
 
@@ -67,7 +75,11 @@ contract Deployer {
         // 8. init GovHub, set contracts addresses to GovHub
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId);
         TokenHub(payable(proxyTokenHub)).initialize();
-        GnfdLightClient(payable(proxyLightClient)).initialize(blsPubKeys, relayers);
+        GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
         RelayerHub(payable(proxyRelayerHub)).initialize();
+    }
+
+    function _isContract(address account) internal view returns (bool) {
+        return account.code.length > 0;
     }
 }

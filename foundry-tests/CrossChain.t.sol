@@ -12,13 +12,7 @@ import "../contracts/middle-layer/TokenHub.sol";
 
 contract CrossChainTest is Test {
     uint16 public constant gnfdChainId = 1;
-    bytes public constant blsPubKeys =
-        hex"8ec21505e290d7c15f789c7b4c522179bb7d70171319bfe2d6b2aae2461a1279566782907593cc526a5f2611c0721d60b4a78719a34817cc1d085b6eed110ed1d1ca59a35c9cf4d094e4e71b0b8b76ac2d30ba0762ec9acfaca8b8b369d914e980e970c25a8580cb0d840dce6fff3adc830e16ec8660fb91c8811a28d8ada91d539f82d2730496549e7783a34167498c";
-    address[] public relayers = [
-        0x1115E495c48bEb783ee04Ca99b7c2F87Faf6F8eb,
-        0x56B2404e087F55D6E16bEED3aDee8F51414A301b,
-        0xE7B8E0894FF97dd5c846c8A031becDb06E2390ea
-    ];
+    bytes public constant initConsensusStateBytes = "677265656e6669656c645f393030302d313231000000000000000000000000000000000000000001a5f1af4874227f1cdbe5240259a365ad86484a4255bfd65e2a0222d733fcdbc320cc466ee9412ddd49e0fff04cdb41bade2b7622f08b6bdacac94d4de03bdb970000000000002710d5e63aeee6e6fa122a6a23a6e0fca87701ba1541aa2d28cbcd1ea3a63479f6fb260a3d755853e6a78cfa6252584fee97b2ec84a9d572ee4a5d3bc1558bb98a4b370fb8616b0b523ee91ad18a63d63f21e0c40a83ef15963f4260574ca5159fd90a1c527000000000000027106fd1ceb5a48579f322605220d4325bd9ff90d5fab31e74a881fc78681e3dfa440978d2b8be0708a1cbbca2c660866216975fdaf0e9038d9b7ccbf9731f43956dba7f2451919606ae20bf5d248ee353821754bcdb456fd3950618fda3e32d3d0fb990eeda000000000000271097376a436bbf54e0f6949b57aa821a90a749920ab32979580ea04984a2be033599c20c7a0c9a8d121b57f94ee05f5eda5b36c38f6e354c89328b92cdd1de33b64d3a0867";
 
     Deployer public deployer;
     GovHub public govHub;
@@ -30,8 +24,15 @@ contract CrossChainTest is Test {
     address private user1 = 0x1000000000000000000000000000000012345678;
 
     function setUp() public {
-        deployer = new Deployer(gnfdChainId, blsPubKeys, relayers);
-        deployer.deploy();
+        deployer = new Deployer(gnfdChainId);
+
+        // 3. deploy implementation contracts
+        address implCrossChain = address(new CrossChain());
+        address implTokenHub = address(new TokenHub());
+        address implLightClient = address(new GnfdLightClient());
+        address implRelayerHub = address(new RelayerHub());
+        deployer.deploy(initConsensusStateBytes, implCrossChain, implTokenHub, implLightClient, implRelayerHub);
+
         govHub = GovHub(payable(deployer.proxyGovHub()));
         crossChain = CrossChain(payable(deployer.proxyCrossChain()));
         tokenHub = TokenHub(payable(deployer.proxyTokenHub()));

@@ -6,5 +6,7 @@ interface IRelayerIncentivize {
         address payable packageRelayer,
         uint256 amount,
         bool fromSystemReward
-    ) external returns (bool);
+    )
+        external
+        returns (bool);
 }
