@@ -76,7 +76,6 @@ contract GovHub is Config, Initializable {
 
             address target;
             address newImpl;
-            uint256 upgradedNum;
             for (uint256 i; i < totalTargets; ++i) {
                 target = BytesToTypes.bytesToAddress(20 * (i+1), proposal.targets);
                 newImpl = BytesToTypes.bytesToAddress(20 * (i+1), proposal.values);

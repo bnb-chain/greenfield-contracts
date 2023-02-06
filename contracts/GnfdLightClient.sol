@@ -164,8 +164,8 @@ contract GnfdLightClient is Initializable, Config {
         ptr = ptr + CHAIN_ID_LENGTH;
         uint256 valNum = (size - CONSENSUS_STATE_BASE_LENGTH) / VALIDATOR_BYTES_LENGTH;
         Validator[] memory newValidatorSet = new Validator[](valNum);
-        for (uint256 i = 0; i < valNum; i++) {
-            newValidatorSet[i] = decodeValidator(ptr, VALIDATOR_BYTES_LENGTH);
+        for (uint256 idx = 0; idx < valNum; idx++) {
+            newValidatorSet[idx] = decodeValidator(ptr, VALIDATOR_BYTES_LENGTH);
             ptr = ptr + VALIDATOR_BYTES_LENGTH;
         }
 
@@ -182,7 +182,7 @@ contract GnfdLightClient is Initializable, Config {
         }
     }
 
-    function decodeValidator(uint256 ptr, uint256 size) internal returns (Validator memory val) {
+    function decodeValidator(uint256 ptr, uint256 size) internal pure returns (Validator memory val) {
         require(size == VALIDATOR_BYTES_LENGTH, "invalid validator bytes length");
 
         bytes32 tmpPubKey;
