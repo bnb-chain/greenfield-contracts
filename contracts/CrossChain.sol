@@ -9,16 +9,33 @@ import "./interface/IRelayerHub.sol";
 import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./Config.sol";
-import "./Governance.sol";
 
-contract CrossChain is Initializable, Config, Governance {
-    // constant variables
+contract CrossChain is Initializable, Config {
+    /*----------------- constants -----------------*/
     uint8 public constant SYN_PACKAGE = 0x00;
     uint8 public constant ACK_PACKAGE = 0x01;
     uint8 public constant FAIL_ACK_PACKAGE = 0x02;
 
     uint256 public constant IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
     uint256 public constant OUT_TURN_RELAYER_BACKOFF_PERIOD = 3 seconds;
+
+    // 0xebbda044f67428d7e9b472f9124983082bcda4f84f5148ca0a9ccbe06350f196
+    bytes32 public constant SUSPEND_PROPOSAL = keccak256("SUSPEND_PROPOSAL");
+    // 0xcf82004e82990eca84a75e16ba08aa620238e076e0bc7fc4c641df44bbf5b55a
+    bytes32 public constant REOPEN_PROPOSAL = keccak256("REOPEN_PROPOSAL");
+    // 0x605b57daa79220f76a5cdc8f5ee40e59093f21a4e1cec30b9b99c555e94c75b9
+    bytes32 public constant CANCEL_TRANSFER_PROPOSAL = keccak256("CANCEL_TRANSFER_PROPOSAL");
+    // 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
+    bytes32 public constant EMPTY_CONTENT_HASH = keccak256("");
+    uint256 public constant EMERGENCY_PROPOSAL_EXPIRE_PERIOD = 1 hours;
+
+    /*----------------- storage layer -----------------*/
+    address public govHub;
+    bool public isSuspended;
+    // proposal type hash => latest emergency proposal
+    mapping(bytes32 => EmergencyProposal) public emergencyProposals;
+    // proposal type hash => the threshold of proposal approved
+    mapping(bytes32 => uint16) public quorumMap;
 
     // governable parameters
     uint16 public chainId;
@@ -34,7 +51,22 @@ contract CrossChain is Initializable, Config, Governance {
     mapping(uint8 => uint64) public channelSendSequenceMap;
     mapping(uint8 => uint64) public channelReceiveSequenceMap;
 
-    // event
+    /*----------------- struct / event / modifier -----------------*/
+    struct EmergencyProposal {
+        uint16 quorum;
+        uint128 expiredAt;
+        bytes32 contentHash;
+        address[] approvers;
+    }
+    event ProposalSubmitted(
+        bytes32 indexed proposalTypeHash,
+        address indexed proposer,
+        uint128 quorum,
+        uint128 expiredAt,
+        bytes32 contentHash
+    );
+    event Suspended(address indexed executor);
+    event Reopened(address indexed executor);
     event CrossChainPackage(
         uint32 srcChainId,
         uint32 dstChainId,
@@ -43,7 +75,6 @@ contract CrossChain is Initializable, Config, Governance {
         uint8 indexed channelId,
         bytes payload
     );
-
     event ReceivedPackage(uint8 packageType, uint64 indexed packageSequence, uint8 indexed channelId);
     event UnsupportedPackage(uint64 indexed packageSequence, uint8 indexed channelId, bytes payload);
     event UnexpectedRevertInPackageHandler(address indexed contractAddr, string reason);
@@ -59,6 +90,33 @@ contract CrossChain is Initializable, Config, Governance {
         _;
     }
 
+    modifier whenNotSuspended() {
+        require(!isSuspended, "suspended");
+        _;
+    }
+
+    modifier whenSuspended() {
+        require(isSuspended, "not suspended");
+        _;
+    }
+
+    modifier onlyRelayer() {
+        bool isRelayer;
+        address _lightClient = IGovHub(govHub).lightClient();
+        address[] memory relayers = ILightClient(_lightClient).getRelayers();
+        uint256 _totalRelayers = relayers.length;
+        require(_totalRelayers > 0, "empty relayers");
+        for (uint256 i = 0; i < _totalRelayers; i++) {
+            if (relayers[i] == msg.sender) {
+                isRelayer = true;
+                break;
+            }
+        }
+        require(isRelayer, "only relayer");
+
+        _;
+    }
+    /*----------------- external function -----------------*/
     function initialize(uint16 _gnfdChainId, address _govHub) public initializer {
         require(_gnfdChainId != 0, "zero _gnfdChainId");
         require(_govHub != address(0), "zero _govHub");
@@ -98,68 +156,6 @@ contract CrossChain is Initializable, Config, Governance {
         return packageType == SYN_PACKAGE
             ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, msgBytes)
             : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
-    }
-
-    /*
-    | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | SynRelayerFee | AckRelayerFee(optional) | PackageLoad |
-    | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes      | 32 bytes / 0 bytes      |   len bytes |
-    */
-    function _checkPayload(bytes calldata payload)
-        internal
-        view
-        returns (
-            bool success,
-            uint8 channelId,
-            uint64 sequence,
-            uint8 packageType,
-            uint64 time,
-            uint256 relayFee,
-            uint256 ackRelayFee, // optional
-            bytes memory packageLoad
-        )
-    {
-        if (payload.length < 54) {
-            return (false, 0, 0, 0, 0, 0, 0, "");
-        }
-
-        bytes memory _payload = payload;
-        uint256 ptr;
-        {
-            uint16 srcChainId;
-            uint16 dstChainId;
-            assembly {
-                ptr := _payload
-
-                srcChainId := mload(add(ptr, 2))
-                dstChainId := mload(add(ptr, 4))
-            }
-            require(srcChainId == gnfdChainId, "invalid source chainId");
-            require(dstChainId == chainId, "invalid destination chainId");
-        }
-
-        assembly {
-            channelId := mload(add(ptr, 5))
-            sequence := mload(add(ptr, 13))
-            packageType := mload(add(ptr, 14))
-            time := mload(add(ptr, 22))
-            relayFee := mload(add(ptr, 54))
-        }
-
-        if (packageType == SYN_PACKAGE) {
-            if (payload.length < 86) {
-                return (false, 0, 0, 0, 0, 0, 0, "");
-            }
-
-            assembly {
-                ackRelayFee := mload(add(ptr, 86))
-            }
-            packageLoad = payload[86:];
-        } else {
-            ackRelayFee = 0;
-            packageLoad = payload[54:];
-        }
-
-        success = true;
     }
 
     function handlePackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorsBitSet)
@@ -246,6 +242,104 @@ contract CrossChain is Initializable, Config, Governance {
         IRelayerHub(_relayerHub).addReward(msg.sender, relayFee);
     }
 
+    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)
+    external
+    onlyRegisteredContractChannel(channelId)
+    {
+        uint64 sendSequence = channelSendSequenceMap[channelId];
+        _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, relayFee, ackRelayFee, msgBytes));
+        sendSequence++;
+        channelSendSequenceMap[channelId] = sendSequence;
+    }
+
+    function suspend() external onlyRelayer whenNotSuspended {
+        bool isExecutable = _approveProposal(SUSPEND_PROPOSAL, EMPTY_CONTENT_HASH);
+        if (isExecutable) {
+            isSuspended = true;
+            emit Suspended(msg.sender);
+        }
+    }
+
+    function reopen() external onlyRelayer whenSuspended {
+        bool isExecutable = _approveProposal(REOPEN_PROPOSAL, EMPTY_CONTENT_HASH);
+        if (isExecutable) {
+            isSuspended = false;
+            emit Reopened(msg.sender);
+        }
+    }
+
+    function cancelTransfer(address attacker) external onlyRelayer {
+        bytes32 _contentHash = keccak256(abi.encode(attacker));
+        bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
+        if (isExecutable) {
+            address _tokenHub = IGovHub(govHub).tokenHub();
+            ITokenHub(_tokenHub).cancelTransferIn(attacker);
+        }
+    }
+
+    /*----------------- internal function -----------------*/
+    /*
+    | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | SynRelayerFee | AckRelayerFee(optional) | PackageLoad |
+    | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes      | 32 bytes / 0 bytes      |   len bytes |
+    */
+    function _checkPayload(bytes calldata payload)
+    internal
+    view
+    returns (
+        bool success,
+        uint8 channelId,
+        uint64 sequence,
+        uint8 packageType,
+        uint64 time,
+        uint256 relayFee,
+        uint256 ackRelayFee, // optional
+        bytes memory packageLoad
+    )
+    {
+        if (payload.length < 54) {
+            return (false, 0, 0, 0, 0, 0, 0, "");
+        }
+
+        bytes memory _payload = payload;
+        uint256 ptr;
+        {
+            uint16 srcChainId;
+            uint16 dstChainId;
+            assembly {
+                ptr := _payload
+
+                srcChainId := mload(add(ptr, 2))
+                dstChainId := mload(add(ptr, 4))
+            }
+            require(srcChainId == gnfdChainId, "invalid source chainId");
+            require(dstChainId == chainId, "invalid destination chainId");
+        }
+
+        assembly {
+            channelId := mload(add(ptr, 5))
+            sequence := mload(add(ptr, 13))
+            packageType := mload(add(ptr, 14))
+            time := mload(add(ptr, 22))
+            relayFee := mload(add(ptr, 54))
+        }
+
+        if (packageType == SYN_PACKAGE) {
+            if (payload.length < 86) {
+                return (false, 0, 0, 0, 0, 0, 0, "");
+            }
+
+            assembly {
+                ackRelayFee := mload(add(ptr, 86))
+            }
+            packageLoad = payload[86:];
+        } else {
+            ackRelayFee = 0;
+            packageLoad = payload[54:];
+        }
+
+        success = true;
+    }
+
     function _checkValidRelayer(uint64 eventTime, address _lightClient) internal view {
         address[] memory relayers = ILightClient(_lightClient).getRelayers();
 
@@ -290,13 +384,35 @@ contract CrossChain is Initializable, Config, Governance {
         emit CrossChainPackage(chainId, gnfdChainId, uint64(oracleSequence), packageSequence, channelId, payload);
     }
 
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)
-        external
-        onlyRegisteredContractChannel(channelId)
-    {
-        uint64 sendSequence = channelSendSequenceMap[channelId];
-        _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, relayFee, ackRelayFee, msgBytes));
-        sendSequence++;
-        channelSendSequenceMap[channelId] = sendSequence;
+    function _approveProposal(bytes32 proposalTypeHash, bytes32 _contentHash) internal returns (bool isExecutable) {
+        EmergencyProposal storage p = emergencyProposals[proposalTypeHash];
+
+        // It is ok if there is an evil validator always cancel the previous vote,
+        // the credible validator could use private transaction service to send a batch tx including 2 approve transactions
+        if (block.timestamp >= p.expiredAt || p.contentHash != _contentHash) {
+            // current proposal expired / not exist or not same with the new, create a new EmergencyProposal
+            p.quorum = quorumMap[proposalTypeHash];
+            p.expiredAt = uint128(block.timestamp + EMERGENCY_PROPOSAL_EXPIRE_PERIOD);
+            p.contentHash = _contentHash;
+            p.approvers = [msg.sender];
+
+            emit ProposalSubmitted(proposalTypeHash, msg.sender, p.quorum, p.expiredAt, _contentHash);
+        } else {
+            // current proposal exists
+            for (uint256 i = 0; i < p.approvers.length; ++i) {
+                require(p.approvers[i] != msg.sender, "already approved");
+            }
+            p.approvers.push(msg.sender);
+        }
+
+        if (p.approvers.length >= p.quorum) {
+            // 1. remove current proposal
+            delete emergencyProposals[proposalTypeHash];
+
+            // 2. exec this proposal
+            return true;
+        }
+
+        return false;
     }
 }
