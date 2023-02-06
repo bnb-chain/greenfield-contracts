@@ -33,10 +33,6 @@ contract CrossChain is Initializable, Config, Governance {
     mapping(address => mapping(uint8 => bool)) public registeredContractChannelMap;
     mapping(uint8 => uint64) public channelSendSequenceMap;
     mapping(uint8 => uint64) public channelReceiveSequenceMap;
-    mapping(uint8 => bool) public isRelayRewardFromSystemReward;
-
-    // to prevent the utilization of ancient block header
-    mapping(uint8 => uint64) public channelSyncedHeaderMap;
 
     // event
     event CrossChainPackage(

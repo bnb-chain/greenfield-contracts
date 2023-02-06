@@ -26,7 +26,7 @@ contract TokenHub is Initializable, Config {
     uint8 public constant TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT = 2;
     uint8 public constant TRANSFER_IN_FAILURE_UNKNOWN = 3;
 
-    uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 10000;
+    uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 2300;
     uint256 constant public REWARD_UPPER_LIMIT =1e18;
 
     /**
@@ -178,7 +178,7 @@ contract TokenHub is Initializable, Config {
         return true;
     }
 
-    function claimRewards(address payable to, uint256 amount) onlyRelayerHub external returns(uint256) {
+    function claimRelayFee(address payable to, uint256 amount) onlyRelayerHub external returns(uint256) {
         uint256 actualAmount = amount < address(this).balance ? amount : address(this).balance;
 
         if (actualAmount > REWARD_UPPER_LIMIT) {
