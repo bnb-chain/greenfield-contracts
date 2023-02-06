@@ -23,7 +23,7 @@ contract EndPoint is Config {
     uint8 public constant EVENT_SEND = 0x01;
 
     address public crossChainContract;
-    uint256 public toBFSRelayerFee;
+    uint256 public toGNFDRelayerFee;
     uint256 public callbackGasPrice;
     uint256 public transferGas;
 
@@ -72,7 +72,7 @@ contract EndPoint is Config {
         failureHandleMap[msg.sender] = _strategy;
     }
 
-    // @notice send a cross-chain application message to BFS
+    // @notice send a cross-chain application message to GNFD
     // @param _appPayload - a custom bytes payload to send to the destination contract
     // @param _refundAddress - if the source transaction is cheaper than the amount of value passed, refund the additional amount to this address
     function send(bytes calldata _appMsg, address payable _refundAddress, uint256 _gasLimit) external payable {
@@ -81,7 +81,7 @@ contract EndPoint is Config {
 
         // msg.value is the max fee for the whole cross chain txs including app callback
         // check if msg.value is enough for toBFSRelayerFee + _gasLimit * gasPrice
-        require(msg.value >= toBFSRelayerFee + callbackGasPrice * _gasLimit, "not enough relay fee");
+        require(msg.value >= toGNFDRelayerFee + callbackGasPrice * _gasLimit, "not enough relay fee");
         uint256 _callbackFee = msg.value - callbackGasPrice * _gasLimit;
 
         (bool success,) = _refundAddress.call{gas: transferGas}("");
@@ -96,7 +96,7 @@ contract EndPoint is Config {
         elements[5] = _appMsg.encodeBytes();
 
         bytes memory msgBytes = _RLPEncode(EVENT_SEND, elements.encodeList());
-        ICrossChain(crossChainContract).sendSynPackage(APP_CHANNELID, msgBytes, toBFSRelayerFee);
+        ICrossChain(crossChainContract).sendSynPackage(APP_CHANNELID, msgBytes, toGNFDRelayerFee);
     }
 
     function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes) external onlyCrossChain {

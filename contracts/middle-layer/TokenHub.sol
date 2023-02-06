@@ -38,28 +38,28 @@ contract TokenHub is Initializable, Config {
     /**
      * struct / event ************************
      */
-    // BSC to INS
+    // BSC to GNFD
     struct TransferOutSynPackage {
         uint256 amount;
         address recipient;
         address refundAddr;
     }
 
-    // INS to BSC
+    // GNFD to BSC
     struct TransferOutAckPackage {
         uint256 refundAmount;
         address refundAddr;
         uint32 status;
     }
 
-    // INS to BSC
+    // GNFD to BSC
     struct TransferInSynPackage {
         uint256 amount;
         address recipient;
         address refundAddr;
     }
 
-    // BSC to INS
+    // BSC to GNFD
     struct TransferInRefundPackage {
         uint256 refundAmount;
         address refundAddr;
@@ -100,10 +100,10 @@ contract TokenHub is Initializable, Config {
     }
 
     /**
-     * @dev handle sync cross-chain package from BSC to INS
+     * @dev handle sync cross-chain package from BSC to GNFD
      *
      * @param channelId The channel for cross-chain communication
-     * @param msgBytes The rlp encoded message bytes sent from BSC to INS
+     * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
      */
     function handleSynPackage(uint8 channelId, bytes calldata msgBytes)
         external
@@ -120,11 +120,11 @@ contract TokenHub is Initializable, Config {
     }
 
     /**
-     * @dev handle ack cross-chain package from INS，it means cross-chain transfer successfully to INS
-     * and will refund the remaining token caused by different decimals between BSC and INS.
+     * @dev handle ack cross-chain package from GNFD，it means cross-chain transfer successfully to GNFD
+     * and will refund the remaining token caused by different decimals between BSC and GNFD.
      *
      * @param channelId The channel for cross-chain communication
-     * @param msgBytes The rlp encoded message bytes sent from INS
+     * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
     function handleAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
         if (channelId == TRANSFER_OUT_CHANNELID) {
@@ -135,10 +135,10 @@ contract TokenHub is Initializable, Config {
     }
 
     /**
-     * @dev handle failed ack cross-chain package from INS, it means failed to cross-chain transfer to INS and will refund the token.
+     * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain transfer to GNFD and will refund the token.
      *
      * @param channelId The channel for cross-chain communication
-     * @param msgBytes The rlp encoded message bytes sent from INS
+     * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
     function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
         if (channelId == TRANSFER_OUT_CHANNELID) {
@@ -149,9 +149,9 @@ contract TokenHub is Initializable, Config {
     }
 
     /**
-     * @dev request a cross-chain transfer from BSC to INS
+     * @dev request a cross-chain transfer from BSC to GNFD
      *
-     * @param recipient The destination address of the cross-chain transfer on INS.
+     * @param recipient The destination address of the cross-chain transfer on GNFD.
      * @param amount The amount to transfer
      */
     function transferOut(address recipient, uint256 amount) external payable returns (bool) {

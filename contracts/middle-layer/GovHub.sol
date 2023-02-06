@@ -70,7 +70,7 @@ contract GovHub is Config, Initializable {
         require(proposal.targets.length > 0 && proposal.targets.length % 20 == 0, "invalid target length");
         uint256 totalTargets = proposal.targets.length / 20;
 
-        // upgrade contract
+        // upgrade contracts
         if (keccak256(abi.encodePacked(proposal.key)) == UPGRADE_KEY_HASH) {
             require(proposal.values.length == proposal.targets.length, "invalid values length");
 
@@ -89,7 +89,7 @@ contract GovHub is Config, Initializable {
             return CODE_OK;
         }
 
-        // update params
+        // update param
         require(totalTargets == 1, "Only single parameter update is allowed in a proposal");
         address _target = BytesToTypes.bytesToAddress(20, proposal.targets);
         try IParamSubscriber(_target).updateParam(proposal.key, proposal.values) {}
