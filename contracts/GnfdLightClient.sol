@@ -138,6 +138,13 @@ contract GnfdLightClient is Initializable, Config {
         return relayers;
     }
 
+    function blsPubKeys() external view returns (bytes memory _blsPubKeys) {
+        _blsPubKeys = bytes("");
+        for (uint256 i = 0; i < validatorSet.length; i++) {
+            _blsPubKeys = BytesLib.concat(_blsPubKeys, validatorSet[i].relayerBlsKey);
+        }
+    }
+
     // input:
     // | chainID   | height   | nextValidatorSetHash | [{validator pubkey, voting power, relayer address, relayer bls pubkey}] |
     // | 32 bytes  | 8 bytes  | 32 bytes             | [{32 bytes, 8 bytes, 20 bytes, 48 bytes}]                               |
