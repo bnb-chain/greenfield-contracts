@@ -30,7 +30,6 @@ contract CrossChain is Initializable, Config {
     uint256 public constant EMERGENCY_PROPOSAL_EXPIRE_PERIOD = 1 hours;
 
     /*----------------- storage layer -----------------*/
-    address public govHub;
     bool public isSuspended;
     // proposal type hash => latest emergency proposal
     mapping(bytes32 => EmergencyProposal) public emergencyProposals;
@@ -102,8 +101,7 @@ contract CrossChain is Initializable, Config {
 
     modifier onlyRelayer() {
         bool isRelayer;
-        address _lightClient = IGovHub(govHub).lightClient();
-        address[] memory relayers = ILightClient(_lightClient).getRelayers();
+        address[] memory relayers = ILightClient(LIGHT_CLIENT).getRelayers();
         uint256 _totalRelayers = relayers.length;
         require(_totalRelayers > 0, "empty relayers");
         for (uint256 i = 0; i < _totalRelayers; i++) {
@@ -117,25 +115,27 @@ contract CrossChain is Initializable, Config {
         _;
     }
     /*----------------- external function -----------------*/
-    function initialize(uint16 _gnfdChainId, address _govHub) public initializer {
+    function initialize(uint16 _gnfdChainId) public initializer {
         require(_gnfdChainId != 0, "zero _gnfdChainId");
-        require(_govHub != address(0), "zero _govHub");
+        require(PROXY_ADMIN != address(0), "zero PROXY_ADMIN");
+        require(GOV_HUB != address(0), "zero GOV_HUB");
+        require(CROSS_CHAIN != address(0), "zero CROSS_CHAIN");
+        require(TOKEN_HUB != address(0), "zero TOKEN_HUB");
+        require(LIGHT_CLIENT != address(0), "zero LIGHT_CLIENT");
+        require(RELAYER_HUB != address(0), "zero RELAYER_HUB");
 
         chainId = uint16(block.chainid);
         gnfdChainId = _gnfdChainId;
-        govHub = _govHub;
 
         // TODO register other channels
-        address _tokenHub = IGovHub(_govHub).tokenHub();
+        channelHandlerMap[TRANSFER_IN_CHANNELID] = TOKEN_HUB;
+        registeredContractChannelMap[TOKEN_HUB][TRANSFER_IN_CHANNELID] = true;
 
-        channelHandlerMap[TRANSFER_IN_CHANNELID] = _tokenHub;
-        registeredContractChannelMap[_tokenHub][TRANSFER_IN_CHANNELID] = true;
+        channelHandlerMap[TRANSFER_OUT_CHANNELID] = TOKEN_HUB;
+        registeredContractChannelMap[TOKEN_HUB][TRANSFER_OUT_CHANNELID] = true;
 
-        channelHandlerMap[TRANSFER_OUT_CHANNELID] = _tokenHub;
-        registeredContractChannelMap[_tokenHub][TRANSFER_OUT_CHANNELID] = true;
-
-        channelHandlerMap[GOV_CHANNELID] = _govHub;
-        registeredContractChannelMap[_tokenHub][GOV_CHANNELID] = true;
+        channelHandlerMap[GOV_CHANNELID] = GOV_HUB;
+        registeredContractChannelMap[TOKEN_HUB][GOV_CHANNELID] = true;
 
         batchSizeForOracle = 50;
 
@@ -187,11 +187,10 @@ contract CrossChain is Initializable, Config {
         channelReceiveSequenceMap[channelId]++;
 
         // 2. check valid relayer
-        address _lightClient = IGovHub(govHub).lightClient();
-        _checkValidRelayer(eventTime, _lightClient);
+        _checkValidRelayer(eventTime, LIGHT_CLIENT);
 
         // 3. verify bls signature
-        ILightClient(_lightClient).verifyPackage(_payload, _blsSignature, _validatorsBitSet);
+        ILightClient(LIGHT_CLIENT).verifyPackage(_payload, _blsSignature, _validatorsBitSet);
 
         // 4. handle package
         address _handler = channelHandlerMap[channelId];
@@ -238,8 +237,7 @@ contract CrossChain is Initializable, Config {
             }
         }
 
-        address _relayerHub = IGovHub(govHub).relayerHub();
-        IRelayerHub(_relayerHub).addReward(msg.sender, relayFee);
+        IRelayerHub(RELAYER_HUB).addReward(msg.sender, relayFee);
     }
 
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)
@@ -272,8 +270,7 @@ contract CrossChain is Initializable, Config {
         bytes32 _contentHash = keccak256(abi.encode(attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {
-            address _tokenHub = IGovHub(govHub).tokenHub();
-            ITokenHub(_tokenHub).cancelTransferIn(attacker);
+            ITokenHub(TOKEN_HUB).cancelTransferIn(attacker);
         }
     }
 

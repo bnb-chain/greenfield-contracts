@@ -10,4 +10,13 @@ abstract contract Config {
 
     uint32 public constant CODE_OK = 0;
     uint32 public constant ERROR_FAIL_DECODE = 100;
+
+    // contract address
+    // will calculate their deployed addresses from deploy script
+    address public constant PROXY_ADMIN = address(0);
+    address public constant GOV_HUB = address(0);
+    address public constant CROSS_CHAIN = address(0);
+    address public constant TOKEN_HUB = address(0);
+    address public constant LIGHT_CLIENT = address(0);
+    address public constant RELAYER_HUB = address(0);
 }

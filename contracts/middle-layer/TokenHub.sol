@@ -77,23 +77,19 @@ contract TokenHub is Initializable, Config {
     event ParamChange(string key, bytes value);
 
     modifier onlyCrossChainContract() {
-        require(msg.sender == IGovHub(govHub).crosschain(), "only CrossChain contract");
+        require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
         _;
     }
 
     modifier onlyRelayerHub() {
-        require(msg.sender == IGovHub(govHub).relayerHub(), "only RelayerHub contract");
+        require(msg.sender == RELAYER_HUB, "only RelayerHub contract");
         _;
     }
 
     /**
      * external / public function ************************
      */
-    function initialize(address _govHub) public initializer {
-        require(_govHub != address(0), "zero _govHub");
-
-        govHub = _govHub;
-
+    function initialize() public initializer {
         relayFee = 2e15;
         ackRelayFee = 2e15;
     }
@@ -172,7 +168,7 @@ contract TokenHub is Initializable, Config {
             refundAddr: msg.sender
         });
 
-        address _crosschain = IGovHub(govHub).crosschain();
+        address _crosschain = CROSS_CHAIN;
         ICrossChain(_crosschain).sendSynPackage(TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee);
         emit TransferOutSuccess(msg.sender, amount, relayFee, _ackRelayFee);
         return true;

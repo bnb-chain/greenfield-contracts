@@ -65,16 +65,9 @@ contract Deployer {
         proxyRelayerHub = address(new GnfdProxy(address(implRelayerHub), proxyAdmin, ""));
 
         // 8. init GovHub, set contracts addresses to GovHub
-        GovHub(payable(proxyGovHub)).initialize(
-            proxyAdmin,
-            address(proxyCrossChain),
-            address(proxyTokenHub),
-            address(proxyLightClient),
-            address(proxyRelayerHub)
-        );
-        CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId, proxyGovHub);
-        TokenHub(payable(proxyTokenHub)).initialize(proxyGovHub);
+        CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId);
+        TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(blsPubKeys, relayers);
-        RelayerHub(payable(proxyRelayerHub)).initialize(proxyGovHub);
+        RelayerHub(payable(proxyRelayerHub)).initialize();
     }
 }

@@ -23,14 +23,6 @@ contract GovHub is Config, Initializable {
 
     bytes32 public constant UPGRADE_KEY_HASH = keccak256(abi.encodePacked("upgrade"));
 
-    // all inscription contract address
-    address public proxyAdmin;
-
-    address public crosschain;
-    address public tokenHub;
-    address public lightClient;
-    address public relayerHub;
-
     event FailUpgrade(address newImplementation, bytes message);
     event FailUpdateParam(bytes message);
     event ParamChange(string key, bytes value);
@@ -42,28 +34,8 @@ contract GovHub is Config, Initializable {
     }
 
     modifier onlyCrossChainContract() {
-        require(msg.sender == crosschain, "only cross chain contract");
+        require(msg.sender == CROSS_CHAIN, "only cross chain contract");
         _;
-    }
-
-    function initialize(
-        address _proxyAdmin,
-        address _crosschain,
-        address _tokenHub,
-        address _lightClient,
-        address _relayerHub
-    ) public initializer {
-        require(_proxyAdmin != address(0), "zero _proxyAdmin");
-        require(_crosschain != address(0), "zero _crosschain");
-        require(_tokenHub != address(0), "zero _tokenHub");
-        require(_lightClient != address(0), "zero _lightClient");
-        require(_relayerHub != address(0), "zero _relayerHub");
-
-        proxyAdmin = _proxyAdmin;
-        crosschain = _crosschain;
-        tokenHub = _tokenHub;
-        lightClient = _lightClient;
-        relayerHub = _relayerHub;
     }
 
     function handleSynPackage(uint8, bytes calldata msgBytes)
@@ -112,7 +84,7 @@ contract GovHub is Config, Initializable {
                 return ERROR_INVALID_IMPLEMENTATION;
             }
 
-            try IProxyAdmin(proxyAdmin).upgrade(proposal.target, newImpl) {}
+            try IProxyAdmin(PROXY_ADMIN).upgrade(proposal.target, newImpl) {}
             catch (bytes memory reason) {
                 emit FailUpgrade(newImpl, reason);
                 return ERROR_UPGRADE_FAIL;

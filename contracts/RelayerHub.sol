@@ -10,8 +10,6 @@ contract RelayerHub is Initializable, Config {
     uint256 public constant REWARD_RATIO_SCALE = 100;
 
     /*----------------- storage layer -----------------*/
-    address public govHub;
-
     uint256 public fixedRelayerRewardRatio;
     mapping(address => uint256) public rewardMap;
 
@@ -19,21 +17,17 @@ contract RelayerHub is Initializable, Config {
     event RewardToRelayer(address relayer, uint256 amount);
 
     modifier onlyCrossChain() {
-        require(msg.sender == IGovHub(govHub).crosschain(), "only cross chain contract");
+        require(msg.sender == CROSS_CHAIN, "only cross chain contract");
         _;
     }
 
     /*----------------- external function -----------------*/
-    function initialize(address _govHub) public initializer {
-        require(_govHub != address(0), "zero _govHub");
-        govHub = _govHub;
-
+    function initialize() public initializer {
         fixedRelayerRewardRatio = 70;
     }
 
     function addReward(address _relayer, uint256 _reward) external onlyCrossChain {
-        address _tokenHub = IGovHub(govHub).tokenHub();
-        uint256 actualAmount = ITokenHub(_tokenHub).claimRelayFee(payable(address(this)), _reward);
+        uint256 actualAmount = ITokenHub(TOKEN_HUB).claimRelayFee(payable(address(this)), _reward);
 
         uint256 _fixedReward = _reward * fixedRelayerRewardRatio / REWARD_RATIO_SCALE;
         rewardMap[_relayer] += _fixedReward;
@@ -56,8 +50,7 @@ contract RelayerHub is Initializable, Config {
 
     /*----------------- internal function -----------------*/
     function _distributeRewards(uint256 _reward) internal {
-        address _lightClient = IGovHub(govHub).lightClient();
-        address[] memory relayers = ILightClient(_lightClient).getRelayers();
+        address[] memory relayers = ILightClient(LIGHT_CLIENT).getRelayers();
 
         uint256 _rewardEach = _reward / relayers.length;
         uint256 _remaining = _reward;
