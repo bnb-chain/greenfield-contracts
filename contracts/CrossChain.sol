@@ -186,7 +186,7 @@ contract CrossChain is Initializable, Config {
         channelReceiveSequenceMap[channelId]++;
 
         // 2. check valid relayer
-        _checkValidRelayer(eventTime, LIGHT_CLIENT);
+        _checkValidRelayer(eventTime);
 
         // 3. verify bls signature
         ILightClient(LIGHT_CLIENT).verifyPackage(_payload, _blsSignature, _validatorsBitSet);
@@ -336,8 +336,8 @@ contract CrossChain is Initializable, Config {
         success = true;
     }
 
-    function _checkValidRelayer(uint64 eventTime, address _lightClient) internal view {
-        address[] memory relayers = ILightClient(_lightClient).getRelayers();
+    function _checkValidRelayer(uint64 eventTime) internal view {
+        address[] memory relayers = ILightClient(LIGHT_CLIENT).getRelayers();
 
         // check if it is the valid relayer
         uint256 _totalRelayers = relayers.length;
