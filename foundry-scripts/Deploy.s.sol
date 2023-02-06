@@ -24,7 +24,7 @@ contract DeployScript is Script {
     ];
 
     function run(uint16 _gnfdChainId) public {
-        uint256 privateKey = uint256(vm.envBytes32("PK1"));
+        uint256 privateKey = uint256(vm.envBytes32("DeployerPrivateKey"));
         address developer = vm.addr(privateKey);
 
         vm.startBroadcast();

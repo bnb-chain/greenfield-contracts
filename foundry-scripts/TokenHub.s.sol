@@ -17,7 +17,7 @@ contract TokenHubScript is Script {
 
     function run(address payable proxyTokenHub, address receipt, uint256 amount) public {
         tokenHub = TokenHub(proxyTokenHub);
-        uint256 privateKey = uint256(vm.envBytes32("PK1"));
+        uint256 privateKey = uint256(vm.envBytes32("DeployerPrivateKey"));
         address developer = vm.addr(privateKey);
 
         vm.startBroadcast();

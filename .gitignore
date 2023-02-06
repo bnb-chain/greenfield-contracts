@@ -10,7 +10,9 @@ cache
 artifacts
 .idea
 out
-config.json
 broadcast
 **.DS_Store
 
+lib/forge-std
+lib/openzeppelin-contracts
+lib/openzeppelin-contracts-upgradeable

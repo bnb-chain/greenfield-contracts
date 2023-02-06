@@ -36,6 +36,6 @@ libs = ["node_modules"]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 [rpc_endpoints]
-avalanche = "https://api.avax.network/ext/bc/C/rpc"
-bsc = "https://bsc-dataseed.nariox.org/"
+bsc-test = "https://data-seed-prebsc-1-s1.binance.org:8545/"
+bsc = "https://bsc-dataseed1.binance.org/"
 local = "http://localhost:8545"

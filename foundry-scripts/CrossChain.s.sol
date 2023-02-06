@@ -16,7 +16,7 @@ contract CrossChainScript is Script {
     CrossChain private crosschain;
 
     function run(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorsBitSet) public {
-        uint256 privateKey = uint256(vm.envBytes32("PK1"));
+        uint256 privateKey = uint256(vm.envBytes32("DeployerPrivateKey"));
         address developer = vm.addr(privateKey);
         console.log("developer", developer);
 
