@@ -44,8 +44,8 @@ contract GnfdLightClientTest is Test {
         console.log("lightClient.chainID()");
         console.log(string(abi.encode(lightClient.chainID())));
 
-        console.log("lightClient.height()", lightClient.height());
-        console.log("lightClient.initialHeight()", lightClient.initialHeight());
+        console.log("lightClient.height()", lightClient.gnfdHeight());
+        console.log("lightClient.initialHeight()", lightClient.initialGnfdHeight());
 
         console.log("lightClient.nextValidatorSetHash()");
         console.logBytes32(lightClient.nextValidatorSetHash());

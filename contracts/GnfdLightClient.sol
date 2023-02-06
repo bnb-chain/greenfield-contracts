@@ -35,8 +35,8 @@ contract GnfdLightClient is Initializable, Config {
 
     /* --------------------- 2. storage --------------------- */
     bytes32 public chainID;
-    uint64 public initialHeight;
-    uint64 public height;
+    uint64 public initialGnfdHeight;
+    uint64 public gnfdHeight;
     bytes32 public nextValidatorSetHash;
     bytes public consensusStateBytes;
     Validator[] public validatorSet;
@@ -74,15 +74,15 @@ contract GnfdLightClient is Initializable, Config {
 
         chainID = tmpChainID;
         decodeConsensusState(ptr, len, true);
-        initialHeight = height;
+        initialGnfdHeight = gnfdHeight;
         consensusStateBytes = _initConsensusStateBytes;
 
-        emit initConsensusState(height);
+        emit initConsensusState(gnfdHeight);
     }
 
     function syncLightBlock(bytes calldata _lightBlock, uint64 _height) external onlyRelayer returns (bool) {
         require(submitters[_height] == address(0x0), "can't sync duplicated header");
-        require(_height > height, "can't sync header before latest height");
+        require(_height > gnfdHeight, "can't sync header before latest height");
 
         bytes memory input = BytesLib.concat(abi.encode(consensusStateBytes.length), consensusStateBytes);
         bytes memory tmpBlock = _lightBlock;
@@ -100,7 +100,7 @@ contract GnfdLightClient is Initializable, Config {
         uint256 consensusStateLength = tmp & 0xffffffffffffffff;
         ptr = ptr + CONSENSUS_STATE_BYTES_LENGTH;
         decodeConsensusState(ptr, consensusStateLength, validatorSetChanged);
-        require(height == _height, "invalid header height");
+        require(gnfdHeight == _height, "invalid header height");
         submitters[_height] = payable(msg.sender);
         if (validatorSetChanged) {
             consensusStateBytes = Memory.toBytes(ptr, consensusStateLength);
@@ -157,7 +157,7 @@ contract GnfdLightClient is Initializable, Config {
         assembly {
             tmpHeight := mload(ptr)
         }
-        height = tmpHeight;
+        gnfdHeight = tmpHeight;
 
         ptr = ptr + VALIDATOR_SET_HASH_LENGTH;
         assembly {
