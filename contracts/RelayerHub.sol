@@ -26,7 +26,7 @@ contract RelayerHub is Initializable, Config {
     }
 
     function addReward(address _relayer, uint256 _reward) external onlyCrossChain {
-        ITokenHub(TOKEN_HUB).claimRelayFee(payable(address(this)), _reward);
+        ITokenHub(TOKEN_HUB).claimRelayFee(_reward);
 
         uint256 _fixedReward = _reward * fixedRelayerRewardRatio / REWARD_RATIO_SCALE;
         rewardMap[_relayer] += _fixedReward;

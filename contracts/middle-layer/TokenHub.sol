@@ -173,7 +173,7 @@ contract TokenHub is Initializable, Config {
         return true;
     }
 
-    function claimRelayFee(address payable to, uint256 amount) onlyRelayerHub external returns(uint256) {
+    function claimRelayFee(uint256 amount) onlyRelayerHub external returns(uint256) {
         uint256 actualAmount = amount < address(this).balance ? amount : address(this).balance;
 
         if (actualAmount > REWARD_UPPER_LIMIT) {
@@ -181,9 +181,9 @@ contract TokenHub is Initializable, Config {
         }
 
         if (actualAmount > 0) {
-            (bool success,) = to.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: actualAmount}("");
+            (bool success,) = msg.sender.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: actualAmount}("");
             require(success, "transfer bnb error");
-            emit RewardTo(to, actualAmount);
+            emit RewardTo(msg.sender, actualAmount);
         }
 
         return actualAmount;
