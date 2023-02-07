@@ -104,7 +104,7 @@ contract GnfdLightClient is Initializable, Config {
         require(gnfdHeight == _height, "invalid header height");
         submitters[_height] = payable(msg.sender);
         if (validatorSetChanged) {
-            consensusStateBytes = Memory.toBytes(ptr, consensusStateLength);
+            consensusStateBytes = BytesLib.slice(result, 32, consensusStateLength);
         }
 
         emit updateConsensusState(_height, validatorSetChanged);
