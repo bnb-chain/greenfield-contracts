@@ -84,23 +84,23 @@ contract Deployer {
         // transfer ownership to proxyGovHub
         GnfdProxyAdmin(proxyAdmin).transferOwnership(address(proxyGovHub));
 
-        // 4. CrossChain
+        // 3. CrossChain
         address deployedProxyCrossChain = address(new GnfdProxy(implCrossChain, proxyAdmin, ""));
         require(deployedProxyCrossChain == proxyCrossChain, "invalid proxyCrossChain address");
 
-        // 5. TokenHub
+        // 4. TokenHub
         address deployedProxyTokenHub = address(new GnfdProxy(implTokenHub, proxyAdmin, ""));
         require(deployedProxyTokenHub == proxyTokenHub, "invalid proxyTokenHub address");
 
-        // 6. GnfdLightClient
+        // 5. GnfdLightClient
         address deployedProxyLightClient = address(new GnfdProxy(implLightClient, proxyAdmin, ""));
         require(deployedProxyLightClient == proxyLightClient, "invalid proxyLightClient address");
 
-        // 7. RelayerHub
+        // 6. RelayerHub
         address deployedProxyRelayerHub = address(new GnfdProxy(implRelayerHub, proxyAdmin, ""));
         require(deployedProxyRelayerHub == proxyRelayerHub, "invalid proxyRelayerHub address");
 
-        // 8. init GovHub, set contracts addresses to GovHub
+        // 7. init GovHub, set contracts addresses to GovHub
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId);
         TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
