@@ -20,7 +20,7 @@ contract TokenHub is Initializable, Config {
     uint8 public constant TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT = 2;
     uint8 public constant TRANSFER_IN_FAILURE_UNKNOWN = 3;
 
-    uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 3000;
+    uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 10000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
 
     /*----------------- storage layer -----------------*/

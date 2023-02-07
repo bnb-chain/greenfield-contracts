@@ -192,7 +192,7 @@ contract CrossChain is Initializable, Config {
         _checkValidRelayer(eventTime);
 
         // 3. verify bls signature
-        ILightClient(LIGHT_CLIENT).verifyPackage(_payload, _blsSignature, _validatorsBitSet);
+        require(ILightClient(LIGHT_CLIENT).verifyPackage(_payload, _blsSignature, _validatorsBitSet), "cross chain package not verified");
 
         // 4. handle package
         address _handler = channelHandlerMap[channelId];

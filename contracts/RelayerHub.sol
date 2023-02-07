@@ -21,6 +21,8 @@ contract RelayerHub is Initializable, Config {
     }
 
     /*----------------- external function -----------------*/
+    receive() external payable {}
+
     function initialize() public initializer {
         fixedRelayerRewardRatio = 70;
     }
