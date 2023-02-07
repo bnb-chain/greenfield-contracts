@@ -93,11 +93,11 @@ contract Deployer {
         require(deployedProxyTokenHub == proxyTokenHub, "invalid proxyTokenHub address");
 
         // 6. GnfdLightClient
-        address deployedProxyLightClient = address(new GnfdProxy(address(implLightClient), proxyAdmin, ""));
+        address deployedProxyLightClient = address(new GnfdProxy(implLightClient, proxyAdmin, ""));
         require(deployedProxyLightClient == proxyLightClient, "invalid proxyLightClient address");
 
         // 7. RelayerHub
-        address deployedProxyRelayerHub = address(new GnfdProxy(address(implRelayerHub), proxyAdmin, ""));
+        address deployedProxyRelayerHub = address(new GnfdProxy(implRelayerHub, proxyAdmin, ""));
         require(deployedProxyRelayerHub == proxyRelayerHub, "invalid proxyRelayerHub address");
 
         // 8. init GovHub, set contracts addresses to GovHub
