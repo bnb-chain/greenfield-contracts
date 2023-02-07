@@ -39,18 +39,12 @@ contract Deployer {
             b. Write the generated proxy addresses to `Config` contract constants in js script
             c. Deploy the proxy contracts, checking if they are equal to the generated addresses before
         */
-        proxyAdmin =
-            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), address(this), uint8(1))))));
-        proxyGovHub =
-            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), address(this), uint8(2))))));
-        proxyCrossChain =
-            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), address(this), uint8(3))))));
-        proxyTokenHub =
-            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), address(this), uint8(4))))));
-        proxyLightClient =
-            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), address(this), uint8(5))))));
-        proxyRelayerHub =
-            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), address(this), uint8(6))))));
+        proxyAdmin = calculateDeployContract(address(this), uint8(1));
+        proxyGovHub = calculateDeployContract(address(this), uint8(2));
+        proxyCrossChain = calculateDeployContract(address(this), uint8(3));
+        proxyTokenHub = calculateDeployContract(address(this), uint8(4));
+        proxyLightClient = calculateDeployContract(address(this), uint8(5));
+        proxyRelayerHub = calculateDeployContract(address(this), uint8(6));
 
         // 1. proxyAdmin
         address deployedProxyAdmin = address(new GnfdProxyAdmin());
@@ -125,6 +119,10 @@ contract Deployer {
         require(
             Config(deployedProxyCrossChain).RELAYER_HUB() == proxyRelayerHub, "invalid proxyRelayerHub address on Config"
         );
+    }
+
+    function calculateDeployContract(address _deployer, uint8 _nonce) public pure returns (address) {
+        return address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), _deployer, _nonce)))));
     }
 
     function _isContract(address account) internal view returns (bool) {
