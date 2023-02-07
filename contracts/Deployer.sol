@@ -33,6 +33,12 @@ contract Deployer {
     constructor(uint16 _gnfdChainId) {
         gnfdChainId = _gnfdChainId;
 
+        /*
+            @dev deploy workflow
+            a. Generate contracts addresses in advance first while deploy `Deployer`
+            b. Write the generated proxy addresses to `Config` contract constants in js script
+            c. Deploy the proxy contracts, checking if they are equal to the generated addresses before
+        */
         proxyAdmin =
             address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), address(this), uint8(1))))));
         proxyGovHub =
