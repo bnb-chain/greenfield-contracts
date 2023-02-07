@@ -82,7 +82,8 @@ contract Deployer {
         require(deployedProxyGovHub == proxyGovHub, "invalid proxyGovHub address");
 
         // transfer ownership to proxyGovHub
-        GnfdProxyAdmin(proxyAdmin).transferOwnership(address(proxyGovHub));
+        GnfdProxyAdmin(proxyAdmin).transferOwnership(proxyGovHub);
+        require(GnfdProxyAdmin(proxyAdmin).owner() == proxyGovHub, "invalid proxyAdmin owner");
 
         // 3. CrossChain
         address deployedProxyCrossChain = address(new GnfdProxy(implCrossChain, proxyAdmin, ""));
