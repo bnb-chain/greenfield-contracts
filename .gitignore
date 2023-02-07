@@ -17,4 +17,4 @@ lib/forge-std
 lib/openzeppelin-contracts
 lib/openzeppelin-contracts-upgradeable
 
-deployed
+deployment/*

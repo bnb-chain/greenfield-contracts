@@ -84,8 +84,12 @@ const main = async () => {
     }
     log('all contracts', deployedContracts)
 
+    const deploymentDir = __dirname + `/../deployment`
+    if (!fs.existsSync(deploymentDir)) {
+        fs.mkdirSync(deploymentDir, { recursive: true });
+    }
     fs.writeFileSync(
-        __dirname + `/../deployed/${ network.chainId }-GreenField-contracts.json`,
+        `${deploymentDir}/${ network.chainId }-GreenField-contracts.json`,
         JSON.stringify(deployedContracts, null, 2)
     )
 }
