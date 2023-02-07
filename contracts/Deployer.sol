@@ -39,12 +39,12 @@ contract Deployer {
             b. Write the generated proxy addresses to `Config` contract constants in js script
             c. Deploy the proxy contracts, checking if they are equal to the generated addresses before
         */
-        proxyAdmin = calculateDeployContract(address(this), uint8(1));
-        proxyGovHub = calculateDeployContract(address(this), uint8(2));
-        proxyCrossChain = calculateDeployContract(address(this), uint8(3));
-        proxyTokenHub = calculateDeployContract(address(this), uint8(4));
-        proxyLightClient = calculateDeployContract(address(this), uint8(5));
-        proxyRelayerHub = calculateDeployContract(address(this), uint8(6));
+        proxyAdmin = calcCreateAddress(address(this), uint8(1));
+        proxyGovHub = calcCreateAddress(address(this), uint8(2));
+        proxyCrossChain = calcCreateAddress(address(this), uint8(3));
+        proxyTokenHub = calcCreateAddress(address(this), uint8(4));
+        proxyLightClient = calcCreateAddress(address(this), uint8(5));
+        proxyRelayerHub = calcCreateAddress(address(this), uint8(6));
 
         // 1. proxyAdmin
         address deployedProxyAdmin = address(new GnfdProxyAdmin());
@@ -122,7 +122,7 @@ contract Deployer {
         );
     }
 
-    function calculateDeployContract(address _deployer, uint8 _nonce) public pure returns (address) {
+    function calcCreateAddress(address _deployer, uint8 _nonce) public pure returns (address) {
         return address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), _deployer, _nonce)))));
     }
 
