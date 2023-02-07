@@ -56,6 +56,7 @@ contract CrossChain is Initializable, Config {
         bytes32 contentHash;
         address[] approvers;
     }
+
     event ProposalSubmitted(
         bytes32 indexed proposalTypeHash,
         address indexed proposer,
@@ -113,6 +114,7 @@ contract CrossChain is Initializable, Config {
 
         _;
     }
+
     /*----------------- external function -----------------*/
     function initialize(uint16 _gnfdChainId) public initializer {
         require(_gnfdChainId != 0, "zero _gnfdChainId");
@@ -152,7 +154,8 @@ contract CrossChain is Initializable, Config {
         view
         returns (bytes memory)
     {
-        return packageType == SYN_PACKAGE
+        return
+            packageType == SYN_PACKAGE
             ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, msgBytes)
             : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
     }
@@ -205,17 +208,13 @@ contract CrossChain is Initializable, Config {
                 }
             } catch Error(string memory reason) {
                 _sendPackage(
-                    channelSendSequenceMap[channelId],
-                    channelId,
-                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
                 _sendPackage(
-                    channelSendSequenceMap[channelId],
-                    channelId,
-                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
@@ -240,8 +239,8 @@ contract CrossChain is Initializable, Config {
     }
 
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)
-    external
-    onlyRegisteredContractChannel(channelId)
+        external
+        onlyRegisteredContractChannel(channelId)
     {
         uint64 sendSequence = channelSendSequenceMap[channelId];
         _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, relayFee, ackRelayFee, msgBytes));
@@ -279,18 +278,18 @@ contract CrossChain is Initializable, Config {
     | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes      | 32 bytes / 0 bytes      |   len bytes |
     */
     function _checkPayload(bytes calldata payload)
-    internal
-    view
-    returns (
-        bool success,
-        uint8 channelId,
-        uint64 sequence,
-        uint8 packageType,
-        uint64 time,
-        uint256 relayFee,
-        uint256 ackRelayFee, // optional
-        bytes memory packageLoad
-    )
+        internal
+        view
+        returns (
+            bool success,
+            uint8 channelId,
+            uint64 sequence,
+            uint8 packageType,
+            uint64 time,
+            uint256 relayFee,
+            uint256 ackRelayFee, // optional
+            bytes memory packageLoad
+        )
     {
         if (payload.length < 54) {
             return (false, 0, 0, 0, 0, 0, 0, "");

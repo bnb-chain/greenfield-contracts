@@ -29,7 +29,8 @@ contract GnfdLightClient is Initializable, Config {
     uint256 public constant RELAYER_ADDRESS_LENGTH = 20;
     uint256 public constant RELAYER_BLS_KEY_LENGTH = 48;
 
-    uint256 public constant VALIDATOR_BYTES_LENGTH = VALIDATOR_PUB_KEY_LENGTH + VALIDATOR_VOTING_POWER_LENGTH + RELAYER_ADDRESS_LENGTH + RELAYER_BLS_KEY_LENGTH;
+    uint256 public constant VALIDATOR_BYTES_LENGTH =
+        VALIDATOR_PUB_KEY_LENGTH + VALIDATOR_VOTING_POWER_LENGTH + RELAYER_ADDRESS_LENGTH + RELAYER_BLS_KEY_LENGTH;
     uint256 public constant MESSAGE_HASH_LENGTH = 32;
     uint256 public constant BLS_SIGNATURE_LENGTH = 96;
 
@@ -111,7 +112,11 @@ contract GnfdLightClient is Initializable, Config {
         return true;
     }
 
-    function verifyPackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorSetBitMap) external view returns(bool) {
+    function verifyPackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorSetBitMap)
+        external
+        view
+        returns (bool)
+    {
         require(_blsSignature.length == BLS_SIGNATURE_LENGTH, "invalid signature length");
 
         uint256 bitCount;
@@ -124,7 +129,7 @@ contract GnfdLightClient is Initializable, Config {
                 input = BytesLib.concat(input, validatorSet[i].relayerBlsKey);
             }
         }
-        require(bitCount >= validatorSet.length*2/3, "no majority validators");
+        require(bitCount >= validatorSet.length * 2 / 3, "no majority validators");
 
         (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         return success && result.length > 0;

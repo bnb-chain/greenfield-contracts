@@ -13,12 +13,7 @@ contract TokenHub is Initializable, Config {
     using RLPEncode for *;
     using RLPDecode for *;
 
-    using RLPDecode for RLPDecode.RLPItem;
-    using RLPDecode for RLPDecode.Iterator;
-
-    /**
-     * constant ************************
-     */
+    /*----------------- constants -----------------*/
     // transfer in channel
     uint8 public constant TRANSFER_IN_SUCCESS = 0;
     uint8 public constant TRANSFER_IN_FAILURE_INSUFFICIENT_BALANCE = 1;
@@ -26,19 +21,14 @@ contract TokenHub is Initializable, Config {
     uint8 public constant TRANSFER_IN_FAILURE_UNKNOWN = 3;
 
     uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 10000;
-    uint256 constant public REWARD_UPPER_LIMIT =1e18;
+    uint256 public constant REWARD_UPPER_LIMIT = 1e18;
 
-    /**
-     * storage layer ************************
-     */
+    /*----------------- storage layer -----------------*/
     address public govHub;
     uint256 public relayFee;
     uint256 public ackRelayFee;
 
-    /**
-     * struct / event ************************
-     */
-    // BSC to GNFD
+    /*----------------- struct / event / modifier -----------------*/
     struct TransferOutSynPackage {
         uint256 amount;
         address recipient;
@@ -85,9 +75,7 @@ contract TokenHub is Initializable, Config {
         _;
     }
 
-    /**
-     * external / public function ************************
-     */
+    /*----------------- external function -----------------*/
     function initialize() public initializer {
         relayFee = 2e15;
         ackRelayFee = 2e15;
@@ -161,19 +149,18 @@ contract TokenHub is Initializable, Config {
         );
         uint256 _ackRelayFee = msg.value - amount - relayFee;
 
-        TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage({
-            amount: amount,
-            recipient: recipient,
-            refundAddr: msg.sender
-        });
+        TransferOutSynPackage memory transOutSynPkg =
+            TransferOutSynPackage({amount: amount, recipient: recipient, refundAddr: msg.sender});
 
         address _crosschain = CROSS_CHAIN;
-        ICrossChain(_crosschain).sendSynPackage(TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee);
+        ICrossChain(_crosschain).sendSynPackage(
+            TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee
+        );
         emit TransferOutSuccess(msg.sender, amount, relayFee, _ackRelayFee);
         return true;
     }
 
-    function claimRelayFee(uint256 amount) onlyRelayerHub external returns(uint256) {
+    function claimRelayFee(uint256 amount) external onlyRelayerHub returns (uint256) {
         uint256 actualAmount = amount < address(this).balance ? amount : address(this).balance;
 
         if (actualAmount > REWARD_UPPER_LIMIT) {
@@ -189,9 +176,7 @@ contract TokenHub is Initializable, Config {
         return actualAmount;
     }
 
-    /**
-     * internal function ************************
-     */
+    /*----------------- internal function -----------------*/
     function _decodeTransferInSynPackage(bytes memory msgBytes)
         internal
         pure

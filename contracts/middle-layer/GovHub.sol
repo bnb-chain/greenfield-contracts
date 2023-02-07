@@ -77,8 +77,8 @@ contract GovHub is Config, Initializable {
             address target;
             address newImpl;
             for (uint256 i; i < totalTargets; ++i) {
-                target = BytesToTypes.bytesToAddress(20 * (i+1), proposal.targets);
-                newImpl = BytesToTypes.bytesToAddress(20 * (i+1), proposal.values);
+                target = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.targets);
+                newImpl = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.values);
                 require(_isContract(target), "invalid target");
                 require(_isContract(newImpl), "invalid implementation value");
 
