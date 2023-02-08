@@ -80,6 +80,7 @@ contract GnfdLightClient is Initializable, Config {
         emit InitConsensusState(gnfdHeight);
     }
 
+    // TODO we will optimize the gas consumption here.
     function syncLightBlock(bytes calldata _lightBlock, uint64 _height) external onlyRelayer returns (bool) {
         require(submitters[_height] == address(0x0), "can't sync duplicated header");
         require(_height > gnfdHeight, "can't sync header before latest height");
@@ -150,6 +151,7 @@ contract GnfdLightClient is Initializable, Config {
         }
     }
 
+    // TODO we will optimize the gas consumption here.
     // input:
     // | chainID   | height   | nextValidatorSetHash | [{validator pubkey, voting power, relayer address, relayer bls pubkey}] |
     // | 32 bytes  | 8 bytes  | 32 bytes             | [{32 bytes, 8 bytes, 20 bytes, 48 bytes}]                               |
