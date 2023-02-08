@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "lint:ts": "npx prettier --write scripts/**",
+    "lint": "forge fmt"
+  },
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.0",
     "@openzeppelin/contracts-upgradeable": "^4.8.0"
@@ -20,6 +24,7 @@
     "ethers": "^5.4.7",
     "hardhat": "^2.12.2",
     "hardhat-gas-reporter": "^1.0.8",
+    "prettier": "^2.8.4",
     "solidity-coverage": "^0.8.0",
     "ts-node": ">=8.0.0",
     "typechain": "^8.1.0",

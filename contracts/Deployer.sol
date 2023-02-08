@@ -36,7 +36,7 @@ contract Deployer {
         /*
             @dev deploy workflow
             a. Generate contracts addresses in advance first while deploy `Deployer`
-            b. Write the generated proxy addresses to `Config` contract constants in js script
+            b. Write the generated proxy addresses to `Config` contract constants by JS script
             c. Deploy the proxy contracts, checking if they are equal to the generated addresses before
         */
         proxyAdmin = calcCreateAddress(address(this), uint8(1));
@@ -58,9 +58,7 @@ contract Deployer {
         address _implTokenHub,
         address _implLightClient,
         address _implRelayerHub
-    )
-        public
-    {
+    ) public {
         require(!deployed, "only not deployed");
         deployed = true;
 
@@ -110,7 +108,8 @@ contract Deployer {
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
         require(
-            Config(deployedProxyCrossChain).CROSS_CHAIN() == proxyCrossChain, "invalid proxyCrossChain address on Config"
+            Config(deployedProxyCrossChain).CROSS_CHAIN() == proxyCrossChain,
+            "invalid proxyCrossChain address on Config"
         );
         require(Config(deployedProxyCrossChain).TOKEN_HUB() == proxyTokenHub, "invalid proxyTokenHub address on Config");
         require(
@@ -118,7 +117,8 @@ contract Deployer {
             "invalid proxyLightClient address on Config"
         );
         require(
-            Config(deployedProxyCrossChain).RELAYER_HUB() == proxyRelayerHub, "invalid proxyRelayerHub address on Config"
+            Config(deployedProxyCrossChain).RELAYER_HUB() == proxyRelayerHub,
+            "invalid proxyRelayerHub address on Config"
         );
     }
 

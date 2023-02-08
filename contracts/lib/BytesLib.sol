@@ -156,7 +156,10 @@ library BytesLib {
 
                 sstore(
                     sc,
-                    add(and(fslot, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00), and(mload(mc), mask))
+                    add(
+                        and(fslot, 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00),
+                        and(mload(mc), mask)
+                    )
                 )
 
                 for {

@@ -154,8 +154,7 @@ contract CrossChain is Initializable, Config {
         view
         returns (bytes memory)
     {
-        return
-            packageType == SYN_PACKAGE
+        return packageType == SYN_PACKAGE
             ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, msgBytes)
             : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
     }
@@ -192,7 +191,10 @@ contract CrossChain is Initializable, Config {
         _checkValidRelayer(eventTime);
 
         // 3. verify bls signature
-        require(ILightClient(LIGHT_CLIENT).verifyPackage(_payload, _blsSignature, _validatorsBitSet), "cross chain package not verified");
+        require(
+            ILightClient(LIGHT_CLIENT).verifyPackage(_payload, _blsSignature, _validatorsBitSet),
+            "cross chain package not verified"
+        );
 
         // 4. handle package
         address _handler = channelHandlerMap[channelId];
@@ -208,13 +210,17 @@ contract CrossChain is Initializable, Config {
                 }
             } catch Error(string memory reason) {
                 _sendPackage(
-                    channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    channelSendSequenceMap[channelId],
+                    channelId,
+                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
                 _sendPackage(
-                    channelSendSequenceMap[channelId], channelId, encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    channelSendSequenceMap[channelId],
+                    channelId,
+                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);

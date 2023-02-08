@@ -39,3 +39,4 @@ libs = ["node_modules"]
 bsc-test = "https://data-seed-prebsc-1-s1.binance.org:8545/"
 bsc = "https://bsc-dataseed1.binance.org/"
 local = "http://localhost:8545"
+test = "${RPC_TEST}"

@@ -12,6 +12,7 @@ import "../contracts/middle-layer/TokenHub.sol";
 
 contract DeployerTest is Test {
     Deployer deployer;
+
     function setUp() public {
         deployer = new Deployer(1);
     }
@@ -20,7 +21,9 @@ contract DeployerTest is Test {
         TestDeployer testDeployer = new TestDeployer();
         testDeployer.deploy();
         for (uint256 i = 0; i < 5; i++) {
-            assertEq(testDeployer.deployedAddressSet(i), deployer.calcCreateAddress(address(testDeployer), uint8(i + 1)));
+            assertEq(
+                testDeployer.deployedAddressSet(i), deployer.calcCreateAddress(address(testDeployer), uint8(i + 1))
+            );
         }
     }
 

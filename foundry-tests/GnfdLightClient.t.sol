@@ -1,40 +1,26 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-
-import "../contracts/Deployer.sol";
-import "../contracts/CrossChain.sol";
-import "../contracts/GnfdProxy.sol";
-import "../contracts/GnfdProxyAdmin.sol";
 import "../contracts/GnfdLightClient.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/TokenHub.sol";
-
-import "../contracts/lib/RLPEncode.sol";
-import "../contracts/lib/RLPDecode.sol";
-import "../contracts/middle-layer/TokenHub.sol";
 
 contract GnfdLightClientTest is Test {
-    using RLPEncode for *;
-    using RLPDecode for *;
-
-    using RLPDecode for RLPDecode.RLPItem;
-    using RLPDecode for RLPDecode.Iterator;
-
     address private developer = 0x0000000000000000000000000000000012345678;
     address private user1 = 0x1000000000000000000000000000000012345678;
+    address private relayer0 = 0x6e7eAeB9D235D5A0f38D6e3Da558BD500F1dff34;
+    address private relayer1 = 0xB5EE9c977f4A1679Af2025FD6a1FaC7240c9D50D;
+    address private relayer2 = 0xE732055240643AE92A3668295d398C7ddd2dA810;
 
-    //    bytes public constant init_cs_bytes = hex"677265656e6669656c645f393030302d31323100000000000000000000000000000000000000000102462f6e91df5365091f3c59d088c5b759f07ac5dbc0b9b6e320cb9fceae64ce28ea6c6020c829158f042cda713f5095502633ef83730c7174e5463c439476400000000000002710e739795f096affdccbbe7deb706d9bd0f49c499180d2099554bf089a195f03675d3cdb418a97ad9eda4ece38205acdc486e4f3b667b121bb0be2a8bb43b5fe137a702a459f7722bf35eb0de44df3a7fc393c68804446fd9ba45ab29885db037e630f53c40000000000002710ac225b79eccfe6fe2b13e048f3cb232dd4491b528917a8c44f9cc42374d6f485dd492ec2188dd9a9a8a3b7d1226e734aa8f76a7f68c347ac30feedbb2d4db2b2132e758366b2f09a5327fce99ec3aee86c0f78d1de8e04f13b40b72b0659afaf3b519a8e0000000000002710ec5ad68ee64d0c2ecf86e1983f384e7b4b35fb2a96f23fdf8e1b607ce6cbc1d7e8fc6862b825ccee238c4482f503425891efd4bbae807fc0b9895beac181415a8cf5753c";
     bytes public constant init_cs_bytes =
-        hex"677265656e6669656c645f393030302d313231000000000000000000000000000000000000000001a5f1af4874227f1cdbe5240259a365ad86484a4255bfd65e2a0222d733fcdbc320cc466ee9412ddd49e0fff04cdb41bade2b7622f08b6bdacac94d4de03bdb970000000000002710d5e63aeee6e6fa122a6a23a6e0fca87701ba1541aa2d28cbcd1ea3a63479f6fb260a3d755853e6a78cfa6252584fee97b2ec84a9d572ee4a5d3bc1558bb98a4b370fb8616b0b523ee91ad18a63d63f21e0c40a83ef15963f4260574ca5159fd90a1c527000000000000027106fd1ceb5a48579f322605220d4325bd9ff90d5fab31e74a881fc78681e3dfa440978d2b8be0708a1cbbca2c660866216975fdaf0e9038d9b7ccbf9731f43956dba7f2451919606ae20bf5d248ee353821754bcdb456fd3950618fda3e32d3d0fb990eeda000000000000271097376a436bbf54e0f6949b57aa821a90a749920ab32979580ea04984a2be033599c20c7a0c9a8d121b57f94ee05f5eda5b36c38f6e354c89328b92cdd1de33b64d3a0867";
-
+        hex"677265656e6669656c645f393030302d313231000000000000000000000000000000000000000001a08cee315201a7feb401ba9f312ec3027857b3580f15045f425f44b77bbfc81cb26884f23fb9b226f5f06f8d01018402b3798555359997fcbb9c08b062dcce9800000000000027106e7eaeb9d235d5a0f38d6e3da558bd500f1dff3492789ccca38e43af7040d367f0af050899bbff1114727593759082cc5ff0984089171077f714371877b16d28d56ffe9d42963ecb1e1e4b3e6e2085fcf0d44eedad9c40c5f9b725b115c659cbf0e36d410000000000002710b5ee9c977f4a1679af2025fd6a1fac7240c9d50d8ea2f08235b9cf8b24a030401a1abd3d8df2d53b844acfd0f360de844fce39ccef6899c438f03abf053eca45fde7111b53eadb1084705ef2c90f2a52e46819e8a22937f1cc80f12d7163c8b47c11271f0000000000002710e732055240643ae92a3668295d398c7ddd2da81098a287cb5d67437db9e7559541142e01cc03d5a1866d7d504e522b2fbdcb29d755c1d18c55949b309f2584f0c49c0dcc";
     GnfdLightClient public lightClient;
 
     function setUp() public {
-        vm.createSelectFork("local");
+        vm.createSelectFork("test");
         console.log("block.number", block.number);
         console.log("block.chainid", block.chainid);
+    }
 
+    function test_initialize() public {
         init();
     }
 
@@ -45,43 +31,38 @@ contract GnfdLightClientTest is Test {
         console.log("lightClient.chainID()");
         console.log(string(abi.encode(lightClient.chainID())));
 
-        console.log("lightClient.height()", lightClient.gnfdHeight());
-        console.log("lightClient.initialHeight()", lightClient.initialGnfdHeight());
-
-        console.log("lightClient.nextValidatorSetHash()");
-        console.logBytes32(lightClient.nextValidatorSetHash());
+        assertEq(lightClient.gnfdHeight(), uint64(1));
+        assertEq(
+            lightClient.nextValidatorSetHash(), hex"a08cee315201a7feb401ba9f312ec3027857b3580f15045f425f44b77bbfc81c"
+        );
 
         (bytes32 pubKey, int64 votingPower, address relayerAddress, bytes memory relayerBlsKey) =
             lightClient.validatorSet(0);
 
-        console.log("pubKey");
-        console.logBytes32(pubKey);
+        assertEq(pubKey, hex"b26884f23fb9b226f5f06f8d01018402b3798555359997fcbb9c08b062dcce98");
+        assertEq(votingPower, int64(10000));
+        assertEq(relayerAddress, relayer0);
+        assertEq(
+            relayerBlsKey,
+            hex"92789ccca38e43af7040d367f0af050899bbff1114727593759082cc5ff0984089171077f714371877b16d28d56ffe9d"
+        );
 
-        console.log("votingPower", uint64(votingPower));
-        console.log("relayerAddress", relayerAddress);
+        (pubKey, votingPower, relayerAddress, relayerBlsKey) = lightClient.validatorSet(1);
+        assertEq(pubKey, hex"42963ecb1e1e4b3e6e2085fcf0d44eedad9c40c5f9b725b115c659cbf0e36d41");
+        assertEq(votingPower, int64(10000));
+        assertEq(relayerAddress, relayer1);
+        assertEq(
+            relayerBlsKey,
+            hex"8ea2f08235b9cf8b24a030401a1abd3d8df2d53b844acfd0f360de844fce39ccef6899c438f03abf053eca45fde7111b"
+        );
 
-        console.log("relayerBlsKey");
-        console.logBytes(relayerBlsKey);
-    }
-
-    /*
-    function test_verify_pkg() public {
-        bytes memory payload =
-        hex'00010002010000000000000003000000000063ddf59300000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000eb7b9476d244ce05c3de4bbc6fdd7f56379b145709ade9941ac642f1329404e04850e1dee5e0abe903e62211';
-
-        bytes memory sig =
-        hex"b352e9b52ae49bc6ffaf7e975dd7d924ece56b709c88869e22bc832852bf7e033a420f6ca73b74403c46df9f601e323b194602e2ac1fa293f3badf3a306451afa4d071314b73428e99a4da5e444147fe001cb7c7b3d3603a521cbf340e6b1128";
-
-        uint256 bitMap = 7;
-        lightClient.verifyPackage(payload, sig, bitMap);
-    }
-*/
-
-    function test_sync_header() public {
-        bytes memory _header =
-            hex"0aa6060a99030a02080b1213677265656e6669656c645f393030302d3132311802220c08d2aafd9e0610d8f9e1eb022a480a204015d7d8169ab6769dbf1f45ee16a190ed46bc00bd0660a5fd820677cad4bde71224080112202457fe25a28709a079ad8c108535331db3f64a8bde4fa9f4d17325af196c68db322026205de8b72d0aec55faca9b7ee9f12a70b0aa790223807ce242f483c862cb853a20e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8554220a5f1af4874227f1cdbe5240259a365ad86484a4255bfd65e2a0222d733fcdbc34a20a5f1af4874227f1cdbe5240259a365ad86484a4255bfd65e2a0222d733fcdbc35220048091bc7ddc283f77bfbf91d73c44da58c3df8a9cbc867405d8b7f3daada22f5a2019f1bd914ccd73076d7f267288077557d0073d0332cc8a6dd90c64fb61a0cacb6220e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8556a20e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b8557214181b1681f0a2062e0af512b8052e62cd17824e2e12870308021a480a204c7d6aef71e381a55d2b184f250c0b194f21b4be987bac24e3a8efca0adc92041224080112204d8f2e9efbf01e6db4529a0bd095ba8b3c4c11337a53352abd944f0a900ef15122670802121409207f5faa1bd0a74a13f733724267e65b37b69e1a0b08d8aafd9e0610d8fcb52c22407bb3e5146a9cda4f3712945accfbb67a27f04034c145c6e9ead73266187696447bfa0fca8b9167d2ae0ca4c36751319d12093580c2936c1da0e7d34338205e06226708021214181b1681f0a2062e0af512b8052e62cd17824e2e1a0b08d8aafd9e0610c886e62e224073d8c8d728bbfdf609a8153b1cda13c3659df28fb658eb4d8efb66fcdd0b4ea645f19a8360830d3ab7823dffe54887507a1dc8269a851d4572df264bd943aa06226708021214c057394359aa7259e175ac54d10363e70cae78ea1a0b08d8aafd9e0610f086a131224054f9a07868326636a9a38fac00dae514c45c706858978524a374ff6afc7baff597ae26b0503749789b6ab8f14bd2c469ceb5e1ba4b82c0cf908c8e664597d20012bc040a90010a1409207f5faa1bd0a74a13f733724267e65b37b69e12220a2020cc466ee9412ddd49e0fff04cdb41bade2b7622f08b6bdacac94d4de03bdb9718904e20e0e3feffffffffffff012a30aa2d28cbcd1ea3a63479f6fb260a3d755853e6a78cfa6252584fee97b2ec84a9d572ee4a5d3bc1558bb98a4b370fb8613214d5e63aeee6e6fa122a6a23a6e0fca87701ba15410a88010a14181b1681f0a2062e0af512b8052e62cd17824e2e12220a206b0b523ee91ad18a63d63f21e0c40a83ef15963f4260574ca5159fd90a1c527018904e20904e2a30b31e74a881fc78681e3dfa440978d2b8be0708a1cbbca2c660866216975fdaf0e9038d9b7ccbf9731f43956dba7f245132146fd1ceb5a48579f322605220d4325bd9ff90d5fa0a88010a14c057394359aa7259e175ac54d10363e70cae78ea12220a20919606ae20bf5d248ee353821754bcdb456fd3950618fda3e32d3d0fb990eeda18904e20904e2a30b32979580ea04984a2be033599c20c7a0c9a8d121b57f94ee05f5eda5b36c38f6e354c89328b92cdd1de33b64d3a0867321497376a436bbf54e0f6949b57aa821a90a749920a1290010a1409207f5faa1bd0a74a13f733724267e65b37b69e12220a2020cc466ee9412ddd49e0fff04cdb41bade2b7622f08b6bdacac94d4de03bdb9718904e20e0e3feffffffffffff012a30aa2d28cbcd1ea3a63479f6fb260a3d755853e6a78cfa6252584fee97b2ec84a9d572ee4a5d3bc1558bb98a4b370fb8613214d5e63aeee6e6fa122a6a23a6e0fca87701ba1541";
-        address relayer0 = 0xd5E63aeee6e6FA122a6a23A6e0fCA87701ba1541;
-        vm.prank(relayer0, relayer0);
-        lightClient.syncLightBlock(_header, 2);
+        (pubKey, votingPower, relayerAddress, relayerBlsKey) = lightClient.validatorSet(2);
+        assertEq(pubKey, hex"53eadb1084705ef2c90f2a52e46819e8a22937f1cc80f12d7163c8b47c11271f");
+        assertEq(votingPower, int64(10000));
+        assertEq(relayerAddress, relayer2);
+        assertEq(
+            relayerBlsKey,
+            hex"98a287cb5d67437db9e7559541142e01cc03d5a1866d7d504e522b2fbdcb29d755c1d18c55949b309f2584f0c49c0dcc"
+        );
     }
 }
