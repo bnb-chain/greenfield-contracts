@@ -28,13 +28,10 @@ contract DeployerTest is Test {
     }
 
     function test_deploy() public {
-        string[] memory inputs = new string[](6);
-        inputs[0] = "npx";
-        inputs[1] = "hardhat";
-        inputs[2] = "run";
-        inputs[3] = "scripts/deploy.ts";
-        inputs[4] = "--network";
-        inputs[5] = "local";
+        string[] memory inputs = new string[](3);
+        inputs[0] = "npm";
+        inputs[1] = "run";
+        inputs[2] = "deploy:test";
         vm.ffi(inputs);
     }
 }

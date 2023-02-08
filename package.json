@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "deploy:test": "npx hardhat run scripts/deploy.ts --network test",
     "lint:ts": "npx prettier --write scripts/**",
     "lint": "forge fmt"
   },

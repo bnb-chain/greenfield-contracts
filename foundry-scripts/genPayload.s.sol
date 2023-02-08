@@ -18,7 +18,7 @@ contract genPayloadScript is Script {
 
     function run() public {}
 
-    function genPayload() public returns (bytes memory) {
+    function genPayload() public pure returns (bytes memory) {
         uint16 srcChainid = 1;
         uint16 dstChainid = 2;
         uint8 channelId = 2;
@@ -36,7 +36,7 @@ contract genPayloadScript is Script {
         return payload;
     }
 
-    function decodePayload(bytes calldata payload) public {
+    function decodePayload(bytes calldata payload) public view {
         _checkPayload(payload);
     }
 

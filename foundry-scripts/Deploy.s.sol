@@ -59,9 +59,7 @@ contract DeployScript is Script {
         address _proxyTokenHub,
         address _proxyLightClient,
         address _proxyRelayerHub
-    )
-        public
-    {
+    ) public {
         string[] memory inputs = new string[](8);
         inputs[0] = "node";
         inputs[1] = "./foundry-scripts/setContractsToConfig.js";

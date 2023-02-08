@@ -51,7 +51,7 @@ contract CrossChainTest is Test {
         tokenHub.transferOut{value: amount + 1 ether}(receipt, amount);
     }
 
-    function test_decode() public {
+    function test_decode() public view {
         bytes memory _payload =
             hex"eb0a94fa1a93d8fe3834d33a6e79f795859367ca1229669450e3f659803ffdf09813bdef9be4a14ad85f31f8";
         this._checkPayload(_payload);
