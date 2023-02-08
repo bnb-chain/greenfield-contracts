@@ -37,7 +37,6 @@ contract GnfdLightClient is Initializable, Config {
 
     /* --------------------- 2. storage --------------------- */
     bytes32 public chainID;
-    uint64 public initialGnfdHeight;
     uint64 public gnfdHeight;
     bytes32 public nextValidatorSetHash;
     bytes public consensusStateBytes;
@@ -45,8 +44,8 @@ contract GnfdLightClient is Initializable, Config {
     mapping(uint64 => address payable) public submitters;
 
     /* --------------------- 3. events ----------------------- */
-    event initConsensusState(uint64 height);
-    event updateConsensusState(uint64 height, bool validatorSetChanged);
+    event InitConsensusState(uint64 height);
+    event UpdatedConsensusState(uint64 height, bool validatorSetChanged);
 
     /* --------------------- 4. functions -------------------- */
     modifier onlyRelayer() {
@@ -75,11 +74,10 @@ contract GnfdLightClient is Initializable, Config {
         }
 
         chainID = tmpChainID;
-        decodeConsensusState(ptr, len, true);
-        initialGnfdHeight = gnfdHeight;
+        updateConsensusState(ptr, len, true, 0);
         consensusStateBytes = _initConsensusStateBytes;
 
-        emit initConsensusState(gnfdHeight);
+        emit InitConsensusState(gnfdHeight);
     }
 
     function syncLightBlock(bytes calldata _lightBlock, uint64 _height) external onlyRelayer returns (bool) {
@@ -101,14 +99,15 @@ contract GnfdLightClient is Initializable, Config {
         bool validatorSetChanged = (tmp >> 248) != 0x00;
         uint256 consensusStateLength = tmp & 0xffffffffffffffff;
         ptr = ptr + CONSENSUS_STATE_BYTES_LENGTH;
-        decodeConsensusState(ptr, consensusStateLength, validatorSetChanged);
-        require(gnfdHeight == _height, "invalid header height");
+
+        updateConsensusState(ptr, consensusStateLength, validatorSetChanged, _height);
+
         submitters[_height] = payable(msg.sender);
         if (validatorSetChanged) {
             consensusStateBytes = BytesLib.slice(result, 32, consensusStateLength);
         }
 
-        emit updateConsensusState(_height, validatorSetChanged);
+        emit UpdatedConsensusState(_height, validatorSetChanged);
 
         return true;
     }
@@ -154,7 +153,7 @@ contract GnfdLightClient is Initializable, Config {
     // input:
     // | chainID   | height   | nextValidatorSetHash | [{validator pubkey, voting power, relayer address, relayer bls pubkey}] |
     // | 32 bytes  | 8 bytes  | 32 bytes             | [{32 bytes, 8 bytes, 20 bytes, 48 bytes}]                               |
-    function decodeConsensusState(uint256 ptr, uint256 size, bool validatorSetChanged) internal {
+    function updateConsensusState(uint256 ptr, uint256 size, bool validatorSetChanged, uint64 expectHeight) internal {
         require(size > CONSENSUS_STATE_BASE_LENGTH, "cs length too short");
         require((size - CONSENSUS_STATE_BASE_LENGTH) % VALIDATOR_BYTES_LENGTH == 0, "invalid cs length");
 
@@ -162,6 +161,10 @@ contract GnfdLightClient is Initializable, Config {
         uint64 tmpHeight;
         assembly {
             tmpHeight := mload(ptr)
+        }
+
+        if (expectHeight > 0) {
+            require(tmpHeight == expectHeight, "height mismatch");
         }
         gnfdHeight = tmpHeight;
 
@@ -178,7 +181,7 @@ contract GnfdLightClient is Initializable, Config {
         uint256 valNum = (size - CONSENSUS_STATE_BASE_LENGTH) / VALIDATOR_BYTES_LENGTH;
         Validator[] memory newValidatorSet = new Validator[](valNum);
         for (uint256 idx = 0; idx < valNum; idx++) {
-            newValidatorSet[idx] = decodeValidator(ptr, VALIDATOR_BYTES_LENGTH);
+            newValidatorSet[idx] = decodeValidator(ptr);
             ptr = ptr + VALIDATOR_BYTES_LENGTH;
         }
 
@@ -195,9 +198,7 @@ contract GnfdLightClient is Initializable, Config {
         }
     }
 
-    function decodeValidator(uint256 ptr, uint256 size) internal pure returns (Validator memory val) {
-        require(size == VALIDATOR_BYTES_LENGTH, "invalid validator bytes length");
-
+    function decodeValidator(uint256 ptr) internal pure returns (Validator memory val) {
         bytes32 tmpPubKey;
         assembly {
             tmpPubKey := mload(ptr)

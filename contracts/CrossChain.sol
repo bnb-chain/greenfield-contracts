@@ -100,6 +100,7 @@ contract CrossChain is Initializable, Config {
         _;
     }
 
+    // TODO we will optimize the gas consumption here.
     modifier onlyRelayer() {
         bool isRelayer;
         address[] memory relayers = ILightClient(LIGHT_CLIENT).getRelayers();
@@ -345,6 +346,7 @@ contract CrossChain is Initializable, Config {
     function _checkValidRelayer(uint64 eventTime) internal view {
         address[] memory relayers = ILightClient(LIGHT_CLIENT).getRelayers();
 
+        // TODO we will optimize the check in the future.
         // check if it is the valid relayer
         uint256 _totalRelayers = relayers.length;
         uint256 _currentIndex = uint256(eventTime) % _totalRelayers;

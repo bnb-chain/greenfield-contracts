@@ -2,15 +2,15 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./Config.sol";
 import "./interface/ITokenHub.sol";
 import "./interface/ILightClient.sol";
 
-contract RelayerHub is Initializable, Config {
+contract RelayerHub is ReentrancyGuardUpgradeable, Config {
     uint256 public constant REWARD_RATIO_SCALE = 100;
 
     /*----------------- storage layer -----------------*/
-    uint256 public fixedRelayerRewardRatio;
     mapping(address => uint256) public rewardMap;
 
     /*----------------- event / modifier -----------------*/
@@ -25,17 +25,15 @@ contract RelayerHub is Initializable, Config {
     receive() external payable {}
 
     function initialize() public initializer {
-        fixedRelayerRewardRatio = 70;
+        __ReentrancyGuard_init();
     }
 
     function addReward(address _relayer, uint256 _reward) external onlyCrossChain {
-        ITokenHub(TOKEN_HUB).claimRelayFee(_reward);
-
-        uint256 _fixedReward = _reward * fixedRelayerRewardRatio / REWARD_RATIO_SCALE;
-        rewardMap[_relayer] += _fixedReward;
+        uint256 actualAmount = ITokenHub(TOKEN_HUB).claimRelayFee(_reward);
+        rewardMap[_relayer] += actualAmount;
     }
 
-    function claimReward(address payable _relayer) external {
+    function claimReward(address payable _relayer) external nonReentrant {
         uint256 _reward = rewardMap[_relayer];
         require(_reward > 0, "no relayer reward");
         rewardMap[_relayer] = 0;
