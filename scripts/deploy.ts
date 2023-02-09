@@ -19,8 +19,6 @@ const initConsensusState: any = {
             relayerAddress: '0x6e7eaeb9d235d5a0f38d6e3da558bd500f1dff34',
             relayerBlsKey:
                 '0x92789ccca38e43af7040d367f0af050899bbff1114727593759082cc5ff0984089171077f714371877b16d28d56ffe9d',
-            relayerBlsPrivateKey:
-                '0x4b4d06d9c4af19c175962190596ed7e01e1b818821ef4cbf593f6ec84345a0f0'
         },
         {
             pubKey: '0x42963ecb1e1e4b3e6e2085fcf0d44eedad9c40c5f9b725b115c659cbf0e36d41',
@@ -28,8 +26,6 @@ const initConsensusState: any = {
             relayerAddress: '0xb5ee9c977f4a1679af2025fd6a1fac7240c9d50d',
             relayerBlsKey:
                 '0x8ea2f08235b9cf8b24a030401a1abd3d8df2d53b844acfd0f360de844fce39ccef6899c438f03abf053eca45fde7111b',
-            relayerBlsPrivateKey:
-                '0x275ebf409f5caa121bdc37841660b4548bfbf81eb8593442640ffe0b66dfc86f',
         },
         {
             pubKey: '0x53eadb1084705ef2c90f2a52e46819e8a22937f1cc80f12d7163c8b47c11271f',
@@ -37,8 +33,6 @@ const initConsensusState: any = {
             relayerAddress: '0xe732055240643ae92a3668295d398c7ddd2da810',
             relayerBlsKey:
                 '0x98a287cb5d67437db9e7559541142e01cc03d5a1866d7d504e522b2fbdcb29d755c1d18c55949b309f2584f0c49c0dcc',
-            relayerBlsPrivateKey:
-                '0x60e5839445580b001576ce8fb0b08cf2b37f8289faaf49a2a3d1e36dbbe588a1',
         },
     ],
     consensusStateBytes:
@@ -120,7 +114,7 @@ const main = async () => {
         RelayerHub: proxyRelayerHub,
 
         initConsensusState,
-        gnfdChainId
+        gnfdChainId,
     };
     log('all contracts', deployment);
 
