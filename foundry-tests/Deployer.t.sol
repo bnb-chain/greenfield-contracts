@@ -1,8 +1,6 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "forge-std/Test.sol";
-
+import "./TestDeployer.sol";
 import "../contracts/Deployer.sol";
 import "../contracts/CrossChain.sol";
 import "../contracts/GnfdProxy.sol";
@@ -11,14 +9,14 @@ import "../contracts/GnfdLightClient.sol";
 import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
 
-contract DeployerTest is Test {
+contract DeployerTest is TestDeployer {
     Deployer deployer;
 
     function setUp() public {}
 
     function test_calc_create_address() public {
         deployer = new Deployer(1);
-        TestDeployer testDeployer = new TestDeployer();
+        TestAddress testDeployer = new TestAddress();
         testDeployer.deploy();
         for (uint256 i = 0; i < 5; i++) {
             assertEq(
@@ -28,30 +26,13 @@ contract DeployerTest is Test {
     }
 
     function test_deploy() public {
-        string[] memory inputs = new string[](3);
-        inputs[0] = "npm";
-        inputs[1] = "run";
-        inputs[2] = "deploy:test";
-        vm.ffi(inputs);
-
-
-        vm.createSelectFork("test");
-        string memory chainIdString = Strings.toString(block.chainid);
-        inputs[0] = "bash";
-        inputs[1] = "./lib/getDeployer.sh";
-        inputs[2] = string.concat("./deployment/", chainIdString, "-deployment.json");
-
-        bytes memory res = vm.ffi(inputs);
-        address _deployer;
-        assembly {
-            _deployer := mload(add(res, 20))
-        }
+        address _deployer = _deployOnTestChain();
         deployer = Deployer(_deployer);
         assert(deployer.deployed());
     }
 }
 
-contract TestDeployer {
+contract TestAddress {
     address[] public deployedAddressSet;
 
     constructor() {

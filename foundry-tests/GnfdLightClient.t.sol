@@ -65,4 +65,14 @@ contract GnfdLightClientTest is Test {
             hex"98a287cb5d67437db9e7559541142e01cc03d5a1866d7d504e522b2fbdcb29d755c1d18c55949b309f2584f0c49c0dcc"
         );
     }
+
+    function test_verify_package() public {
+        init();
+        bytes memory sig = hex'a7fb2ddd7b3e710c8ea015cdfd453ddb4ffc6d4f7654daa40bb26b4184aa681bae8250b6edb0f8ec126a0ec964a38d400ee76ba37fe8645b2c4fb353e472e4da47cf88959b1777d7a3aca5b755bbcf967e0506b94158d403a53fdd02acc50e62';
+        bytes memory payload = hex'eb7b9476d244ce05c3de4bbc6fdd7f56379b145709ade9941ac642f1329404e04850e1dee5e0abe903e62211';
+        uint256 bitmap = 0x0111;
+
+        bool success = lightClient.verifyPackage(payload, sig, bitmap);
+        console.log('success', success);
+    }
 }
