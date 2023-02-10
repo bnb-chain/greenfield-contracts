@@ -1,17 +1,4 @@
 import { ethers } from 'hardhat';
-import {
-    deployContract,
-    waitTx,
-    validatorUpdateRlpEncode,
-    buildSyncPackagePrefix,
-    serializeGovPack,
-    mineBlocks,
-    buildTransferInPackage,
-    toRpcQuantity,
-    latest,
-    increaseTime,
-} from './helper';
-
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { GnfdLightClient } from '../typechain-types';
 import { expect } from 'chai';
@@ -19,7 +6,6 @@ const log = console.log;
 
 
 describe('GnfdLightClient TEST', () => {
-    const unit = ethers.constants.WeiPerEther;
     let lightClient: GnfdLightClient;
     let operator: SignerWithAddress;
     let signers: SignerWithAddress[];
@@ -31,7 +17,6 @@ describe('GnfdLightClient TEST', () => {
 
         const { chainId } = await ethers.provider.getNetwork()
         log('chainId', chainId)
-
 
         const deployment: any = require(`../deployment/${ chainId }-deployment.json`)
         lightClient = (await ethers.getContractAt(
