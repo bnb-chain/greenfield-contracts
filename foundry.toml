@@ -4,7 +4,29 @@ src = 'contracts'
 out = 'out'
 libs = ['lib']
 test = 'foundry-tests'
+script = 'foundry-scripts'
+fs_permissions = [{ access = "read", path = "./deployment/"}]
 
+[profile.fmt]
+# These are all the `forge fmt` defaults.
+line_length = 140
+tab_width = 4
+bracket_spacing = false
+int_types = 'long'
+multiline_func_header = 'attributes_first'
+quote_style = 'double'
+number_underscore = 'preserve'
+single_line_statement_blocks = 'preserve'
+ignore = ["src/console.sol", "src/console2.sol"]
+
+
+[profile.fuzz]
+runs = 10000
+max_test_rejects = 65536
+seed = '0x3e8'
+dictionary_weight = 40
+include_storage = true
+include_push_bytes = true
 
 ## set only when the `hardhat` profile is selected
 [profile.hardhat]
@@ -15,6 +37,7 @@ libs = ["node_modules"]
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 [rpc_endpoints]
-avalanche = "https://api.avax.network/ext/bc/C/rpc"
-bsc = "https://bsc-dataseed.nariox.org/"
+bsc-test = "https://data-seed-prebsc-1-s1.binance.org:8545/"
+bsc = "https://bsc-dataseed1.binance.org/"
 local = "http://localhost:8545"
+test = "${RPC_TEST}"
