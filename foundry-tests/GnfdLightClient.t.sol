@@ -66,4 +66,14 @@ contract GnfdLightClientTest is Test {
         );
     }
 
+    function test_bytes_concat(bytes memory input1, bytes memory input2) public {
+        bytes memory output1 = BytesLib.concat(abi.encode(input1), input2);
+        bytes memory output2 = abi.encodePacked(abi.encode(input1), input2);
+        assertEq(output1, output2);
+
+        output1 = BytesLib.concat(input2, input1);
+        output2 = abi.encodePacked(input2, input1);
+        assertEq(output1, output2);
+    }
+
 }

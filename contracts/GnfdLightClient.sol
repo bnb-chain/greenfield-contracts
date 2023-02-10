@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0.
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -85,9 +86,9 @@ contract GnfdLightClient is Initializable, Config {
         require(submitters[_height] == address(0x0), "can't sync duplicated header");
         require(_height > gnfdHeight, "can't sync header before latest height");
 
-        bytes memory input = BytesLib.concat(abi.encode(consensusStateBytes.length), consensusStateBytes);
+        bytes memory input = abi.encodePacked(abi.encode(consensusStateBytes.length), consensusStateBytes);
         bytes memory tmpBlock = _lightBlock;
-        input = BytesLib.concat(input, tmpBlock);
+        input = abi.encodePacked(input, tmpBlock);
         (bool success, bytes memory result) = HEADER_VALIDATE_CONTRACT.staticcall(input);
         require(success && result.length > 0, "header validate failed");
 
@@ -123,11 +124,11 @@ contract GnfdLightClient is Initializable, Config {
         uint256 bitCount;
         bytes32 msgHash = keccak256(_payload);
         bytes memory tmpBlsSig = _blsSignature;
-        bytes memory input = BytesLib.concat(abi.encode(msgHash), tmpBlsSig);
+        bytes memory input = abi.encodePacked(abi.encode(msgHash), tmpBlsSig);
         for (uint256 i = 0; i < validatorSet.length; i++) {
             if ((_validatorSetBitMap & (0x1 << i)) != 0) {
                 bitCount++;
-                input = BytesLib.concat(input, validatorSet[i].relayerBlsKey);
+                input = abi.encodePacked(input, validatorSet[i].relayerBlsKey);
             }
         }
         require(bitCount >= validatorSet.length * 2 / 3, "no majority validators");
@@ -147,7 +148,7 @@ contract GnfdLightClient is Initializable, Config {
     function blsPubKeys() external view returns (bytes memory _blsPubKeys) {
         _blsPubKeys = bytes("");
         for (uint256 i = 0; i < validatorSet.length; i++) {
-            _blsPubKeys = BytesLib.concat(_blsPubKeys, validatorSet[i].relayerBlsKey);
+            _blsPubKeys = abi.encodePacked(_blsPubKeys, validatorSet[i].relayerBlsKey);
         }
     }
 
