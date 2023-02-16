@@ -56,6 +56,7 @@ const main = async () => {
     const proxyTokenHub = await deployer.proxyTokenHub();
     const proxyLightClient = await deployer.proxyLightClient();
     const proxyRelayerHub = await deployer.proxyRelayerHub();
+    const proxyCredentialHub = await deployer.proxyCredentialHub();
 
     const config: string = fs
         .readFileSync(__dirname + '/../contracts/Config.sol', 'utf8')
@@ -66,7 +67,8 @@ const main = async () => {
         .replace(/CROSS_CHAIN = .*/g, `CROSS_CHAIN = ${proxyCrossChain};`)
         .replace(/TOKEN_HUB = .*/g, `TOKEN_HUB = ${proxyTokenHub};`)
         .replace(/LIGHT_CLIENT = .*/g, `LIGHT_CLIENT = ${proxyLightClient};`)
-        .replace(/RELAYER_HUB = .*/g, `RELAYER_HUB = ${proxyRelayerHub};`);
+        .replace(/RELAYER_HUB = .*/g, `RELAYER_HUB = ${proxyRelayerHub};`)
+        .replace(/CREDENTIAL_HUB = .*/g, `CREDENTIAL_HUB = ${proxyCredentialHub};`);
 
     log('Set all generated contracts to Config contracts');
 
@@ -90,13 +92,17 @@ const main = async () => {
     const implRelayerHub = await deployContract('RelayerHub');
     log('deploy implRelayerHub success', implRelayerHub.address);
 
+    const implCredentialHub = await deployContract('CredentialHub');
+    log('deploy implCredentialHub success', implCredentialHub.address);
+
     const tx = await deployer.deploy(
         initConsensusStateBytes,
         implGovHub.address,
         implCrossChain.address,
         implTokenHub.address,
         implLightClient.address,
-        implRelayerHub.address
+        implRelayerHub.address,
+        implCredentialHub.address
     );
 
     log('deployer.deploy() success', deployer.address);
@@ -112,6 +118,7 @@ const main = async () => {
         TokenHub: proxyTokenHub,
         LightClient: proxyLightClient,
         RelayerHub: proxyRelayerHub,
+        CredentialHub: proxyCredentialHub,
 
         initConsensusState,
         gnfdChainId,

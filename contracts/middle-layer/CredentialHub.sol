@@ -8,12 +8,9 @@ import "../interface/IERC1155.sol";
 import "../Config.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
+import "../interface/ICrossChain.sol";
 
-interface ICrossChain {
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee) external;
-}
-
-contract TokenHub is Initializable, Config {
+contract CredentialHub is Initializable, Config {
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -113,16 +110,24 @@ contract TokenHub is Initializable, Config {
     }
 
     /*----------------- external function -----------------*/
-    function initialize(address _bucket, address _object, address _group, address _member, address _permission)
+//    function initialize(address _bucket, address _object, address _group, address _member, address _permission)
+//        public
+//        initializer
+//    {
+//        bucket = _bucket;
+//        object = _object;
+//        group = _group;
+//        member = _member;
+//        permission = _permission;
+//
+//        relayFee = 2e15;
+//        ackRelayFee = 2e15;
+//    }
+
+    function initialize()
         public
         initializer
     {
-        bucket = _bucket;
-        object = _object;
-        group = _group;
-        member = _member;
-        permission = _permission;
-
         relayFee = 2e15;
         ackRelayFee = 2e15;
     }

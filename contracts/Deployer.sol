@@ -12,6 +12,7 @@ import "./CrossChain.sol";
 import "./RelayerHub.sol";
 import "./middle-layer/GovHub.sol";
 import "./middle-layer/TokenHub.sol";
+import "./middle-layer/CredentialHub.sol";
 
 contract Deployer {
     uint16 public immutable gnfdChainId;
@@ -22,6 +23,7 @@ contract Deployer {
     address public immutable proxyTokenHub;
     address public immutable proxyLightClient;
     address public immutable proxyRelayerHub;
+    address public immutable proxyCredentialHub;
 
     bytes public initConsensusStateBytes;
     address public implGovHub;
@@ -29,6 +31,7 @@ contract Deployer {
     address public implTokenHub;
     address public implLightClient;
     address public implRelayerHub;
+    address public implCredentialHub;
 
     bool public deployed;
 
@@ -47,6 +50,7 @@ contract Deployer {
         proxyTokenHub = calcCreateAddress(address(this), uint8(4));
         proxyLightClient = calcCreateAddress(address(this), uint8(5));
         proxyRelayerHub = calcCreateAddress(address(this), uint8(6));
+        proxyCredentialHub = calcCreateAddress(address(this), uint8(7));
 
         // 1. proxyAdmin
         address deployedProxyAdmin = address(new GnfdProxyAdmin());
@@ -59,7 +63,8 @@ contract Deployer {
         address _implCrossChain,
         address _implTokenHub,
         address _implLightClient,
-        address _implRelayerHub
+        address _implRelayerHub,
+        address _implCredentialHub
     ) public {
         require(!deployed, "only not deployed");
         deployed = true;
@@ -69,6 +74,7 @@ contract Deployer {
         require(_isContract(_implTokenHub), "invalid _implTokenHub");
         require(_isContract(_implLightClient), "invalid _implLightClient");
         require(_isContract(_implRelayerHub), "invalid _implRelayerHub");
+        require(_isContract(_implCredentialHub), "invalid _implCredentialHub");
 
         initConsensusStateBytes = _initConsensusStateBytes;
         implGovHub = _implGovHub;
@@ -76,6 +82,7 @@ contract Deployer {
         implTokenHub = _implTokenHub;
         implLightClient = _implLightClient;
         implRelayerHub = _implRelayerHub;
+        implCredentialHub = _implCredentialHub;
 
         // 2. GovHub, transfer ownership of proxyAdmin to GovHub
         address deployedProxyGovHub = address(new GnfdProxy(implGovHub, proxyAdmin, ""));
@@ -101,11 +108,16 @@ contract Deployer {
         address deployedProxyRelayerHub = address(new GnfdProxy(implRelayerHub, proxyAdmin, ""));
         require(deployedProxyRelayerHub == proxyRelayerHub, "invalid proxyRelayerHub address");
 
-        // 7. init GovHub, set contracts addresses to GovHub
+        // 7. CredentialHub
+        address deployedProxyCredentialHub = address(new GnfdProxy(implCredentialHub, proxyAdmin, ""));
+        require(deployedProxyCredentialHub == proxyCredentialHub, "invalid proxyCredentialHub address");
+
+        // 8. init GovHub, set contracts addresses to GovHub
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId);
         TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
         RelayerHub(payable(proxyRelayerHub)).initialize();
+        CredentialHub(payable(proxyCredentialHub)).initialize();
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
@@ -121,6 +133,10 @@ contract Deployer {
         require(
             Config(deployedProxyCrossChain).RELAYER_HUB() == proxyRelayerHub,
             "invalid proxyRelayerHub address on Config"
+        );
+        require(
+            Config(deployedProxyCrossChain).CREDENTIAL_HUB() == proxyCredentialHub,
+            "invalid proxyCredentialHub address on Config"
         );
     }
 
