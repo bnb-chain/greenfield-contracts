@@ -25,11 +25,11 @@ abstract contract Config {
 
     // contract address
     // will calculate their deployed addresses from deploy script
-    address public constant PROXY_ADMIN = address(0);
-    address public constant GOV_HUB = address(0);
-    address public constant CROSS_CHAIN = address(0);
-    address public constant TOKEN_HUB = address(0);
-    address public constant LIGHT_CLIENT = address(0);
-    address public constant RELAYER_HUB = address(0);
-    address public constant CREDENTIAL_HUB = address(0);
+    address public constant PROXY_ADMIN = 0xcd5D019b3C5AeD679995ed94ba7D352Cc1500b7C;
+    address public constant GOV_HUB = 0xCa05b30aF093bD38c3AfEA56812a5FA21150592F;
+    address public constant CROSS_CHAIN = 0x5C7e42a885Fd9Aee902476ff6AE16b00cE41eA2c;
+    address public constant TOKEN_HUB = 0x05f362cF99109B54C08045bB4DA535D387A8B330;
+    address public constant LIGHT_CLIENT = 0x0101Ba65864b431Da46c96A572A4c1d3e3d353Ba;
+    address public constant RELAYER_HUB = 0xcBeAcB2DC22629B65Cfd108033c4E3852d6E89F0;
+    address public constant CREDENTIAL_HUB = 0xbE3898BC2D1222084192136F47b432e06cc20724;
 }

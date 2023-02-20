@@ -95,6 +95,32 @@ const main = async () => {
     const implCredentialHub = await deployContract('CredentialHub');
     log('deploy implCredentialHub success', implCredentialHub.address);
 
+    const bucket = await deployContract(
+        'ERC721NonTransferable',
+        'GreenField-Bucket',
+        'BUCKET',
+        proxyCredentialHub
+    );
+    log('deploy bucket success', bucket.address);
+
+    const object = await deployContract(
+        'ERC721NonTransferable',
+        'GreenField-Object',
+        'OBJECT',
+        proxyCredentialHub
+    );
+    log('deploy object success', object.address);
+
+    const group = await deployContract(
+        'ERC721NonTransferable',
+        'GreenField-Group',
+        'GROUP',
+        proxyCredentialHub
+    );
+    log('deploy group success', group.address);
+
+    await deployer.addERC721Address(bucket.address, object.address, group.address);
+
     const tx = await deployer.deploy(
         initConsensusStateBytes,
         implGovHub.address,

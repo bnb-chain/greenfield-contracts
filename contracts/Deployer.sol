@@ -26,10 +26,6 @@ contract Deployer {
     address public immutable proxyRelayerHub;
     address public immutable proxyCredentialHub;
 
-    address public immutable bucket;
-    address public immutable object;
-    address public immutable group;
-
     bytes public initConsensusStateBytes;
     address public implGovHub;
     address public implCrossChain;
@@ -37,6 +33,10 @@ contract Deployer {
     address public implLightClient;
     address public implRelayerHub;
     address public implCredentialHub;
+
+    address public bucket;
+    address public object;
+    address public group;
 
     bool public deployed;
 
@@ -57,13 +57,19 @@ contract Deployer {
         proxyRelayerHub = calcCreateAddress(address(this), uint8(6));
         proxyCredentialHub = calcCreateAddress(address(this), uint8(7));
 
-        bucket = address(new ERC721NonTransferable("GreenField-Bucket", "Bucket", proxyCredentialHub));
-        object = address(new ERC721NonTransferable("GreenField-Object", "Object", proxyCredentialHub));
-        group = address(new ERC721NonTransferable("GreenField-Group", "Group", proxyCredentialHub));
-
         // 1. proxyAdmin
         address deployedProxyAdmin = address(new GnfdProxyAdmin());
         require(deployedProxyAdmin == proxyAdmin, "invalid proxyAdmin address");
+    }
+
+    function addERC721Address(address _bucket, address _object, address _group) public {
+        require(_isContract(_bucket), "invalid _bucket");
+        require(_isContract(_object), "invalid _object");
+        require(_isContract(_group), "invalid _group");
+
+        bucket = _bucket;
+        object = _object;
+        group = _group;
     }
 
     function deploy(
