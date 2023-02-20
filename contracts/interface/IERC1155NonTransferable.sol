@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-interface IERC1155 {
+interface IERC1155NonTransferable {
     function balanceOf(address owner) external view returns (uint256 balance);
 
     function mint(address to, uint256 id, uint256 value, bytes memory data) external;

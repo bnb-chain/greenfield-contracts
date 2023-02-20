@@ -3,8 +3,8 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "../interface/IERC721.sol";
-import "../interface/IERC1155.sol";
+import "../interface/IERC721NonTransferable.sol";
+import "../interface/IERC1155NonTransferable.sol";
 import "../Config.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
@@ -124,10 +124,14 @@ contract CredentialHub is Initializable, Config {
 //        ackRelayFee = 2e15;
 //    }
 
-    function initialize()
+    function initialize(address _bucket, address _object, address _group)
         public
         initializer
     {
+        bucket = _bucket;
+        object = _object;
+        group = _group;
+
         relayFee = 2e15;
         ackRelayFee = 2e15;
     }
@@ -323,11 +327,11 @@ contract CredentialHub is Initializable, Config {
 
     function _doMirror(uint8 resourceType, MirrorSynPackage memory synPkg) internal returns (uint32) {
         if (resourceType == TYPE_BUCKET) {
-            IERC721(bucket).mint(synPkg.owner, synPkg.id);
+            IERC721NonTransferable(bucket).mint(synPkg.owner, synPkg.id);
         } else if (resourceType == TYPE_OBJECT) {
-            IERC721(object).mint(synPkg.owner, synPkg.id);
+            IERC721NonTransferable(object).mint(synPkg.owner, synPkg.id);
         } else if (resourceType == TYPE_GROUP) {
-            IERC721(group).mint(synPkg.owner, synPkg.id);
+            IERC721NonTransferable(group).mint(synPkg.owner, synPkg.id);
         } else {
             return UNKNOWN_RESOURCE_TYPE;
         }
@@ -375,10 +379,10 @@ contract CredentialHub is Initializable, Config {
 
     function _doCreate(uint8 resourceType, address creator, uint256 id) internal {
         if (resourceType == TYPE_BUCKET) {
-            IERC721(bucket).mint(creator, id);
+            IERC721NonTransferable(bucket).mint(creator, id);
             emit CreateBucketSuccessful(creator, id);
         } else if (resourceType == TYPE_GROUP) {
-            IERC721(group).mint(creator, id);
+            IERC721NonTransferable(group).mint(creator, id);
             emit CreateGroupSuccessful(creator, id);
         }
     }
@@ -421,10 +425,10 @@ contract CredentialHub is Initializable, Config {
 
     function _doDelete(uint8 resourceType, uint256 id) internal {
         if (resourceType == TYPE_BUCKET) {
-            IERC721(bucket).burn(id);
+            IERC721NonTransferable(bucket).burn(id);
             emit DeleteBucketSuccessful(id);
         } else if (resourceType == TYPE_GROUP) {
-            IERC721(group).burn(id);
+            IERC721NonTransferable(group).burn(id);
             emit DeleteGroupSuccessful(id);
         }
     }

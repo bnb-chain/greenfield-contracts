@@ -7,7 +7,7 @@ import "../interface/IParamSubscriber.sol";
 import "../lib/Memory.sol";
 import "../lib/BytesToTypes.sol";
 
-contract ERC721Nontransferable is Context, ERC165, IERC721, IERC721Metadata, IParamSubscriber {
+contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IParamSubscriber {
     using Address for address;
     using Strings for uint256;
 

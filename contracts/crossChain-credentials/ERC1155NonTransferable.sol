@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "lib/openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol";
 
-contract ERC1155Nontransferable is Context, ERC165, IERC1155, IERC1155MetadataURI {
+contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
 
     // Mapping from token ID to account balances

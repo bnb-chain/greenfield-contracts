@@ -13,6 +13,7 @@ import "./RelayerHub.sol";
 import "./middle-layer/GovHub.sol";
 import "./middle-layer/TokenHub.sol";
 import "./middle-layer/CredentialHub.sol";
+import "./crossChain-credentials/ERC721NonTransferable.sol";
 
 contract Deployer {
     uint16 public immutable gnfdChainId;
@@ -24,6 +25,10 @@ contract Deployer {
     address public immutable proxyLightClient;
     address public immutable proxyRelayerHub;
     address public immutable proxyCredentialHub;
+
+    address public immutable bucket;
+    address public immutable object;
+    address public immutable group;
 
     bytes public initConsensusStateBytes;
     address public implGovHub;
@@ -51,6 +56,10 @@ contract Deployer {
         proxyLightClient = calcCreateAddress(address(this), uint8(5));
         proxyRelayerHub = calcCreateAddress(address(this), uint8(6));
         proxyCredentialHub = calcCreateAddress(address(this), uint8(7));
+
+        bucket = address(new ERC721NonTransferable("GreenField-Bucket", "Bucket", proxyCredentialHub));
+        object = address(new ERC721NonTransferable("GreenField-Object", "Object", proxyCredentialHub));
+        group = address(new ERC721NonTransferable("GreenField-Group", "Group", proxyCredentialHub));
 
         // 1. proxyAdmin
         address deployedProxyAdmin = address(new GnfdProxyAdmin());
@@ -117,7 +126,7 @@ contract Deployer {
         TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
         RelayerHub(payable(proxyRelayerHub)).initialize();
-        CredentialHub(payable(proxyCredentialHub)).initialize();
+        CredentialHub(payable(proxyCredentialHub)).initialize(bucket, object, group);
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
