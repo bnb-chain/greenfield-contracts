@@ -26,7 +26,6 @@ contract TokenHub is Initializable, Config {
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
 
     /*----------------- storage layer -----------------*/
-    address public govHub;
     uint256 public relayFee;
     uint256 public ackRelayFee;
 
