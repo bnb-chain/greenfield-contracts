@@ -119,17 +119,19 @@ const main = async () => {
     );
     log('deploy group success', group.address);
 
-    await deployer.addERC721Address(bucket.address, object.address, group.address);
-
-    const tx = await deployer.deploy(
-        initConsensusStateBytes,
+    await deployer.initAddresses(
         implGovHub.address,
         implCrossChain.address,
         implTokenHub.address,
         implLightClient.address,
         implRelayerHub.address,
-        implCredentialHub.address
+        implCredentialHub.address,
+        bucket.address,
+        object.address,
+        group.address
     );
+
+    const tx = await deployer.deploy(initConsensusStateBytes);
 
     log('deployer.deploy() success', deployer.address);
 

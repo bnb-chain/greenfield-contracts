@@ -33,11 +33,11 @@ contract Deployer {
     address public implLightClient;
     address public implRelayerHub;
     address public implCredentialHub;
-
     address public bucket;
     address public object;
     address public group;
 
+    bool public initialized;
     bool public deployed;
 
     constructor(uint16 _gnfdChainId) {
@@ -62,27 +62,19 @@ contract Deployer {
         require(deployedProxyAdmin == proxyAdmin, "invalid proxyAdmin address");
     }
 
-    function addERC721Address(address _bucket, address _object, address _group) public {
-        require(_isContract(_bucket), "invalid _bucket");
-        require(_isContract(_object), "invalid _object");
-        require(_isContract(_group), "invalid _group");
-
-        bucket = _bucket;
-        object = _object;
-        group = _group;
-    }
-
-    function deploy(
-        bytes calldata _initConsensusStateBytes,
+    function initAddresses(
         address _implGovHub,
         address _implCrossChain,
         address _implTokenHub,
         address _implLightClient,
         address _implRelayerHub,
-        address _implCredentialHub
+        address _implCredentialHub,
+        address _bucket,
+        address _object,
+        address _group
     ) public {
-        require(!deployed, "only not deployed");
-        deployed = true;
+        require(!initialized, "only not initialized");
+        initialized = true;
 
         require(_isContract(_implGovHub), "invalid _implCrossChain");
         require(_isContract(_implCrossChain), "invalid _implCrossChain");
@@ -90,14 +82,26 @@ contract Deployer {
         require(_isContract(_implLightClient), "invalid _implLightClient");
         require(_isContract(_implRelayerHub), "invalid _implRelayerHub");
         require(_isContract(_implCredentialHub), "invalid _implCredentialHub");
+        require(_isContract(_bucket), "invalid _bucket");
+        require(_isContract(_object), "invalid _object");
+        require(_isContract(_group), "invalid _group");
 
-        initConsensusStateBytes = _initConsensusStateBytes;
         implGovHub = _implGovHub;
         implCrossChain = _implCrossChain;
         implTokenHub = _implTokenHub;
         implLightClient = _implLightClient;
         implRelayerHub = _implRelayerHub;
         implCredentialHub = _implCredentialHub;
+        bucket = _bucket;
+        object = _object;
+        group = _group;
+    }
+
+    function deploy(bytes calldata _initConsensusStateBytes) public {
+        require(!deployed, "only not deployed");
+        deployed = true;
+
+        initConsensusStateBytes = _initConsensusStateBytes;
 
         // 2. GovHub, transfer ownership of proxyAdmin to GovHub
         address deployedProxyGovHub = address(new GnfdProxy(implGovHub, proxyAdmin, ""));
