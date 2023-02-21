@@ -2,15 +2,19 @@
 
 pragma solidity ^0.8.0;
 
-import "../ResourceHub.sol";
+import "../StorageHub.sol";
 import "../interface/IERC721NonTransferable.sol";
 import "../interface/ICrossChain.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
 
-contract BucketHub is ResourceHub {
+contract BucketHub is StorageHub {
     using RLPEncode for *;
     using RLPDecode for *;
+
+    // operation type
+    uint8 public constant TYPE_CREATE = 2;
+    uint8 public constant TYPE_DELETE = 3;
 
     /*----------------- struct -----------------*/
     struct CreateSynPackage {
@@ -20,6 +24,51 @@ contract BucketHub is ResourceHub {
         address paymentAddress;
         address primarySpAddress;
         bytes primarySpSignature;
+    }
+
+    /*----------------- app function -----------------*/
+
+    /**
+    * @dev handle sync cross-chain package from BSC to GNFD
+     *
+     * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
+     */
+    function handleSynPackage(uint8, bytes calldata msgBytes) external onlyCrossChainContract returns (bytes memory) {
+        return _handleMirrorSynPackage(msgBytes);
+    }
+
+    /**
+     * @dev handle ack cross-chain package from GNFD，it means create/delete operation Successly to GNFD.
+     *
+     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     */
+    function handleAckPackage(uint8, bytes calldata msgBytes) external onlyCrossChainContract {
+        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
+
+        uint8 opType = uint8(msgIter.next().toUint());
+        RLPDecode.Iterator memory pkgIter;
+        if (msgIter.hasNext()) {
+            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
+        } else {
+            revert("wrong ack package");
+        }
+
+        if (opType == TYPE_CREATE) {
+            _handleCreateAckPackage(pkgIter);
+        } else if (opType == TYPE_DELETE) {
+            _handleDeleteAckPackage(pkgIter);
+        } else {
+            revert("unexpected operation type");
+        }
+    }
+
+    /**
+     * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain syn request to GNFD.
+     *
+     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     */
+    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
+        emit FailAckPkgReceived(channelId, msgBytes);
     }
 
     /*----------------- external function -----------------*/
@@ -88,5 +137,12 @@ contract BucketHub is ResourceHub {
         elements[4] = synPkg.primarySpAddress.encodeAddress();
         elements[5] = synPkg.primarySpSignature.encodeBytes();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
+    }
+
+    function _encodeDeleteSynPackage(DeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
+        bytes[] memory elements = new bytes[](2);
+        elements[0] = synPkg.operator.encodeAddress();
+        elements[1] = bytes(synPkg.name).encodeBytes();
+        return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 }

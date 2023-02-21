@@ -177,17 +177,12 @@ contract Deployer {
             "invalid proxyRelayerHub address on Config"
         );
         require(
-            Config(deployedProxyCrossChain).BUCKET_HUB() == proxyBucketHub,
-            "invalid proxyBucketHub address on Config"
+            Config(deployedProxyCrossChain).BUCKET_HUB() == proxyBucketHub, "invalid proxyBucketHub address on Config"
         );
         require(
-            Config(deployedProxyCrossChain).OBJECT_HUB() == proxyObjectHub,
-            "invalid proxyObjectHub address on Config"
+            Config(deployedProxyCrossChain).OBJECT_HUB() == proxyObjectHub, "invalid proxyObjectHub address on Config"
         );
-        require(
-            Config(deployedProxyCrossChain).GROUP_HUB() == proxyGroupHub,
-            "invalid proxyGroupHub address on Config"
-        );
+        require(Config(deployedProxyCrossChain).GROUP_HUB() == proxyGroupHub, "invalid proxyGroupHub address on Config");
     }
 
     function calcCreateAddress(address _deployer, uint8 _nonce) public pure returns (address) {

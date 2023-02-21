@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "forge-std/Test.sol";
 
 contract TestDeployer is Test {
-    function _deployOnTestChain() internal returns(address deployer) {
+    function _deployOnTestChain() internal returns (address deployer) {
         string[] memory inputs = new string[](3);
         inputs[0] = "npm";
         inputs[1] = "run";

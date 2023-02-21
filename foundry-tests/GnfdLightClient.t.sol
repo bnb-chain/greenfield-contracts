@@ -75,5 +75,4 @@ contract GnfdLightClientTest is Test {
         output2 = abi.encodePacked(input2, input1);
         assertEq(output1, output2);
     }
-
 }
