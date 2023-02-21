@@ -8,4 +8,6 @@ interface IERC721NonTransferable {
     function mint(address to, uint256 tokenId) external;
 
     function burn(uint256 tokenId) external;
+
+    function setBaseURI(string calldata newURI) external;
 }

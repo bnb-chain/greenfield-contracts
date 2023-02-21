@@ -7,11 +7,11 @@ import "../interface/IParamSubscriber.sol";
 import "../lib/Memory.sol";
 import "../lib/BytesToTypes.sol";
 
-contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IParamSubscriber {
+contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata {
     using Address for address;
     using Strings for uint256;
 
-    address private _credentialHub;
+    address private _controlHub;
 
     // Token name
     string private _name;
@@ -28,28 +28,33 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IPa
     // Mapping owner address to token count
     mapping(address => uint256) private _balances;
 
-    event ParamChange(string key, bytes value);
+    modifier onlyControlHub() {
+        require(_msgSender() == _controlHub, "caller is not credentialHub");
+        _;
+    }
 
     /**
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
      *  And set the address of credentialHub_.
      */
-    constructor(string memory name_, string memory symbol_, address credentialHub_) {
+    constructor(string memory name_, string memory symbol_, string memory baseTokenURI_, address controlHub_) {
         _name = name_;
         _symbol = symbol_;
-        _credentialHub = credentialHub_;
+        _controlHub = controlHub_;
+
+        _setBaseURI(baseTokenURI_);
     }
 
     /*----------------- ERC712 functions -----------------*/
-    function mint(address to, uint256 tokenId) public {
+    function mint(address to, uint256 tokenId) external {
         _mint(to, tokenId);
     }
 
-    function safeMint(address to, uint256 tokenId) public {
+    function safeMint(address to, uint256 tokenId) external {
         _safeMint(to, tokenId);
     }
 
-    function safeMint(address to, uint256 tokenId, bytes memory _data) public {
+    function safeMint(address to, uint256 tokenId, bytes calldata _data) external {
         _safeMint(to, tokenId, _data);
     }
 
@@ -60,9 +65,12 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IPa
      *
      * - The caller must be the credentialHub.
      */
-    function burn(uint256 tokenId) public {
-        require(_msgSender() == _credentialHub, "caller is not credentialHub");
+    function burn(uint256 tokenId) external onlyControlHub {
         _burn(tokenId);
+    }
+
+    function setBaseURI(string calldata newURI) external onlyControlHub {
+        _setBaseURI(newURI);
     }
 
     /*----------------- view functions -----------------*/
@@ -159,18 +167,6 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IPa
         revert("approve is not allowed");
     }
 
-    /*----------------- update param -----------------*/
-    function updateParam(string calldata key, bytes calldata value) external {
-        if (Memory.compareStrings(key, "baseTokenURL")) {
-            bytes memory newBaseTokenURI;
-            BytesToTypes.bytesToString(32, value, newBaseTokenURI);
-            _baseTokenURI = string(newBaseTokenURI);
-        } else {
-            require(false, "unknown param");
-        }
-        emit ParamChange(key, value);
-    }
-
     /*----------------- internal functions -----------------*/
 
     /**
@@ -179,6 +175,13 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IPa
      */
     function _baseURI() internal view returns (string memory) {
         return _baseTokenURI;
+    }
+
+    /**
+     * @dev Sets a new baseURI.
+     */
+    function _setBaseURI(string memory newURI) internal {
+        _baseTokenURI = newURI;
     }
 
     /**

@@ -101,8 +101,7 @@ contract TokenHub is Initializable, Config {
             return _handleTransferInSynPackage(msgBytes);
         } else {
             // should not happen
-            require(false, "unrecognized syn package");
-            return new bytes(0);
+            revert("unrecognized syn package");
         }
     }
 
