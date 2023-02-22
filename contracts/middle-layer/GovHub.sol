@@ -16,6 +16,7 @@ import "../Config.sol";
 contract GovHub is Config, Initializable {
     using RLPDecode for *;
 
+    uint8 public constant ADDRESS_LENGTH = 20;
     uint8 public constant PARAM_UPDATE_MESSAGE_TYPE = 0;
 
     uint32 public constant ERROR_TARGET_NOT_CONTRACT = 101;
@@ -69,8 +70,8 @@ contract GovHub is Config, Initializable {
     }
 
     function _notifyUpdates(ParamChangePackage memory proposal) internal returns (uint32) {
-        require(proposal.targets.length > 0 && proposal.targets.length % 20 == 0, "invalid target length");
-        uint256 totalTargets = proposal.targets.length / 20;
+        require(proposal.targets.length > 0 && proposal.targets.length % ADDRESS_LENGTH == 0, "invalid target length");
+        uint256 totalTargets = proposal.targets.length / ADDRESS_LENGTH;
 
         // upgrade contracts
         if (keccak256(abi.encodePacked(proposal.key)) == UPGRADE_KEY_HASH) {
@@ -79,8 +80,8 @@ contract GovHub is Config, Initializable {
             address target;
             address newImpl;
             for (uint256 i; i < totalTargets; ++i) {
-                target = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.targets);
-                newImpl = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.values);
+                target = BytesToTypes.bytesToAddress(ADDRESS_LENGTH * (i + 1), proposal.targets);
+                newImpl = BytesToTypes.bytesToAddress(ADDRESS_LENGTH * (i + 1), proposal.values);
                 require(_isContract(target), "invalid target");
                 require(_isContract(newImpl), "invalid implementation value");
 
@@ -92,7 +93,7 @@ contract GovHub is Config, Initializable {
 
         // update param
         require(totalTargets == 1, "Only single parameter update is allowed in a proposal");
-        address _target = BytesToTypes.bytesToAddress(20, proposal.targets);
+        address _target = BytesToTypes.bytesToAddress(ADDRESS_LENGTH, proposal.targets);
         try IParamSubscriber(_target).updateParam(proposal.key, proposal.values) {}
         catch (bytes memory reason) {
             emit FailUpdateParam(reason);
