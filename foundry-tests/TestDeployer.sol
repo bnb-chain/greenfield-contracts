@@ -10,8 +10,12 @@ contract TestDeployer is Test {
         inputs[1] = "run";
         inputs[2] = "deploy:test";
         vm.ffi(inputs);
+        return _getDeployerFromDeployment();
+    }
 
+    function _getDeployerFromDeployment() internal returns(address deployer) {
         vm.createSelectFork("test");
+        string[] memory inputs = new string[](3);
 
         string memory chainIdString = Strings.toString(block.chainid);
         inputs[0] = "bash";
