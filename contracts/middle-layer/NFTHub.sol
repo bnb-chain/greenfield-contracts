@@ -17,11 +17,11 @@ abstract contract NFTHub is Initializable, Config {
     /*----------------- constants -----------------*/
     // mirror status
     uint8 public constant MIRROR_SUCCESS = 0;
-    uint8 public constant MIRROR_FAILED = 1;
+    uint8 public constant MIRROR_FAILED  = 1;
 
     // status of ack package
     uint32 public constant STATUS_SUCCESS = 0;
-    uint32 public constant STATUS_FAILED = 1;
+    uint32 public constant STATUS_FAILED  = 1;
 
     // operation type
     uint8 public constant TYPE_MIRROR = 1;
