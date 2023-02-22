@@ -7,7 +7,6 @@ import "../interface/IERC721NonTransferable.sol";
 import "../interface/ICrossChain.sol";
 
 contract ObjectHub is NFTHub {
-
     /*----------------- middle-layer app function -----------------*/
 
     /**

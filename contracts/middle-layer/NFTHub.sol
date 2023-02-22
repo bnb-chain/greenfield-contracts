@@ -17,11 +17,11 @@ abstract contract NFTHub is Initializable, Config {
     /*----------------- constants -----------------*/
     // mirror status
     uint8 public constant MIRROR_SUCCESS = 0;
-    uint8 public constant MIRROR_FAILED  = 1;
+    uint8 public constant MIRROR_FAILED = 1;
 
     // status of ack package
     uint32 public constant STATUS_SUCCESS = 0;
-    uint32 public constant STATUS_FAILED  = 1;
+    uint32 public constant STATUS_FAILED = 1;
 
     // operation type
     uint8 public constant TYPE_MIRROR = 1;
@@ -55,8 +55,8 @@ abstract contract NFTHub is Initializable, Config {
 
     // GNFD to BSC
     struct CmnMirrorSynPackage {
-        uint256 id;   // resource ID
-        bytes   key;  // resource store key
+        uint256 id; // resource ID
+        bytes key; // resource store key
         address owner;
     }
 
@@ -107,9 +107,7 @@ abstract contract NFTHub is Initializable, Config {
     /*----------------- update param -----------------*/
     function updateParam(string calldata key, bytes calldata value) external onlyGovHub {
         if (Memory.compareStrings(key, "baseURL")) {
-            bytes memory newBaseURI;
-            BytesToTypes.bytesToString(32, value, newBaseURI);
-            IERC721NonTransferable(ERC721Token).setBaseURI(string(newBaseURI));
+            IERC721NonTransferable(ERC721Token).setBaseURI(string(value));
         } else {
             revert("unknown param");
         }

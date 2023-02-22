@@ -12,7 +12,6 @@ import "../contracts/middle-layer/TokenHub.sol";
 
 import "../contracts/lib/RLPEncode.sol";
 import "../contracts/lib/RLPDecode.sol";
-import "../contracts/middle-layer/TokenHub.sol";
 
 contract RelayerHubTest is Test {
     uint16 public constant gnfdChainId = 1;

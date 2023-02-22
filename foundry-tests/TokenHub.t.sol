@@ -12,14 +12,10 @@ import "../contracts/middle-layer/TokenHub.sol";
 
 import "../contracts/lib/RLPEncode.sol";
 import "../contracts/lib/RLPDecode.sol";
-import "../contracts/middle-layer/TokenHub.sol";
 
 contract TokenHubTest is Test, TokenHub {
     using RLPEncode for *;
     using RLPDecode for *;
-
-    using RLPDecode for RLPDecode.RLPItem;
-    using RLPDecode for RLPDecode.Iterator;
 
     uint16 public constant gnfdChainId = 1;
     bytes public constant blsPubKeys =

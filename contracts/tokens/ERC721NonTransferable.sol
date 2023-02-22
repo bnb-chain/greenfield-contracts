@@ -29,13 +29,13 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata {
     mapping(address => uint256) private _balances;
 
     modifier onlyControlHub() {
-        require(_msgSender() == _controlHub, "caller is not credentialHub");
+        require(_msgSender() == _controlHub, "caller is not controlHub");
         _;
     }
 
     /**
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
-     *  And set the address of credentialHub_.
+     *  And set the address of controlHub_.
      */
     constructor(string memory name_, string memory symbol_, string memory baseTokenURI_, address controlHub_) {
         _name = name_;

@@ -13,8 +13,8 @@ import "./Config.sol";
 
 contract CrossChain is Initializable, Config {
     /*----------------- constants -----------------*/
-    uint8 public constant SYN_PACKAGE      = 0x00;
-    uint8 public constant ACK_PACKAGE      = 0x01;
+    uint8 public constant SYN_PACKAGE = 0x00;
+    uint8 public constant ACK_PACKAGE = 0x01;
     uint8 public constant FAIL_ACK_PACKAGE = 0x02;
 
     uint256 public constant IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;

@@ -45,7 +45,7 @@ const main = async () => {
     const balance = await ethers.provider.getBalance(operator.address);
     const network = await ethers.provider.getNetwork();
     log('network', network);
-    log('operator.address: ', operator.address, toHuman(balance));
+    log('operator.address:', operator.address, toHuman(balance));
     const deployer = (await deployContract('Deployer', gnfdChainId)) as Deployer;
 
     log('Deployer deployed', deployer.address);
@@ -168,7 +168,8 @@ const main = async () => {
         initConsensusState,
         gnfdChainId,
     };
-    log('all contracts', deployment);
+    log('all contracts', JSON.stringify(deployment, null, 2));
+    log('deploy success');
 
     const deploymentDir = __dirname + `/../deployment`;
     if (!fs.existsSync(deploymentDir)) {
