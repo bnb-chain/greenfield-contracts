@@ -12,6 +12,10 @@ contract BucketHub is NFTHub {
     using RLPEncode for *;
     using RLPDecode for *;
 
+    // operation type
+    uint8 public constant TYPE_CREATE = 2;
+    uint8 public constant TYPE_DELETE = 3;
+
     /*----------------- struct -----------------*/
     struct CreateSynPackage {
         address creator;
@@ -22,9 +26,55 @@ contract BucketHub is NFTHub {
         bytes primarySpSignature;
     }
 
-    /*----------------- app function -----------------*/
+    /*----------------- middle-layer app function -----------------*/
 
-    // no difference from parent contract
+    /**
+     * @dev handle sync cross-chain package from BSC to GNFD
+     *
+     * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
+     */
+    function handleSynPackage(uint8, bytes calldata msgBytes)
+        external
+        override
+        onlyCrossChainContract
+        returns (bytes memory)
+    {
+        return _handleMirrorSynPackage(msgBytes);
+    }
+
+    /**
+     * @dev handle ack cross-chain package from GNFD，it means create/delete operation Successly to GNFD.
+     *
+     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     */
+    function handleAckPackage(uint8, bytes calldata msgBytes) external override onlyCrossChainContract {
+        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
+
+        uint8 opType = uint8(msgIter.next().toUint());
+        RLPDecode.Iterator memory pkgIter;
+        if (msgIter.hasNext()) {
+            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
+        } else {
+            revert("wrong ack package");
+        }
+
+        if (opType == TYPE_CREATE) {
+            _handleCreateAckPackage(pkgIter);
+        } else if (opType == TYPE_DELETE) {
+            _handleDeleteAckPackage(pkgIter);
+        } else {
+            revert("unexpected operation type");
+        }
+    }
+
+    /**
+     * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain syn request to GNFD.
+     *
+     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     */
+    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external override onlyCrossChainContract {
+        emit FailAckPkgReceived(channelId, msgBytes);
+    }
 
     /*----------------- external function -----------------*/
     /**

@@ -25,8 +25,8 @@ abstract contract NFTHub is Initializable, Config {
 
     // operation type
     uint8 public constant TYPE_MIRROR = 1;
-    uint8 public constant TYPE_CREATE = 2;
-    uint8 public constant TYPE_DELETE = 3;
+    // uint8 public constant TYPE_CREATE = 2; // not used in all child contracts
+    // uint8 public constant TYPE_DELETE = 3;
 
     // ERC721 token contract
     address public ERC721Token;
@@ -55,8 +55,8 @@ abstract contract NFTHub is Initializable, Config {
 
     // GNFD to BSC
     struct CmnMirrorSynPackage {
-        uint256 id; // resource ID
-        bytes key; // resource store key
+        uint256 id;   // resource ID
+        bytes   key;  // resource store key
         address owner;
     }
 
@@ -95,55 +95,14 @@ abstract contract NFTHub is Initializable, Config {
         ackRelayFee = 2e15;
     }
 
-    /*----------------- app function -----------------*/
+    /*----------------- middle-layer app function -----------------*/
 
-    /**
-     * @dev handle sync cross-chain package from BSC to GNFD
-     *
-     * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
-     */
-    function handleSynPackage(uint8, bytes calldata msgBytes)
-        external
-        virtual
-        onlyCrossChainContract
-        returns (bytes memory)
-    {
-        return _handleMirrorSynPackage(msgBytes);
-    }
+    // need to be implemented in child contract
+    function handleSynPackage(uint8, bytes calldata) external virtual returns (bytes memory) {}
 
-    /**
-     * @dev handle ack cross-chain package from GNFD，it means create/delete operation Successly to GNFD.
-     *
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
-     */
-    function handleAckPackage(uint8, bytes calldata msgBytes) external virtual onlyCrossChainContract {
-        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
+    function handleAckPackage(uint8, bytes calldata) external virtual {}
 
-        uint8 opType = uint8(msgIter.next().toUint());
-        RLPDecode.Iterator memory pkgIter;
-        if (msgIter.hasNext()) {
-            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
-        } else {
-            revert("wrong ack package");
-        }
-
-        if (opType == TYPE_CREATE) {
-            _handleCreateAckPackage(pkgIter);
-        } else if (opType == TYPE_DELETE) {
-            _handleDeleteAckPackage(pkgIter);
-        } else {
-            revert("unexpected operation type");
-        }
-    }
-
-    /**
-     * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain syn request to GNFD.
-     *
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
-     */
-    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external virtual onlyCrossChainContract {
-        emit FailAckPkgReceived(channelId, msgBytes);
-    }
+    function handleFailAckPackage(uint8 channelId, bytes calldata) external virtual {}
 
     /*----------------- update param -----------------*/
     function updateParam(string calldata key, bytes calldata value) external onlyGovHub {
@@ -183,7 +142,7 @@ abstract contract NFTHub is Initializable, Config {
         return (ackPkg, success);
     }
 
-    function _handleCreateAckPackage(RLPDecode.Iterator memory iter) internal {
+    function _handleCreateAckPackage(RLPDecode.Iterator memory iter) internal virtual {
         (CmnCreateAckPackage memory ackPkg, bool decodeSuccess) = _decodeCmnCreateAckPackage(iter);
         require(decodeSuccess, "unrecognized create ack package");
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -195,7 +154,7 @@ abstract contract NFTHub is Initializable, Config {
         }
     }
 
-    function _doCreate(address creator, uint256 id) internal {
+    function _doCreate(address creator, uint256 id) internal virtual {
         IERC721NonTransferable(ERC721Token).mint(creator, id);
         emit CreateSuccess(creator, id);
     }
@@ -223,7 +182,7 @@ abstract contract NFTHub is Initializable, Config {
         return (ackPkg, success);
     }
 
-    function _handleDeleteAckPackage(RLPDecode.Iterator memory iter) internal {
+    function _handleDeleteAckPackage(RLPDecode.Iterator memory iter) internal virtual {
         (CmnDeleteAckPackage memory ackPkg, bool decodeSuccess) = _decodeCmnDeleteAckPackage(iter);
         require(decodeSuccess, "unrecognized delete ack package");
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -235,7 +194,7 @@ abstract contract NFTHub is Initializable, Config {
         }
     }
 
-    function _doDelete(uint256 id) internal {
+    function _doDelete(uint256 id) internal virtual {
         IERC721NonTransferable(ERC721Token).burn(id);
         emit DeleteSuccess(id);
     }
@@ -283,7 +242,7 @@ abstract contract NFTHub is Initializable, Config {
         return _RLPEncode(TYPE_MIRROR, elements.encodeList());
     }
 
-    function _handleMirrorSynPackage(bytes memory msgBytes) internal returns (bytes memory) {
+    function _handleMirrorSynPackage(bytes memory msgBytes) internal virtual returns (bytes memory) {
         (CmnMirrorSynPackage memory synPkg, bool success) = _decodeCmnMirrorSynPackage(msgBytes);
         require(success, "unrecognized mirror package");
         uint32 status = _doMirror(synPkg);
@@ -291,7 +250,7 @@ abstract contract NFTHub is Initializable, Config {
         return _encodeCmnMirrorAckPackage(mirrorAckPkg);
     }
 
-    function _doMirror(CmnMirrorSynPackage memory synPkg) internal returns (uint32) {
+    function _doMirror(CmnMirrorSynPackage memory synPkg) internal virtual returns (uint32) {
         try IERC721NonTransferable(ERC721Token).mint(synPkg.owner, synPkg.id) {}
         catch (bytes memory reason) {
             emit MirrorFailed(synPkg.id, synPkg.owner, reason);
