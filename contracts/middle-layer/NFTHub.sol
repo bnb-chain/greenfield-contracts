@@ -3,20 +3,21 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./Config.sol";
-import "./lib/RLPEncode.sol";
-import "./lib/RLPDecode.sol";
-import "./lib/BytesToTypes.sol";
-import "./lib/Memory.sol";
-import "./interface/IERC721NonTransferable.sol";
+import "../Config.sol";
+import "../lib/RLPEncode.sol";
+import "../lib/RLPDecode.sol";
+import "../lib/BytesToTypes.sol";
+import "../lib/Memory.sol";
+import "../interface/IERC721NonTransferable.sol";
 
-abstract contract StorageHub is Initializable, Config {
+abstract contract NFTHub is Initializable, Config {
     using RLPEncode for *;
     using RLPDecode for *;
 
     /*----------------- constants -----------------*/
-    // res code
+    // mirror status
     uint8 public constant MIRROR_SUCCESS = 0;
+    uint8 public constant MIRROR_FAILED = 1;
 
     // status of ack package
     uint32 public constant STATUS_SUCCESS = 0;
@@ -24,48 +25,49 @@ abstract contract StorageHub is Initializable, Config {
 
     // operation type
     uint8 public constant TYPE_MIRROR = 1;
-
-    /*----------------- storage layer -----------------*/
-    uint256 public relayFee;
-    uint256 public ackRelayFee;
+    uint8 public constant TYPE_CREATE = 2;
+    uint8 public constant TYPE_DELETE = 3;
 
     // ERC721 token contract
-    address public _token;
+    address public ERC721Token;
 
     /*----------------- struct / event / modifier -----------------*/
+    // struct CreateSynPackage should be defined in child contract
+
     // GNFD to BSC
-    struct CreateAckPackage {
+    struct CmnCreateAckPackage {
         uint32 status;
         address creator;
         uint256 id;
     }
 
     // BSC to GNFD
-    struct DeleteSynPackage {
+    struct CmnDeleteSynPackage {
         address operator;
         string name;
     }
 
     // GNFD to BSC
-    struct DeleteAckPackage {
+    struct CmnDeleteAckPackage {
         uint32 status;
         uint256 id;
     }
 
     // GNFD to BSC
-    struct MirrorSynPackage {
-        uint256 id;
-        bytes key;
+    struct CmnMirrorSynPackage {
+        uint256 id; // resource ID
+        bytes key; // resource store key
         address owner;
     }
 
     // BSC to GNFD
-    struct MirrorAckPackage {
+    struct CmnMirrorAckPackage {
         uint32 status;
         bytes key;
     }
 
     event MirrorSuccess(uint256 id, address owner);
+    event MirrorFailed(uint256 id, address owner, bytes failReason);
     event CreateSubmitted(address creator, string name, uint256 relayFee, uint256 ackRelayFee);
     event CreateFailed(address creator, uint256 id);
     event CreateSuccess(address creator, uint256 id);
@@ -81,21 +83,74 @@ abstract contract StorageHub is Initializable, Config {
         _;
     }
 
-    receive() external payable {}
+    modifier onlyGovHub() {
+        require(msg.sender == GOV_HUB, "only GovHub contract");
+        _;
+    }
 
-    function initialize(address token_) public initializer {
-        _token = token_;
+    function initialize(address _ERC721_token) public initializer {
+        ERC721Token = _ERC721_token;
 
         relayFee = 2e15;
         ackRelayFee = 2e15;
     }
 
+    /*----------------- app function -----------------*/
+
+    /**
+     * @dev handle sync cross-chain package from BSC to GNFD
+     *
+     * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
+     */
+    function handleSynPackage(uint8, bytes calldata msgBytes)
+        external
+        virtual
+        onlyCrossChainContract
+        returns (bytes memory)
+    {
+        return _handleMirrorSynPackage(msgBytes);
+    }
+
+    /**
+     * @dev handle ack cross-chain package from GNFD，it means create/delete operation Successly to GNFD.
+     *
+     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     */
+    function handleAckPackage(uint8, bytes calldata msgBytes) external virtual onlyCrossChainContract {
+        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
+
+        uint8 opType = uint8(msgIter.next().toUint());
+        RLPDecode.Iterator memory pkgIter;
+        if (msgIter.hasNext()) {
+            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
+        } else {
+            revert("wrong ack package");
+        }
+
+        if (opType == TYPE_CREATE) {
+            _handleCreateAckPackage(pkgIter);
+        } else if (opType == TYPE_DELETE) {
+            _handleDeleteAckPackage(pkgIter);
+        } else {
+            revert("unexpected operation type");
+        }
+    }
+
+    /**
+     * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain syn request to GNFD.
+     *
+     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     */
+    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external virtual onlyCrossChainContract {
+        emit FailAckPkgReceived(channelId, msgBytes);
+    }
+
     /*----------------- update param -----------------*/
-    function updateParam(string calldata key, bytes calldata value) external {
+    function updateParam(string calldata key, bytes calldata value) external onlyGovHub {
         if (Memory.compareStrings(key, "baseURL")) {
             bytes memory newBaseURI;
             BytesToTypes.bytesToString(32, value, newBaseURI);
-            IERC721NonTransferable(_token).setBaseURI(string(newBaseURI));
+            IERC721NonTransferable(ERC721Token).setBaseURI(string(newBaseURI));
         } else {
             revert("unknown param");
         }
@@ -103,12 +158,12 @@ abstract contract StorageHub is Initializable, Config {
     }
 
     /*----------------- internal function -----------------*/
-    function _decodeCreateAckPackage(RLPDecode.Iterator memory iter)
+    function _decodeCmnCreateAckPackage(RLPDecode.Iterator memory iter)
         internal
         pure
-        returns (CreateAckPackage memory, bool)
+        returns (CmnCreateAckPackage memory, bool)
     {
-        CreateAckPackage memory ackPkg;
+        CmnCreateAckPackage memory ackPkg;
 
         bool success = false;
         uint256 idx = 0;
@@ -129,7 +184,7 @@ abstract contract StorageHub is Initializable, Config {
     }
 
     function _handleCreateAckPackage(RLPDecode.Iterator memory iter) internal {
-        (CreateAckPackage memory ackPkg, bool decodeSuccess) = _decodeCreateAckPackage(iter);
+        (CmnCreateAckPackage memory ackPkg, bool decodeSuccess) = _decodeCmnCreateAckPackage(iter);
         require(decodeSuccess, "unrecognized create ack package");
         if (ackPkg.status == STATUS_SUCCESS) {
             _doCreate(ackPkg.creator, ackPkg.id);
@@ -141,16 +196,16 @@ abstract contract StorageHub is Initializable, Config {
     }
 
     function _doCreate(address creator, uint256 id) internal {
-        IERC721NonTransferable(_token).mint(creator, id);
+        IERC721NonTransferable(ERC721Token).mint(creator, id);
         emit CreateSuccess(creator, id);
     }
 
-    function _decodeDeleteAckPackage(RLPDecode.Iterator memory iter)
+    function _decodeCmnDeleteAckPackage(RLPDecode.Iterator memory iter)
         internal
         pure
-        returns (DeleteAckPackage memory, bool)
+        returns (CmnDeleteAckPackage memory, bool)
     {
-        DeleteAckPackage memory ackPkg;
+        CmnDeleteAckPackage memory ackPkg;
 
         bool success = false;
         uint256 idx = 0;
@@ -169,7 +224,7 @@ abstract contract StorageHub is Initializable, Config {
     }
 
     function _handleDeleteAckPackage(RLPDecode.Iterator memory iter) internal {
-        (DeleteAckPackage memory ackPkg, bool decodeSuccess) = _decodeDeleteAckPackage(iter);
+        (CmnDeleteAckPackage memory ackPkg, bool decodeSuccess) = _decodeCmnDeleteAckPackage(iter);
         require(decodeSuccess, "unrecognized delete ack package");
         if (ackPkg.status == STATUS_SUCCESS) {
             _doDelete(ackPkg.id);
@@ -181,12 +236,16 @@ abstract contract StorageHub is Initializable, Config {
     }
 
     function _doDelete(uint256 id) internal {
-        IERC721NonTransferable(_token).burn(id);
+        IERC721NonTransferable(ERC721Token).burn(id);
         emit DeleteSuccess(id);
     }
 
-    function _decodeMirrorSynPackage(bytes memory msgBytes) internal pure returns (MirrorSynPackage memory, bool) {
-        MirrorSynPackage memory synPkg;
+    function _decodeCmnMirrorSynPackage(bytes memory msgBytes)
+        internal
+        pure
+        returns (CmnMirrorSynPackage memory, bool)
+    {
+        CmnMirrorSynPackage memory synPkg;
 
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
         uint8 opType = uint8(msgIter.next().toUint());
@@ -217,7 +276,7 @@ abstract contract StorageHub is Initializable, Config {
         return (synPkg, success);
     }
 
-    function _encodeMirrorAckPackage(MirrorAckPackage memory mirrorAckPkg) internal pure returns (bytes memory) {
+    function _encodeCmnMirrorAckPackage(CmnMirrorAckPackage memory mirrorAckPkg) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = uint256(mirrorAckPkg.status).encodeUint();
         elements[1] = mirrorAckPkg.key.encodeBytes();
@@ -225,23 +284,27 @@ abstract contract StorageHub is Initializable, Config {
     }
 
     function _handleMirrorSynPackage(bytes memory msgBytes) internal returns (bytes memory) {
-        (MirrorSynPackage memory synPkg, bool success) = _decodeMirrorSynPackage(msgBytes);
+        (CmnMirrorSynPackage memory synPkg, bool success) = _decodeCmnMirrorSynPackage(msgBytes);
         require(success, "unrecognized mirror package");
-        uint32 resCode = _doMirror(synPkg);
-        MirrorAckPackage memory mirrorAckPkg = MirrorAckPackage({status: resCode, key: synPkg.key});
-        return _encodeMirrorAckPackage(mirrorAckPkg);
+        uint32 status = _doMirror(synPkg);
+        CmnMirrorAckPackage memory mirrorAckPkg = CmnMirrorAckPackage({status: status, key: synPkg.key});
+        return _encodeCmnMirrorAckPackage(mirrorAckPkg);
     }
 
-    function _doMirror(MirrorSynPackage memory synPkg) internal returns (uint32) {
-        IERC721NonTransferable(_token).mint(synPkg.owner, synPkg.id);
+    function _doMirror(CmnMirrorSynPackage memory synPkg) internal returns (uint32) {
+        try IERC721NonTransferable(ERC721Token).mint(synPkg.owner, synPkg.id) {}
+        catch (bytes memory reason) {
+            emit MirrorFailed(synPkg.id, synPkg.owner, reason);
+            return MIRROR_FAILED;
+        }
         emit MirrorSuccess(synPkg.id, synPkg.owner);
         return MIRROR_SUCCESS;
     }
 
-    function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory output) {
+    function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = opType.encodeUint();
         elements[1] = msgBytes.encodeBytes();
-        output = elements.encodeList();
+        return elements.encodeList();
     }
 }

@@ -2,19 +2,15 @@
 
 pragma solidity ^0.8.0;
 
-import "../StorageHub.sol";
+import "./NFTHub.sol";
 import "../interface/IERC721NonTransferable.sol";
 import "../interface/ICrossChain.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
 
-contract GroupHub is StorageHub {
+contract GroupHub is NFTHub {
     using RLPEncode for *;
     using RLPDecode for *;
-
-    // operation type
-    uint8 public constant TYPE_CREATE = 2;
-    uint8 public constant TYPE_DELETE = 3;
 
     /*----------------- struct -----------------*/
     struct CreateSynPackage {
@@ -25,48 +21,7 @@ contract GroupHub is StorageHub {
 
     /*----------------- app function -----------------*/
 
-    /**
-    * @dev handle sync cross-chain package from BSC to GNFD
-     *
-     * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
-     */
-    function handleSynPackage(uint8, bytes calldata msgBytes) external onlyCrossChainContract returns (bytes memory) {
-        return _handleMirrorSynPackage(msgBytes);
-    }
-
-    /**
-     * @dev handle ack cross-chain package from GNFD，it means create/delete operation Successly to GNFD.
-     *
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
-     */
-    function handleAckPackage(uint8, bytes calldata msgBytes) external onlyCrossChainContract {
-        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
-
-        uint8 opType = uint8(msgIter.next().toUint());
-        RLPDecode.Iterator memory pkgIter;
-        if (msgIter.hasNext()) {
-            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
-        } else {
-            revert("wrong ack package");
-        }
-
-        if (opType == TYPE_CREATE) {
-            _handleCreateAckPackage(pkgIter);
-        } else if (opType == TYPE_DELETE) {
-            _handleDeleteAckPackage(pkgIter);
-        } else {
-            revert("unexpected operation type");
-        }
-    }
-
-    /**
-     * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain syn request to GNFD.
-     *
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
-     */
-    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
-        emit FailAckPkgReceived(channelId, msgBytes);
-    }
+    // no difference from parent contract
 
     /*----------------- external function -----------------*/
     /**
@@ -83,7 +38,7 @@ contract GroupHub is StorageHub {
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
-            GROUP_CHANNELID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
+            GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit CreateSubmitted(msg.sender, name, relayFee, _ackRelayFee);
         return true;
@@ -98,11 +53,11 @@ contract GroupHub is StorageHub {
         require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
-        DeleteSynPackage memory synPkg = DeleteSynPackage({operator: msg.sender, name: name});
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: msg.sender, name: name});
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
-            GROUP_CHANNELID, _encodeDeleteSynPackage(synPkg), relayFee, _ackRelayFee
+            GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit DeleteSubmitted(msg.sender, name, relayFee, _ackRelayFee);
         return true;
@@ -122,7 +77,7 @@ contract GroupHub is StorageHub {
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }
 
-    function _encodeDeleteSynPackage(DeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
+    function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = synPkg.operator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();

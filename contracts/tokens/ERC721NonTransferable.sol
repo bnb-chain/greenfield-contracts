@@ -46,15 +46,15 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata {
     }
 
     /*----------------- ERC712 functions -----------------*/
-    function mint(address to, uint256 tokenId) external {
+    function mint(address to, uint256 tokenId) external onlyControlHub {
         _mint(to, tokenId);
     }
 
-    function safeMint(address to, uint256 tokenId) external {
+    function safeMint(address to, uint256 tokenId) external onlyControlHub {
         _safeMint(to, tokenId);
     }
 
-    function safeMint(address to, uint256 tokenId, bytes calldata _data) external {
+    function safeMint(address to, uint256 tokenId, bytes calldata _data) external onlyControlHub {
         _safeMint(to, tokenId, _data);
     }
 

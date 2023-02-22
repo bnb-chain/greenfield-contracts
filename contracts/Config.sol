@@ -5,18 +5,22 @@ pragma solidity ^0.8.0;
 import "./interface/ILightClient.sol";
 
 abstract contract Config {
-    uint8 public constant TRANSFER_IN_CHANNELID = 0x01;
-    uint8 public constant TRANSFER_OUT_CHANNELID = 0x02;
-    uint8 public constant APP_CHANNELID = 0x03;
-    uint8 public constant GOV_CHANNELID = 0x05;
+    uint8 public constant TRANSFER_IN_CHANNEL_ID = 0x01;
+    uint8 public constant TRANSFER_OUT_CHANNEL_ID = 0x02;
+    uint8 public constant APP_CHANNEL_ID = 0x03;
+    uint8 public constant GOV_CHANNEL_ID = 0x05;
 
     // TODO channel ID
-    uint8 public constant BUCKET_CHANNELID = 0x06;
-    uint8 public constant OBJECT_CHANNELID = 0x07;
-    uint8 public constant GROUP_CHANNELID = 0x08;
+    uint8 public constant BUCKET_CHANNEL_ID = 0x06;
+    uint8 public constant OBJECT_CHANNEL_ID = 0x07;
+    uint8 public constant GROUP_CHANNEL_ID = 0x08;
 
     uint32 public constant CODE_OK = 0;
     uint32 public constant ERROR_FAIL_DECODE = 100;
+
+    // relayer
+    uint256 public relayFee;
+    uint256 public ackRelayFee;
 
     // contract address
     // will calculate their deployed addresses from deploy script
