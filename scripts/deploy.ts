@@ -132,18 +132,29 @@ const main = async () => {
     );
     log('deploy group token success', groupToken.address);
 
-    await deployer.initAddresses(
+    const memberToken = await deployContract(
+        'ERC1155NonTransferable',
+        'member',
+        proxyGroupHub
+    );
+    log('deploy member token success', groupToken.address);
+
+    await deployer.initAddrsPart1(
         implGovHub.address,
         implCrossChain.address,
         implTokenHub.address,
         implLightClient.address,
-        implRelayerHub.address,
+        implRelayerHub.address
+    );
+
+    await deployer.initAddrsPart2(
         implBucketHub.address,
         implObjectHub.address,
         implGroupHub.address,
         bucketToken.address,
         objectToken.address,
-        groupToken.address
+        groupToken.address,
+        memberToken.address
     );
 
     const tx = await deployer.deploy(initConsensusStateBytes);

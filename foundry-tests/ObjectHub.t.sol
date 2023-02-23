@@ -47,14 +47,14 @@ contract ObjectHubTest is Test, ObjectHub {
 
     function testGov() public {
         ParamChangePackage memory proposal = ParamChangePackage({
-            key: "baseURL",
+            key: "BaseURI",
             values: bytes("newObject"),
             targets: abi.encodePacked(address(objectHub))
         });
         bytes memory msgBytes = _encodeGovSynPackage(proposal);
 
         vm.expectEmit(true, true, false, true, address(objectHub));
-        emit ParamChange("baseURL", bytes("newObject"));
+        emit ParamChange("BaseURI", bytes("newObject"));
         vm.prank(CROSS_CHAIN);
         govHub.handleSynPackage(GOV_CHANNEL_ID, msgBytes);
     }

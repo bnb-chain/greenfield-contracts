@@ -47,14 +47,14 @@ contract BucketHubTest is Test, BucketHub {
 
     function testGov() public {
         ParamChangePackage memory proposal = ParamChangePackage({
-            key: "baseURL",
+            key: "BaseURI",
             values: bytes("newBucket"),
             targets: abi.encodePacked(address(bucketHub))
         });
         bytes memory msgBytes = _encodeGovSynPackage(proposal);
 
         vm.expectEmit(true, true, false, true, address(bucketHub));
-        emit ParamChange("baseURL", bytes("newBucket"));
+        emit ParamChange("BaseURI", bytes("newBucket"));
         vm.prank(CROSS_CHAIN);
         govHub.handleSynPackage(GOV_CHANNEL_ID, msgBytes);
     }

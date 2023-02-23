@@ -6,9 +6,8 @@ import "forge-std/Test.sol";
 
 import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/GroupHub.sol";
-
 import "../contracts/tokens/ERC721NonTransferable.sol";
-
+import "../contracts/tokens/ERC1155NonTransferable.sol";
 import "../contracts/lib/RLPEncode.sol";
 import "../contracts/lib/RLPDecode.sol";
 
@@ -23,8 +22,10 @@ contract GroupHubTest is Test, GroupHub {
     }
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+    event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
 
     ERC721NonTransferable public groupToken;
+    ERC1155NonTransferable public memberToken;
     GroupHub public groupHub;
     GovHub public govHub;
 
@@ -34,10 +35,12 @@ contract GroupHubTest is Test, GroupHub {
         govHub = GovHub(GOV_HUB);
         groupHub = GroupHub(GROUP_HUB);
         groupToken = ERC721NonTransferable(groupHub.ERC721Token());
+        memberToken = ERC1155NonTransferable(groupHub.ERC1155Token());
 
         vm.label(GOV_HUB, "govHub");
         vm.label(GROUP_HUB, "groupHub");
         vm.label(address(groupToken), "groupToken");
+        vm.label(address(memberToken), "memberToken");
     }
 
     function testBasicInfo() public {
@@ -47,14 +50,23 @@ contract GroupHubTest is Test, GroupHub {
 
     function testGov() public {
         ParamChangePackage memory proposal = ParamChangePackage({
-            key: "baseURL",
+            key: "ERC721BaseURI",
             values: bytes("newGroup"),
             targets: abi.encodePacked(address(groupHub))
         });
         bytes memory msgBytes = _encodeGovSynPackage(proposal);
 
         vm.expectEmit(true, true, false, true, address(groupHub));
-        emit ParamChange("baseURL", bytes("newGroup"));
+        emit ParamChange("ERC721BaseURI", bytes("newGroup"));
+        vm.prank(CROSS_CHAIN);
+        govHub.handleSynPackage(GOV_CHANNEL_ID, msgBytes);
+
+        proposal.key = "ERC1155BaseURI";
+        proposal.values = bytes("newGroupMember");
+        msgBytes = _encodeGovSynPackage(proposal);
+
+        vm.expectEmit(true, true, false, true, address(groupHub));
+        emit ParamChange("ERC1155BaseURI", bytes("newGroupMember"));
         vm.prank(CROSS_CHAIN);
         govHub.handleSynPackage(GOV_CHANNEL_ID, msgBytes);
     }
@@ -75,6 +87,30 @@ contract GroupHubTest is Test, GroupHub {
 
         vm.expectEmit(true, true, true, true, address(groupToken));
         emit Transfer(address(0), msg.sender, id);
+        vm.prank(CROSS_CHAIN);
+        groupHub.handleAckPackage(GROUP_CHANNEL_ID, msgBytes);
+    }
+
+    function testUpdate(uint256 id) public {
+        vm.prank(GROUP_HUB);
+        groupToken.mint(msg.sender, id);
+
+        address[] memory newMembers = new address[](3);
+        for (uint256 i; i < 3; i++) {
+            newMembers[i] = address(uint160(i+1));
+        }
+        UpdateAckPackage memory updateAckPkg = UpdateAckPackage({
+            status: STATUS_SUCCESS,
+            operator: msg.sender,
+            id: id,
+            opType: UPDATE_ADD,
+            members: newMembers
+        });
+        bytes memory msgBytes = _encodeUpdateAckPackage(updateAckPkg);
+        vm.expectEmit(true, true, true, true, address(memberToken));
+        emit TransferSingle(address(groupHub), address(0), address(1), id, 1);
+        emit TransferSingle(address(groupHub), address(0), address(2), id, 1);
+        emit TransferSingle(address(groupHub), address(0), address(3), id, 1);
         vm.prank(CROSS_CHAIN);
         groupHub.handleAckPackage(GROUP_CHANNEL_ID, msgBytes);
     }
@@ -121,5 +157,20 @@ contract GroupHubTest is Test, GroupHub {
         elements[0] = ackPkg.status.encodeUint();
         elements[1] = ackPkg.id.encodeUint();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
+    }
+
+    function _encodeUpdateAckPackage(UpdateAckPackage memory ackPkg) internal pure returns (bytes memory) {
+        bytes[] memory members = new bytes[](ackPkg.members.length);
+        for (uint256 i; i < ackPkg.members.length; ++i) {
+            members[i] = ackPkg.members[i].encodeAddress();
+        }
+
+        bytes[] memory elements = new bytes[](5);
+        elements[0] = ackPkg.status.encodeUint();
+        elements[1] = ackPkg.operator.encodeAddress();
+        elements[2] = ackPkg.id.encodeUint();
+        elements[3] = ackPkg.opType.encodeUint();
+        elements[4] = members.encodeList();
+        return _RLPEncode(TYPE_UPDATE, elements.encodeList());
     }
 }

@@ -95,7 +95,7 @@ abstract contract NFTWrapResourceHub is Initializable, Config {
 
     /*----------------- update param -----------------*/
     function updateParam(string calldata key, bytes calldata value) external virtual onlyGovHub {
-        if (Memory.compareStrings(key, "baseURL")) {
+        if (Memory.compareStrings(key, "BaseURI")) {
             IERC721NonTransferable(ERC721Token).setBaseURI(string(value));
         } else {
             revert("unknown param");
