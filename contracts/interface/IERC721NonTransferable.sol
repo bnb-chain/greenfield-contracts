@@ -14,4 +14,10 @@ interface IERC721NonTransferable {
     function burn(uint256 tokenId) external;
 
     function setBaseURI(string calldata newURI) external;
+
+    function totalSupply() external view returns (uint256);
+
+    function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256);
+
+    function tokenByIndex(uint256 index) external view returns (uint256);
 }
