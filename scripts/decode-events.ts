@@ -12,7 +12,7 @@ import {
 const { ethers } = require('hardhat');
 
 const log = console.log;
-const txHash = '0x6923652f7b20c7a92610a4fd1e0264593f0a6b4d32bc74eeba4477168e066508'
+const txHash = '0xd50a80ccde120109e6473d37aa0e43268b1a58baecb5673393f93951dd7faed3'
 
 const getLogsFromReceipt = async () => {
     const receipt = await ethers.provider.getTransactionReceipt(txHash)
@@ -60,9 +60,12 @@ const main = async () => {
         const eventLog: any = logs[i]
         const iface = interfaceMap[eventLog.address]
         if (iface) {
-            const logDesc = iface.parseLog(eventLog)
             log('----------------------------------')
-            log(logDesc.signature, logDesc.args)
+            log('contract:', eventLog.address)
+            try {
+                const logDesc = iface.parseLog(eventLog)
+                log(logDesc.signature, logDesc.args)
+            } catch (e) {}
         }
     }
 };
