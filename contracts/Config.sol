@@ -21,4 +21,9 @@ abstract contract Config {
     address public constant TOKEN_HUB = address(0);
     address public constant LIGHT_CLIENT = address(0);
     address public constant RELAYER_HUB = address(0);
+
+    modifier onlyGov() {
+        require(msg.sender == GOV_HUB, "only GovHub contract");
+        _;
+    }
 }
