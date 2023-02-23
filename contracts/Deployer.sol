@@ -43,7 +43,8 @@ contract Deployer {
     address public groupToken;
     address public memberToken;
 
-    bool public initialized;
+    bool public initializedPart1;
+    bool public initializedPart2;
     bool public deployed;
 
     constructor(uint16 _gnfdChainId) {
@@ -70,12 +71,30 @@ contract Deployer {
         require(deployedProxyAdmin == proxyAdmin, "invalid proxyAdmin address");
     }
 
-    function initAddresses(
+    function initAddrsPart1(
         address _implGovHub,
         address _implCrossChain,
         address _implTokenHub,
         address _implLightClient,
-        address _implRelayerHub,
+        address _implRelayerHub
+    ) public {
+        require(!initializedPart1, "only not initializedPart1");
+        initializedPart1 = true;
+
+        require(_isContract(_implGovHub), "invalid _implCrossChain");
+        require(_isContract(_implCrossChain), "invalid _implCrossChain");
+        require(_isContract(_implTokenHub), "invalid _implTokenHub");
+        require(_isContract(_implLightClient), "invalid _implLightClient");
+        require(_isContract(_implRelayerHub), "invalid _implRelayerHub");
+
+        implGovHub = _implGovHub;
+        implCrossChain = _implCrossChain;
+        implTokenHub = _implTokenHub;
+        implLightClient = _implLightClient;
+        implRelayerHub = _implRelayerHub;
+    }
+
+    function initAddrsPart2(
         address _implBucketHub,
         address _implObjectHub,
         address _implGroupHub,
@@ -84,14 +103,9 @@ contract Deployer {
         address _groupToken,
         address _memberToken
     ) public {
-        require(!initialized, "only not initialized");
-        initialized = true;
+        require(!initializedPart2, "only not initializedPart2");
+        initializedPart2 = true;
 
-        require(_isContract(_implGovHub), "invalid _implCrossChain");
-        require(_isContract(_implCrossChain), "invalid _implCrossChain");
-        require(_isContract(_implTokenHub), "invalid _implTokenHub");
-        require(_isContract(_implLightClient), "invalid _implLightClient");
-        require(_isContract(_implRelayerHub), "invalid _implRelayerHub");
         require(_isContract(_implBucketHub), "invalid _implBucketHub");
         require(_isContract(_implObjectHub), "invalid _implObjectHub");
         require(_isContract(_implGroupHub), "invalid _implGroupHub");
@@ -100,11 +114,6 @@ contract Deployer {
         require(_isContract(_groupToken), "invalid _groupToken");
         require(_isContract(_memberToken), "invalid _memberToken");
 
-        implGovHub = _implGovHub;
-        implCrossChain = _implCrossChain;
-        implTokenHub = _implTokenHub;
-        implLightClient = _implLightClient;
-        implRelayerHub = _implRelayerHub;
         implBucketHub = _implBucketHub;
         implObjectHub = _implObjectHub;
         implGroupHub = _implGroupHub;
@@ -113,6 +122,7 @@ contract Deployer {
         groupToken = _groupToken;
         memberToken = _memberToken;
     }
+
 
     function deploy(bytes calldata _initConsensusStateBytes) public {
         require(!deployed, "only not deployed");
