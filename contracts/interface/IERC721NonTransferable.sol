@@ -5,6 +5,10 @@ interface IERC721NonTransferable {
 
     function ownerOf(uint256 tokenId) external view returns (address owner);
 
+    function exists(uint256 tokenId) external view returns (bool);
+
+    function tokenURI(uint256 tokenId) external view returns (string memory);
+
     function mint(address to, uint256 tokenId) external;
 
     function burn(uint256 tokenId) external;

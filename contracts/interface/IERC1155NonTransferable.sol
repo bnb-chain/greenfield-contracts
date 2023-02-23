@@ -10,4 +10,8 @@ interface IERC1155NonTransferable {
     function burn(address owner, uint256 id, uint256 value) external;
 
     function burnBatch(address owner, uint256[] memory ids, uint256[] memory values) external;
+
+    function setBaseURI(string calldata newURI) external;
+
+    function setTokenURI(uint256 id, string calldata newURI) external;
 }

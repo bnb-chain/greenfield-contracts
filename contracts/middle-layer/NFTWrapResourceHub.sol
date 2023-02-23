@@ -10,23 +10,19 @@ import "../lib/BytesToTypes.sol";
 import "../lib/Memory.sol";
 import "../interface/IERC721NonTransferable.sol";
 
-abstract contract NFTHub is Initializable, Config {
+abstract contract NFTWrapResourceHub is Initializable, Config {
     using RLPEncode for *;
     using RLPDecode for *;
 
     /*----------------- constants -----------------*/
-    // mirror status
-    uint8 public constant MIRROR_SUCCESS = 0;
-    uint8 public constant MIRROR_FAILED = 1;
-
-    // status of ack package
+    // status of cross-chain package
     uint32 public constant STATUS_SUCCESS = 0;
     uint32 public constant STATUS_FAILED = 1;
 
     // operation type
     uint8 public constant TYPE_MIRROR = 1;
-    // uint8 public constant TYPE_CREATE = 2; // not used in all child contracts
-    // uint8 public constant TYPE_DELETE = 3;
+    uint8 public constant TYPE_CREATE = 2;
+    uint8 public constant TYPE_DELETE = 3;
 
     // ERC721 token contract
     address public ERC721Token;
@@ -44,7 +40,7 @@ abstract contract NFTHub is Initializable, Config {
     // BSC to GNFD
     struct CmnDeleteSynPackage {
         address operator;
-        string name;
+        uint256 id;
     }
 
     // GNFD to BSC
@@ -71,7 +67,7 @@ abstract contract NFTHub is Initializable, Config {
     event CreateSubmitted(address creator, string name, uint256 relayFee, uint256 ackRelayFee);
     event CreateFailed(address creator, uint256 id);
     event CreateSuccess(address creator, uint256 id);
-    event DeleteSubmitted(address operator, string name, uint256 relayFee, uint256 ackRelayFee);
+    event DeleteSubmitted(address operator, uint256 id, uint256 relayFee, uint256 ackRelayFee);
     event DeleteFailed(uint256 id);
     event DeleteSuccess(uint256 id);
     event FailAckPkgReceived(uint8 channelId, bytes msgBytes);
@@ -88,13 +84,6 @@ abstract contract NFTHub is Initializable, Config {
         _;
     }
 
-    function initialize(address _ERC721_token) public initializer {
-        ERC721Token = _ERC721_token;
-
-        relayFee = 2e15;
-        ackRelayFee = 2e15;
-    }
-
     /*----------------- middle-layer app function -----------------*/
 
     // need to be implemented in child contract
@@ -105,7 +94,7 @@ abstract contract NFTHub is Initializable, Config {
     function handleFailAckPackage(uint8 channelId, bytes calldata) external virtual {}
 
     /*----------------- update param -----------------*/
-    function updateParam(string calldata key, bytes calldata value) external onlyGovHub {
+    function updateParam(string calldata key, bytes calldata value) external virtual onlyGovHub {
         if (Memory.compareStrings(key, "baseURL")) {
             IERC721NonTransferable(ERC721Token).setBaseURI(string(value));
         } else {
@@ -141,8 +130,9 @@ abstract contract NFTHub is Initializable, Config {
     }
 
     function _handleCreateAckPackage(RLPDecode.Iterator memory iter) internal virtual {
-        (CmnCreateAckPackage memory ackPkg, bool decodeSuccess) = _decodeCmnCreateAckPackage(iter);
-        require(decodeSuccess, "unrecognized create ack package");
+        (CmnCreateAckPackage memory ackPkg, bool success) = _decodeCmnCreateAckPackage(iter);
+        require(success, "unrecognized create ack package");
+
         if (ackPkg.status == STATUS_SUCCESS) {
             _doCreate(ackPkg.creator, ackPkg.id);
         } else if (ackPkg.status == STATUS_FAILED) {
@@ -181,8 +171,9 @@ abstract contract NFTHub is Initializable, Config {
     }
 
     function _handleDeleteAckPackage(RLPDecode.Iterator memory iter) internal virtual {
-        (CmnDeleteAckPackage memory ackPkg, bool decodeSuccess) = _decodeCmnDeleteAckPackage(iter);
-        require(decodeSuccess, "unrecognized delete ack package");
+        (CmnDeleteAckPackage memory ackPkg, bool success) = _decodeCmnDeleteAckPackage(iter);
+        require(success, "unrecognized delete ack package");
+
         if (ackPkg.status == STATUS_SUCCESS) {
             _doDelete(ackPkg.id);
         } else if (ackPkg.status == STATUS_FAILED) {
@@ -243,6 +234,7 @@ abstract contract NFTHub is Initializable, Config {
     function _handleMirrorSynPackage(bytes memory msgBytes) internal virtual returns (bytes memory) {
         (CmnMirrorSynPackage memory synPkg, bool success) = _decodeCmnMirrorSynPackage(msgBytes);
         require(success, "unrecognized mirror package");
+
         uint32 status = _doMirror(synPkg);
         CmnMirrorAckPackage memory mirrorAckPkg = CmnMirrorAckPackage({status: status, key: synPkg.key});
         return _encodeCmnMirrorAckPackage(mirrorAckPkg);
@@ -252,10 +244,10 @@ abstract contract NFTHub is Initializable, Config {
         try IERC721NonTransferable(ERC721Token).mint(synPkg.owner, synPkg.id) {}
         catch (bytes memory reason) {
             emit MirrorFailed(synPkg.id, synPkg.owner, reason);
-            return MIRROR_FAILED;
+            return STATUS_FAILED;
         }
         emit MirrorSuccess(synPkg.id, synPkg.owner);
-        return MIRROR_SUCCESS;
+        return STATUS_SUCCESS;
     }
 
     function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory) {

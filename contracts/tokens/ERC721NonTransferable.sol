@@ -20,7 +20,7 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata {
     string private _symbol;
 
     // Token base URI
-    string private _baseTokenURI;
+    string private _uri;
 
     // Mapping from token ID to owner address
     mapping(uint256 => address) private _owners;
@@ -37,15 +37,15 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata {
      * @dev Initializes the contract by setting a `name` and a `symbol` to the token collection.
      *  And set the address of controlHub_.
      */
-    constructor(string memory name_, string memory symbol_, string memory baseTokenURI_, address controlHub_) {
+    constructor(string memory name_, string memory symbol_, string memory uri_, address controlHub_) {
         _name = name_;
         _symbol = symbol_;
         _controlHub = controlHub_;
 
-        _setBaseURI(baseTokenURI_);
+        _setBaseURI(uri_);
     }
 
-    /*----------------- ERC712 functions -----------------*/
+    /*----------------- ERC721 functions -----------------*/
     function mint(address to, uint256 tokenId) external onlyControlHub {
         _mint(to, tokenId);
     }
@@ -113,6 +113,9 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata {
         return _symbol;
     }
 
+    /**
+     * @dev Returns the base URI.
+     */
     function baseURI() public view returns (string memory) {
         return _baseURI();
     }
@@ -174,14 +177,14 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata {
      * token will be the concatenation of the `baseURI` and the `tokenId`.
      */
     function _baseURI() internal view returns (string memory) {
-        return _baseTokenURI;
+        return _uri;
     }
 
     /**
      * @dev Sets a new baseURI.
      */
     function _setBaseURI(string memory newURI) internal {
-        _baseTokenURI = newURI;
+        _uri = newURI;
     }
 
     /**

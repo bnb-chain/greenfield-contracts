@@ -41,6 +41,7 @@ contract Deployer {
     address public bucketToken;
     address public objectToken;
     address public groupToken;
+    address public memberToken;
 
     bool public initialized;
     bool public deployed;
@@ -80,7 +81,8 @@ contract Deployer {
         address _implGroupHub,
         address _bucketToken,
         address _objectToken,
-        address _groupToken
+        address _groupToken,
+        address _memberToken
     ) public {
         require(!initialized, "only not initialized");
         initialized = true;
@@ -96,6 +98,7 @@ contract Deployer {
         require(_isContract(_bucketToken), "invalid _bucketToken");
         require(_isContract(_objectToken), "invalid _objectToken");
         require(_isContract(_groupToken), "invalid _groupToken");
+        require(_isContract(_memberToken), "invalid _memberToken");
 
         implGovHub = _implGovHub;
         implCrossChain = _implCrossChain;
@@ -108,6 +111,7 @@ contract Deployer {
         bucketToken = _bucketToken;
         objectToken = _objectToken;
         groupToken = _groupToken;
+        memberToken = _memberToken;
     }
 
     function deploy(bytes calldata _initConsensusStateBytes) public {
@@ -159,7 +163,7 @@ contract Deployer {
         RelayerHub(payable(proxyRelayerHub)).initialize();
         BucketHub(payable(proxyBucketHub)).initialize(bucketToken);
         ObjectHub(payable(proxyObjectHub)).initialize(objectToken);
-        GroupHub(payable(proxyGroupHub)).initialize(groupToken);
+        GroupHub(payable(proxyGroupHub)).initialize(groupToken, memberToken);
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");

@@ -2,11 +2,18 @@
 
 pragma solidity ^0.8.0;
 
-import "./NFTHub.sol";
+import "./NFTWrapResourceHub.sol";
 import "../interface/IERC721NonTransferable.sol";
 import "../interface/ICrossChain.sol";
 
-contract ObjectHub is NFTHub {
+contract ObjectHub is NFTWrapResourceHub {
+    function initialize(address _ERC721_token) public initializer {
+        ERC721Token = _ERC721_token;
+
+        relayFee = 2e15;
+        ackRelayFee = 2e15;
+    }
+
     /*----------------- middle-layer app function -----------------*/
 
     /**

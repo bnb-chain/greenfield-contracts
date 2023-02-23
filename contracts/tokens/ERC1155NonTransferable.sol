@@ -7,6 +7,8 @@ import "lib/openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol";
 contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
 
+    address private _controlHub;
+
     // Mapping from token ID to account balances
     mapping(uint256 => mapping(address => uint256)) private _balances;
 
@@ -17,28 +19,46 @@ contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataUR
     // base URI for all tokens
     string private _baseURI;
 
+    modifier onlyControlHub() {
+        require(_msgSender() == _controlHub, "caller is not controlHub");
+        _;
+    }
+
     /**
      * @dev See {_setURI}.
      */
-    constructor(string memory _uri) {
-        _setBaseURI(_uri);
+    constructor(string memory baseURI_, address controlHub_) {
+        _controlHub = controlHub_;
+
+        _setBaseURI(baseURI_);
     }
 
-    /*----------------- ERC712 functions -----------------*/
-    function mint(address to, uint256 id, uint256 value, bytes memory data) public {
+    /*----------------- ERC1155 functions -----------------*/
+    function mint(address to, uint256 id, uint256 value, bytes memory data) public onlyControlHub {
         _mint(to, id, value, data);
     }
 
-    function mintBatch(address to, uint256[] memory ids, uint256[] memory values, bytes memory data) public {
+    function mintBatch(address to, uint256[] memory ids, uint256[] memory values, bytes memory data)
+        public
+        onlyControlHub
+    {
         _mintBatch(to, ids, values, data);
     }
 
-    function burn(address owner, uint256 id, uint256 value) public {
+    function burn(address owner, uint256 id, uint256 value) public onlyControlHub {
         _burn(owner, id, value);
     }
 
-    function burnBatch(address owner, uint256[] memory ids, uint256[] memory values) public {
+    function burnBatch(address owner, uint256[] memory ids, uint256[] memory values) public onlyControlHub {
         _burnBatch(owner, ids, values);
+    }
+
+    function setBaseURI(string calldata newURI) external onlyControlHub {
+        _setBaseURI(newURI);
+    }
+
+    function setTokenURI(uint256 id, string memory newURI) external onlyControlHub {
+        _setTokenURI(id, newURI);
     }
 
     /*----------------- view functions -----------------*/
@@ -51,7 +71,7 @@ contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataUR
             || super.supportsInterface(interfaceId);
     }
 
-    function baseUri() public view returns (string memory) {
+    function baseURI() public view returns (string memory) {
         return _baseURI;
     }
 
