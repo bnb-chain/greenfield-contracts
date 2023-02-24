@@ -281,6 +281,19 @@ contract CrossChain is Initializable, Config {
         }
     }
 
+    function updateParam(string calldata key, bytes calldata value) onlyGov external {
+        uint256 valueLength = value.length;
+        if (Memory.compareStrings(key, "batchSizeForOracle")) {
+            require(valueLength == 32, "invalid batchSizeForOracle value length");
+            uint256 newBatchSizeForOracle = BytesToTypes.bytesToUint256(valueLength, value);
+            require(newBatchSizeForOracle <= 10000 && newBatchSizeForOracle >= 10, "the newBatchSizeForOracle should be in [10, 10000]");
+            batchSizeForOracle = newBatchSizeForOracle;
+        } else {
+            revert("unknown param");
+        }
+        emit ParamChange(key, value);
+    }
+
     /*----------------- internal function -----------------*/
     /*
     | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | SynRelayerFee | AckRelayerFee(optional) | PackageLoad |

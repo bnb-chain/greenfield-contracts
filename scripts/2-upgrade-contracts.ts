@@ -1,5 +1,6 @@
 import { BigNumber } from 'ethers';
-import { Deployer } from '../typechain-types';
+import {CrossChain, Deployer} from '../typechain-types';
+import {expect} from "chai";
 
 const fs = require('fs');
 const { ethers } = require('hardhat');
@@ -16,11 +17,22 @@ const main = async () => {
     const deployer = (await ethers.getContractAt('Deployer', deployment.Deployer)) as Deployer;
 
     const implGovHub = await deployContract('GovHub');
+    const implCrossChain = (await deployContract('CrossChain')) as CrossChain;
+
+    if (
+        await implCrossChain.PROXY_ADMIN() !== deployment.ProxyAdmin ||
+        await implCrossChain.CROSS_CHAIN() !== deployment.CrossChain ||
+        await implCrossChain.GOV_HUB() !== deployment.GovHub ||
+        await implCrossChain.TOKEN_HUB() !== deployment.TokenHub ||
+        await implCrossChain.LIGHT_CLIENT() !== deployment.LightClient ||
+        await implCrossChain.RELAYER_HUB() !== deployment.RelayerHub
+    ) {
+        log("Error", "contracts constants of current Config and previous Config mismatch, Please modify Config contract")
+        return
+    }
+
     log('deploy implGovHub success', implGovHub.address);
-
-    const implCrossChain = await deployContract('CrossChain');
     log('deploy implCrossChain success', implCrossChain.address);
-
 
     const upgrade: any = {
         Deployer: deployer.address,
