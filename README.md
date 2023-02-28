@@ -5,6 +5,7 @@ Greenfield Contracts is the bridge between GreenField and BSC for cross-chain co
 
 set environment
 ```shell
+# require Node.js 14+
 cp .env.example .env
 # modify the env variable `DeployerPrivateKey` to your own private key
 
