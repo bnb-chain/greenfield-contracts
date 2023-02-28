@@ -9,6 +9,8 @@ cp .env.example .env
 # modify the env variable `DeployerPrivateKey` to your own private key
 
 # Launch a local test BSC
+# refer to https://github.com/bnb-chain/node-deploy
+# make sure the BSC binary is including the precompile contracts for BLS features
 ```
 
 Install foundry:
@@ -28,7 +30,7 @@ forge install --no-git --no-commit OpenZeppelin/openzeppelin-contracts-upgradeab
 
 ## Build
 ```shell
-npx hardhat build
+npx hardhat compile
 forge build
 ```
 
