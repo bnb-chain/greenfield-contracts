@@ -10,7 +10,7 @@ cp .env.example .env
 
 # Launch a local test BSC
 # refer to https://github.com/bnb-chain/node-deploy
-# make sure the BSC binary is including the precompile contracts for BLS features
+# using https://github.com/bnb-chain/bsc-private/tree/ins-precompile as the BSC binary that includes the precompile contracts for BLS features 
 ```
 
 Install foundry:
