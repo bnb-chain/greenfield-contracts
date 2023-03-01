@@ -2,9 +2,14 @@
 
 pragma solidity ^0.8.0;
 
-import "lib/openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
-contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataURI {
+import "../interface/IERC1155NonTransferable.sol";
+
+contract ERC1155NonTransferable is Context, ERC165, IERC1155NonTransferable {
     using Address for address;
 
     address private _controlHub;
@@ -66,9 +71,8 @@ contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataUR
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view override(ERC165, IERC165) returns (bool) {
-        return interfaceId == type(IERC1155).interfaceId || interfaceId == type(IERC1155MetadataURI).interfaceId
-            || super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(IERC1155NonTransferable).interfaceId || super.supportsInterface(interfaceId);
     }
 
     function baseURI() public view returns (string memory) {
@@ -78,7 +82,7 @@ contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataUR
     /**
      * @dev See {IERC1155MetadataURI-URI}.
      */
-    function uri(uint256 id) public view override returns (string memory) {
+    function uri(uint256 id) public view returns (string memory) {
         return _tokenURI[id];
     }
 
@@ -89,7 +93,7 @@ contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataUR
      *
      * - `account` cannot be the zero address.
      */
-    function balanceOf(address account, uint256 id) public view override returns (uint256) {
+    function balanceOf(address account, uint256 id) public view returns (uint256) {
         require(account != address(0), "ERC1155: address zero is not a valid owner");
         return _balances[id][account];
     }
@@ -101,12 +105,7 @@ contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataUR
      *
      * - `accounts` and `ids` must have the same length.
      */
-    function balanceOfBatch(address[] memory accounts, uint256[] memory ids)
-        public
-        view
-        override
-        returns (uint256[] memory)
-    {
+    function balanceOfBatch(address[] memory accounts, uint256[] memory ids) public view returns (uint256[] memory) {
         require(accounts.length == ids.length, "ERC1155: accounts and ids length mismatch");
 
         uint256[] memory batchBalances = new uint256[](accounts.length);
@@ -123,32 +122,28 @@ contract ERC1155NonTransferable is Context, ERC165, IERC1155, IERC1155MetadataUR
     /**
      * @dev See {IERC1155-setApprovalForAll}.
      */
-    function setApprovalForAll(address, bool) public pure override {
+    function setApprovalForAll(address, bool) public pure {
         revert("approve is not allowed");
     }
 
     /**
      * @dev See {IERC1155-safeTransferFrom}.
      */
-    function safeTransferFrom(address, address, uint256, uint256, bytes memory) public pure override {
+    function safeTransferFrom(address, address, uint256, uint256, bytes memory) public pure {
         revert("transfer is not allowed");
     }
 
     /**
      * @dev See {IERC1155-safeBatchTransferFrom}.
      */
-    function safeBatchTransferFrom(address, address, uint256[] memory, uint256[] memory, bytes memory)
-        public
-        pure
-        override
-    {
+    function safeBatchTransferFrom(address, address, uint256[] memory, uint256[] memory, bytes memory) public pure {
         revert("transfer is not allowed");
     }
 
     /**
      * @dev See {IERC1155-isApprovedForAll}.
      */
-    function isApprovedForAll(address, address) public pure override returns (bool) {
+    function isApprovedForAll(address, address) public pure returns (bool) {
         return false;
     }
 

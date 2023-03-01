@@ -2,17 +2,17 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
-import "../interface/IParamSubscriber.sol";
-import "../lib/Memory.sol";
-import "../lib/BytesToTypes.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable {
+import "../interface/IERC721NonTransferable.sol";
+
+contract ERC721NonTransferable is Context, ERC165, IERC721NonTransferable {
     using Address for address;
     using Strings for uint256;
-
-    address private _controlHub;
 
     // Token name
     string private _name;
@@ -23,11 +23,20 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IER
     // Token base URI
     string private _uri;
 
+    // System contract address that have admin permission
+    address private _controlHub;
+
     // Mapping from token ID to owner address
     mapping(uint256 => address) private _owners;
 
     // Mapping owner address to token count
     mapping(address => uint256) private _balances;
+
+    // Mapping from token ID to approved address
+    mapping(uint256 => address) private _tokenApprovals;
+
+    // Mapping from owner to operator approvals
+    mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     // For enumerable
     // Mapping from owner to list of owned token IDs
@@ -60,6 +69,10 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IER
     }
 
     /*----------------- ERC721 functions -----------------*/
+    function setBaseURI(string calldata newURI) external onlyControlHub {
+        _setBaseURI(newURI);
+    }
+
     function mint(address to, uint256 tokenId) external onlyControlHub {
         _mint(to, tokenId);
     }
@@ -83,17 +96,34 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IER
         _burn(tokenId);
     }
 
-    function setBaseURI(string calldata newURI) external onlyControlHub {
-        _setBaseURI(newURI);
+    /**
+     * @dev See {IERC721-approve}.
+     */
+    function approve(address to, uint256 tokenId) public virtual override {
+        address owner = _ownerOf(tokenId);
+        require(to != owner, "ERC721: approval to current owner");
+
+        require(
+            _msgSender() == owner || isApprovedForAll(owner, _msgSender()),
+            "ERC721: approve caller is not token owner or approved for all"
+        );
+
+        _approve(to, tokenId);
+    }
+
+    /**
+     * @dev See {IERC721-setApprovalForAll}.
+     */
+    function setApprovalForAll(address operator, bool approved) public virtual override {
+        _setApprovalForAll(_msgSender(), operator, approved);
     }
 
     /*----------------- view functions -----------------*/
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view override(ERC165, IERC165) returns (bool) {
-        return interfaceId == type(IERC721).interfaceId || interfaceId == type(IERC721Metadata).interfaceId
-            || interfaceId == type(IERC721Enumerable).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(IERC721NonTransferable).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /**
@@ -116,14 +146,14 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IER
     /**
      * @dev See {IERC721Metadata-name}.
      */
-    function name() public view override returns (string memory) {
+    function name() public view returns (string memory) {
         return _name;
     }
 
     /**
      * @dev See {IERC721Metadata-symbol}.
      */
-    function symbol() public view override returns (string memory) {
+    function symbol() public view returns (string memory) {
         return _symbol;
     }
 
@@ -149,6 +179,22 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IER
     }
 
     /**
+     * @dev See {IERC721-getApproved}.
+     */
+    function getApproved(uint256 tokenId) public view virtual override returns (address) {
+        _requireMinted(tokenId);
+
+        return _tokenApprovals[tokenId];
+    }
+
+    /**
+     * @dev See {IERC721-isApprovedForAll}.
+     */
+    function isApprovedForAll(address owner, address operator) public view virtual override returns (bool) {
+        return _operatorApprovals[owner][operator];
+    }
+
+    /**
      * @dev See {IERC721Enumerable-tokenOfOwnerByIndex}.
      */
     function tokenOfOwnerByIndex(address owner, uint256 index) public view override returns (uint256) {
@@ -166,45 +212,23 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IER
     /**
      * @dev See {IERC721Enumerable-tokenByIndex}.
      */
-    function tokenByIndex(uint256 index) public view override returns (uint256) {
+    function tokenByIndex(uint256 index) public view returns (uint256) {
         require(index < totalSupply(), "ERC721Enumerable: global index out of bounds");
         return _allTokens[index];
     }
 
     /*----------------- forbidden functions -----------------*/
 
-    /**
-     * @dev See {IERC721-getApproved}.
-     */
-    function getApproved(uint256) public pure override returns (address) {
-        return address(0);
-    }
-
-    /**
-     * @dev See {IERC721-isApprovedForAll}.
-     */
-    function isApprovedForAll(address, address) public pure override returns (bool) {
-        return false;
-    }
-
-    function transferFrom(address, address, uint256) public pure override {
+    function transferFrom(address, address, uint256) public pure {
         revert("transfer is not allowed");
     }
 
-    function safeTransferFrom(address, address, uint256) public pure override {
+    function safeTransferFrom(address, address, uint256) public pure {
         revert("transfer is not allowed");
     }
 
-    function safeTransferFrom(address, address, uint256, bytes memory) public pure override {
+    function safeTransferFrom(address, address, uint256, bytes memory) public pure {
         revert("transfer is not allowed");
-    }
-
-    function approve(address, uint256) public pure override {
-        revert("approve is not allowed");
-    }
-
-    function setApprovalForAll(address, bool) public pure override {
-        revert("approve is not allowed");
     }
 
     /*----------------- internal functions -----------------*/
@@ -344,6 +368,27 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IER
     }
 
     /**
+     * @dev Approve `to` to operate on `tokenId`
+     *
+     * Emits an {Approval} event.
+     */
+    function _approve(address to, uint256 tokenId) internal virtual {
+        _tokenApprovals[tokenId] = to;
+        emit Approval(ERC721.ownerOf(tokenId), to, tokenId);
+    }
+
+    /**
+     * @dev Approve `operator` to operate on all of `owner` tokens
+     *
+     * Emits an {ApprovalForAll} event.
+     */
+    function _setApprovalForAll(address owner, address operator, bool approved) internal virtual {
+        require(owner != operator, "ERC721: approve to caller");
+        _operatorApprovals[owner][operator] = approved;
+        emit ApprovalForAll(owner, operator, approved);
+    }
+
+    /**
      * @dev Reverts if the `tokenId` has not been minted yet.
      */
     function _requireMinted(uint256 tokenId) internal view {
@@ -364,12 +409,7 @@ contract ERC721NonTransferable is Context, ERC165, IERC721, IERC721Metadata, IER
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 firstTokenId,
-        uint256 batchSize
-    ) internal {
+    function _beforeTokenTransfer(address from, address to, uint256 firstTokenId, uint256 batchSize) internal {
         if (batchSize > 1) {
             // Will only trigger during construction. Batch transferring (minting) is not available afterwards.
             revert("ERC721Enumerable: consecutive transfers not supported");

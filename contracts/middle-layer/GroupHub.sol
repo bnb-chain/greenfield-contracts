@@ -21,6 +21,12 @@ contract GroupHub is NFTWrapResourceHub {
     uint8 public constant UPDATE_ADD = 1;
     uint8 public constant UPDATE_DELETE = 2;
 
+    // authorization code
+    uint32 public constant AUTH_CODE_UPDATE = 0x00001000;
+
+    // role
+    bytes32 public constant ROLE_UPDATE = keccak256("ROLE_UPDATE");
+
     // ERC1155 token contract
     address public ERC1155Token;
 
@@ -118,20 +124,30 @@ contract GroupHub is NFTWrapResourceHub {
     /**
      * @dev create a group and send cross-chain request from BSC to GNFD
      *
+     * @param owner The group's owner
      * @param name The group's name
      * @param members The initial members of the group
      */
-    function createGroup(string calldata name, address[] calldata members) external payable returns (bool) {
+    function createGroup(address owner, string calldata name, address[] calldata members)
+        external
+        payable
+        returns (bool)
+    {
         require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
-        CreateSynPackage memory synPkg = CreateSynPackage({creator: msg.sender, name: name, members: members});
+        // check authorization
+        if (_msgSender() != owner) {
+            _checkRole(AUTH_CODE_CREATE, owner);
+        }
+
+        CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name, members: members});
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit CreateSubmitted(msg.sender, name, relayFee, _ackRelayFee);
+        emit CreateSubmitted(owner, _msgSender(), name, relayFee, _ackRelayFee);
         return true;
     }
 
@@ -144,9 +160,18 @@ contract GroupHub is NFTWrapResourceHub {
         require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
-        // TODO: add authrization system'
-        require(IERC721NonTransferable(ERC721Token).ownerOf(id) == msg.sender, "only group owner can delete group");
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: msg.sender, id: id});
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+        if (
+            !(
+                _msgSender() == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == _msgSender()
+                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _msgSender())
+            )
+        ) {
+            _checkRole(AUTH_CODE_DELETE, owner);
+        }
+
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id});
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -165,12 +190,16 @@ contract GroupHub is NFTWrapResourceHub {
         require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
-        // TODO: add authorization system
-        require(synPkg.operator == msg.sender, "operator should be the same as msg.sender");
-        require(
-            IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id) == msg.sender,
-            "operator should be the owner of the group"
-        );
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
+        if (
+            !(
+                _msgSender() == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == _msgSender()
+                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _msgSender())
+            )
+        ) {
+            _checkRole(AUTH_CODE_UPDATE, owner);
+        }
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -178,6 +207,34 @@ contract GroupHub is NFTWrapResourceHub {
         );
         emit UpdateSubmitted(msg.sender, synPkg.id, synPkg.opType, synPkg.members, relayFee, _ackRelayFee);
         return true;
+    }
+
+    function grant(address account, uint32 acCode, uint256 expireTime) external override {
+        if (acCode & AUTH_CODE_MIRROR != 0) {
+            grantRole(ROLE_MIRROR, account, expireTime);
+        } else if (acCode & AUTH_CODE_CREATE != 0) {
+            grantRole(ROLE_CREATE, account, expireTime);
+        } else if (acCode & AUTH_CODE_DELETE != 0) {
+            grantRole(ROLE_DELETE, account, expireTime);
+        } else if (acCode & AUTH_CODE_UPDATE != 0) {
+            grantRole(ROLE_UPDATE, account, expireTime);
+        } else {
+            revert("unknown authorization code");
+        }
+    }
+
+    function revoke(address account, uint32 acCode) external override {
+        if (acCode & AUTH_CODE_MIRROR != 0) {
+            revokeRole(ROLE_MIRROR, account);
+        } else if (acCode & AUTH_CODE_CREATE != 0) {
+            revokeRole(ROLE_CREATE, account);
+        } else if (acCode & AUTH_CODE_DELETE != 0) {
+            revokeRole(ROLE_DELETE, account);
+        } else if (acCode & AUTH_CODE_UPDATE != 0) {
+            revokeRole(ROLE_UPDATE, account);
+        } else {
+            revert("unknown authorization code");
+        }
     }
 
     /*----------------- update param -----------------*/

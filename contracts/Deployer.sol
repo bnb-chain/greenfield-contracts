@@ -123,7 +123,6 @@ contract Deployer {
         memberToken = _memberToken;
     }
 
-
     function deploy(bytes calldata _initConsensusStateBytes) public {
         require(!deployed, "only not deployed");
         deployed = true;

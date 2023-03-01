@@ -3,14 +3,16 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import "../Config.sol";
-import "../lib/RLPEncode.sol";
-import "../lib/RLPDecode.sol";
+import "../lib/AccessControl.sol";
 import "../lib/BytesToTypes.sol";
 import "../lib/Memory.sol";
+import "../lib/RLPEncode.sol";
+import "../lib/RLPDecode.sol";
 import "../interface/IERC721NonTransferable.sol";
 
-abstract contract NFTWrapResourceHub is Initializable, Config {
+abstract contract NFTWrapResourceHub is Initializable, Config, AccessControl {
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -27,14 +29,25 @@ abstract contract NFTWrapResourceHub is Initializable, Config {
     // ERC721 token contract
     address public ERC721Token;
 
+    // authorization code
+    // can be used by bit operations
+    uint32 public constant AUTH_CODE_MIRROR = 0x00000001;
+    uint32 public constant AUTH_CODE_CREATE = 0x00000010;
+    uint32 public constant AUTH_CODE_DELETE = 0x00000100;
+
+    // role
+    bytes32 public constant ROLE_MIRROR = keccak256("ROLE_MIRROR");
+    bytes32 public constant ROLE_CREATE = keccak256("ROLE_CREATE");
+    bytes32 public constant ROLE_DELETE = keccak256("ROLE_DELETE");
+
     /*----------------- struct / event / modifier -----------------*/
     // struct CreateSynPackage should be defined in child contract
 
     // GNFD to BSC
     struct CmnCreateAckPackage {
         uint32 status;
-        address creator;
         uint256 id;
+        address creator;
     }
 
     // BSC to GNFD
@@ -52,19 +65,18 @@ abstract contract NFTWrapResourceHub is Initializable, Config {
     // GNFD to BSC
     struct CmnMirrorSynPackage {
         uint256 id; // resource ID
-        bytes key; // resource store key
         address owner;
     }
 
     // BSC to GNFD
     struct CmnMirrorAckPackage {
         uint32 status;
-        bytes key;
+        uint256 id;
     }
 
     event MirrorSuccess(uint256 id, address owner);
     event MirrorFailed(uint256 id, address owner, bytes failReason);
-    event CreateSubmitted(address creator, string name, uint256 relayFee, uint256 ackRelayFee);
+    event CreateSubmitted(address owner, address operator, string name, uint256 relayFee, uint256 ackRelayFee);
     event CreateFailed(address creator, uint256 id);
     event CreateSuccess(address creator, uint256 id);
     event DeleteSubmitted(address operator, uint256 id, uint256 relayFee, uint256 ackRelayFee);
@@ -93,6 +105,32 @@ abstract contract NFTWrapResourceHub is Initializable, Config {
 
     function handleFailAckPackage(uint8 channelId, bytes calldata) external virtual {}
 
+    /*----------------- external function -----------------*/
+
+    function grant(address account, uint32 acCode, uint256 expireTime) external virtual {
+        if (acCode & AUTH_CODE_MIRROR != 0) {
+            grantRole(ROLE_MIRROR, account, expireTime);
+        } else if (acCode & AUTH_CODE_CREATE != 0) {
+            grantRole(ROLE_CREATE, account, expireTime);
+        } else if (acCode & AUTH_CODE_DELETE != 0) {
+            grantRole(ROLE_DELETE, account, expireTime);
+        } else {
+            revert("unknown authorization code");
+        }
+    }
+
+    function revoke(address account, uint32 acCode) external virtual {
+        if (acCode & AUTH_CODE_MIRROR != 0) {
+            revokeRole(ROLE_MIRROR, account);
+        } else if (acCode & AUTH_CODE_CREATE != 0) {
+            revokeRole(ROLE_CREATE, account);
+        } else if (acCode & AUTH_CODE_DELETE != 0) {
+            revokeRole(ROLE_DELETE, account);
+        } else {
+            revert("unknown authorization code");
+        }
+    }
+
     /*----------------- update param -----------------*/
     function updateParam(string calldata key, bytes calldata value) external virtual onlyGovHub {
         if (Memory.compareStrings(key, "BaseURI")) {
@@ -117,9 +155,9 @@ abstract contract NFTWrapResourceHub is Initializable, Config {
             if (idx == 0) {
                 ackPkg.status = uint32(iter.next().toUint());
             } else if (idx == 1) {
-                ackPkg.creator = iter.next().toAddress();
-            } else if (idx == 2) {
                 ackPkg.id = iter.next().toUint();
+            } else if (idx == 2) {
+                ackPkg.creator = iter.next().toAddress();
                 success = true;
             } else {
                 break;
@@ -212,8 +250,6 @@ abstract contract NFTWrapResourceHub is Initializable, Config {
             if (idx == 0) {
                 synPkg.id = pkgIter.next().toUint();
             } else if (idx == 1) {
-                synPkg.key = pkgIter.next().toBytes();
-            } else if (idx == 2) {
                 synPkg.owner = pkgIter.next().toAddress();
                 success = true;
             } else {
@@ -227,7 +263,7 @@ abstract contract NFTWrapResourceHub is Initializable, Config {
     function _encodeCmnMirrorAckPackage(CmnMirrorAckPackage memory mirrorAckPkg) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = uint256(mirrorAckPkg.status).encodeUint();
-        elements[1] = mirrorAckPkg.key.encodeBytes();
+        elements[1] = mirrorAckPkg.id.encodeUint();
         return _RLPEncode(TYPE_MIRROR, elements.encodeList());
     }
 
@@ -236,7 +272,7 @@ abstract contract NFTWrapResourceHub is Initializable, Config {
         require(success, "unrecognized mirror package");
 
         uint32 status = _doMirror(synPkg);
-        CmnMirrorAckPackage memory mirrorAckPkg = CmnMirrorAckPackage({status: status, key: synPkg.key});
+        CmnMirrorAckPackage memory mirrorAckPkg = CmnMirrorAckPackage({status: status, id: synPkg.id});
         return _encodeCmnMirrorAckPackage(mirrorAckPkg);
     }
 

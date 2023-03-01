@@ -60,7 +60,7 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     function testMirror(uint256 id) public {
-        CmnMirrorSynPackage memory mirrorSynPkg = CmnMirrorSynPackage({id: id, key: bytes("test"), owner: msg.sender});
+        CmnMirrorSynPackage memory mirrorSynPkg = CmnMirrorSynPackage({id: id, owner: msg.sender});
         bytes memory msgBytes = _encodeMirrorSynPackage(mirrorSynPkg);
 
         vm.expectEmit(true, true, true, true, address(objectToken));
@@ -78,10 +78,9 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
+        bytes[] memory elements = new bytes[](2);
         elements[0] = synPkg.id.encodeUint();
-        elements[1] = synPkg.key.encodeBytes();
-        elements[2] = synPkg.owner.encodeAddress();
+        elements[1] = synPkg.owner.encodeAddress();
         return _RLPEncode(TYPE_MIRROR, elements.encodeList());
     }
 }

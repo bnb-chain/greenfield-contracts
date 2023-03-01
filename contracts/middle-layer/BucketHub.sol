@@ -20,7 +20,9 @@ contract BucketHub is NFTWrapResourceHub {
         bool isPublic;
         address paymentAddress;
         address primarySpAddress;
+        uint256 primarySpApprovalExpiredHeight;
         bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
+        uint8 readQuota;
     }
 
     function initialize(address _ERC721_token) public initializer {
@@ -90,14 +92,17 @@ contract BucketHub is NFTWrapResourceHub {
         require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
-        // TODO: add authorization system
-        require(synPkg.creator == msg.sender, "creator should be the same as msg.sender");
+        // check authorization
+        address owner = synPkg.creator;
+        if (_msgSender() != owner) {
+            _checkRole(AUTH_CODE_CREATE, owner);
+        }
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit CreateSubmitted(msg.sender, synPkg.name, relayFee, _ackRelayFee);
+        emit CreateSubmitted(owner, _msgSender(), synPkg.name, relayFee, _ackRelayFee);
         return true;
     }
 
@@ -110,27 +115,38 @@ contract BucketHub is NFTWrapResourceHub {
         require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
-        // TODO: add authorization system
-        require(IERC721NonTransferable(ERC721Token).ownerOf(id) == msg.sender, "only owner can delete bucket");
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: msg.sender, id: id});
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+        if (
+            !(
+                _msgSender() == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == _msgSender()
+                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _msgSender())
+            )
+        ) {
+            _checkRole(AUTH_CODE_DELETE, owner);
+        }
+
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id});
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit DeleteSubmitted(msg.sender, id, relayFee, _ackRelayFee);
+        emit DeleteSubmitted(_msgSender(), id, relayFee, _ackRelayFee);
         return true;
     }
 
     /*----------------- internal function -----------------*/
     function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](6);
+        bytes[] memory elements = new bytes[](8);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();
         elements[2] = synPkg.isPublic.encodeBool();
         elements[3] = synPkg.paymentAddress.encodeAddress();
         elements[4] = synPkg.primarySpAddress.encodeAddress();
-        elements[5] = synPkg.primarySpSignature.encodeBytes();
+        elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();
+        elements[6] = synPkg.primarySpSignature.encodeBytes();
+        elements[7] = uint256(synPkg.readQuota).encodeUint();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }
 
