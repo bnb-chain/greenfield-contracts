@@ -35,13 +35,6 @@ contract BucketHubTest is Test, BucketHub {
         vm.label(BUCKET_HUB, "bucketHub");
         vm.label(CROSS_CHAIN, "crossChain");
         vm.label(address(bucketToken), "bucketToken");
-
-//        bytes memory newCode = vm.getDeployedCode("AdditionalBucketHub.sol");
-//        address additional = 0xDCA5CE2bE1151d6b421682774bcc796eca333500;
-//        vm.etch(additional, newCode);
-
-        //        newCode = vm.getDeployedCode("BucketHub.sol");
-        //        vm.etch(BUCKET_HUB, newCode);
     }
 
     function testBasicInfo() public {
@@ -104,7 +97,7 @@ contract BucketHubTest is Test, BucketHub {
         assertEq(address(this), bucketToken.ownerOf(id));
 
         vm.expectEmit(true, true, true, true, address(bucketHub));
-        emit DeleteSubmitted(address(this), id, 2e15, 2e15);
+        emit DeleteSubmitted(address(this), address(this), id, 2e15, 2e15);
         bucketHub.deleteBucket{value: 4e15}(id);
 
         CmnDeleteAckPackage memory deleteAckPkg = CmnDeleteAckPackage({status: 0, id: id});
@@ -116,13 +109,13 @@ contract BucketHubTest is Test, BucketHub {
         bucketHub.handleAckPackage(BUCKET_CHANNEL_ID, msgBytes);
     }
 
-    function testGrant(uint256 id) public {
+    function testGrantAndRevoke() public {
         address granter = msg.sender;
         address operator = address(this);
 
         CreateSynPackage memory synPkg = CreateSynPackage({
             creator: granter,
-            name: "test",
+            name: "test1",
             isPublic: true,
             paymentAddress: address(this),
             primarySpAddress: address(this),
@@ -135,13 +128,49 @@ contract BucketHubTest is Test, BucketHub {
         vm.expectRevert(bytes("no permission to create"));
         bucketHub.createBucket{value: 4e15}(synPkg);
 
-        // grant and create successfully
-        uint256 expireTime = block.timestamp + 30 days;
+        // wrong auth code
+        uint256 expireTime = block.timestamp + 1 days;
+        uint32 authCode = 0x00001110;
+        vm.expectRevert(bytes("invalid authorization code"));
         vm.prank(msg.sender);
-        bucketHub.grant(operator, AUTH_CODE_CREATE, expireTime);
+        bucketHub.grant(operator, authCode, expireTime);
+
+        // grant
+        authCode = 0x00000110; // create and delete
+        vm.prank(msg.sender);
+        bucketHub.grant(operator, authCode, expireTime);
+
+        // create success
+        vm.expectEmit(true, true, true, true, address(bucketHub));
+        emit CreateSubmitted(granter, operator, "test1", 2e15, 2e15);
+        bucketHub.createBucket{value: 4e15}(synPkg);
+
+        // delete success
+        uint256 tokenId = 0;
+        vm.prank(BUCKET_HUB);
+        bucketToken.mint(granter, tokenId);
 
         vm.expectEmit(true, true, true, true, address(bucketHub));
-        emit CreateSubmitted(granter, operator, "test", 2e15, 2e15);
+        emit DeleteSubmitted(granter, operator, tokenId, 2e15, 2e15);
+        bucketHub.deleteBucket{value: 4e15}(tokenId);
+
+        // grant expire
+        vm.warp(expireTime + 1);
+        synPkg.name = "test2";
+        vm.expectRevert(bytes("no permission to create"));
+        bucketHub.createBucket{value: 4e15}(synPkg);
+
+        // revoke and create failed
+        expireTime = block.timestamp + 1 days;
+        vm.prank(msg.sender);
+        bucketHub.grant(operator, AUTH_CODE_CREATE, expireTime);
+        bucketHub.createBucket{value: 4e15}(synPkg);
+
+        vm.prank(msg.sender);
+        bucketHub.revoke(operator, AUTH_CODE_CREATE);
+
+        synPkg.name = "test3";
+        vm.expectRevert(bytes("no permission to create"));
         bucketHub.createBucket{value: 4e15}(synPkg);
     }
 

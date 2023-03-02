@@ -68,7 +68,7 @@ contract NFTWrapResourceStorage is Config {
     event CreateSubmitted(address owner, address operator, string name, uint256 relayFee, uint256 ackRelayFee);
     event CreateSuccess(address creator, uint256 id);
     event CreateFailed(address creator, uint256 id);
-    event DeleteSubmitted(address operator, uint256 id, uint256 relayFee, uint256 ackRelayFee);
+    event DeleteSubmitted(address owner, address operator, uint256 id, uint256 relayFee, uint256 ackRelayFee);
     event DeleteSuccess(uint256 id);
     event DeleteFailed(uint256 id);
     event FailAckPkgReceived(uint8 channelId, bytes msgBytes);

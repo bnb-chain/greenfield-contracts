@@ -2,13 +2,12 @@
 
 pragma solidity ^0.8.0;
 
+import "./AccessControl.sol";
 import "./NFTWrapResourceHub.sol";
-import "../interface/IERC721NonTransferable.sol";
 import "../interface/ICrossChain.sol";
-import "../AccessControl.sol";
+import "../interface/IERC721NonTransferable.sol";
 
 contract ObjectHub is NFTWrapResourceHub, AccessControl {
-
     function initialize(address _ERC721_token, address _additional) public initializer {
         ERC721Token = _ERC721_token;
         additional = _additional;

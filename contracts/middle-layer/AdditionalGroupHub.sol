@@ -4,12 +4,12 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+import "./AccessControl.sol";
 import "./NFTWrapResourceStorage.sol";
 import "../interface/ICrossChain.sol";
 import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
-import "../AccessControl.sol";
+import "../lib/RLPEncode.sol";
 
 contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessControl {
     using RLPEncode for *;
@@ -57,7 +57,13 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
     }
 
     event UpdateSubmitted(
-        address operator, uint256 id, uint8 opType, address[] members, uint256 relayFee, uint256 ackRelayFee
+        address owner,
+        address operator,
+        uint256 id,
+        uint8 opType,
+        address[] members,
+        uint256 relayFee,
+        uint256 ackRelayFee
     );
     event UpdateSuccess(address operator, uint256 id, uint8 opType);
     event UpdateFailed(address operator, uint256 id, uint8 opType);
@@ -68,30 +74,44 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         }
 
         if (acCode & AUTH_CODE_MIRROR != 0) {
+            acCode = acCode & ~AUTH_CODE_MIRROR;
             grantRole(ROLE_MIRROR, account, expireTime);
-        } else if (acCode & AUTH_CODE_CREATE != 0) {
-            grantRole(ROLE_CREATE, account, expireTime);
-        } else if (acCode & AUTH_CODE_DELETE != 0) {
-            grantRole(ROLE_DELETE, account, expireTime);
-        } else if (acCode & AUTH_CODE_UPDATE != 0) {
-            grantRole(ROLE_UPDATE, account, expireTime);
-        } else {
-            revert("unknown authorization code");
         }
+        if (acCode & AUTH_CODE_CREATE != 0) {
+            acCode = acCode & ~AUTH_CODE_CREATE;
+            grantRole(ROLE_CREATE, account, expireTime);
+        }
+        if (acCode & AUTH_CODE_DELETE != 0) {
+            acCode = acCode & ~AUTH_CODE_DELETE;
+            grantRole(ROLE_DELETE, account, expireTime);
+        }
+        if (acCode & AUTH_CODE_UPDATE != 0) {
+            acCode = acCode & ~AUTH_CODE_UPDATE;
+            grantRole(ROLE_UPDATE, account, expireTime);
+        }
+
+        require(acCode == 0, "invalid authorization code");
     }
 
     function revoke(address account, uint32 acCode) external {
         if (acCode & AUTH_CODE_MIRROR != 0) {
+            acCode = acCode & ~AUTH_CODE_MIRROR;
             revokeRole(ROLE_MIRROR, account);
-        } else if (acCode & AUTH_CODE_CREATE != 0) {
-            revokeRole(ROLE_CREATE, account);
-        } else if (acCode & AUTH_CODE_DELETE != 0) {
-            revokeRole(ROLE_DELETE, account);
-        } else if (acCode & AUTH_CODE_UPDATE != 0) {
-            revokeRole(ROLE_UPDATE, account);
-        } else {
-            revert("unknown authorization code");
         }
+        if (acCode & AUTH_CODE_CREATE != 0) {
+            acCode = acCode & ~AUTH_CODE_CREATE;
+            revokeRole(ROLE_CREATE, account);
+        }
+        if (acCode & AUTH_CODE_DELETE != 0) {
+            acCode = acCode & ~AUTH_CODE_DELETE;
+            revokeRole(ROLE_DELETE, account);
+        }
+        if (acCode & AUTH_CODE_UPDATE != 0) {
+            acCode = acCode & ~AUTH_CODE_DELETE;
+            revokeRole(ROLE_UPDATE, account);
+        }
+
+        require(acCode == 0, "invalid authorization code");
     }
 
     /**
@@ -107,7 +127,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
 
         // check authorization
         if (msg.sender != owner) {
-            require(hasRole(ROLE_CREATE, owner, msg.sender), "no create permission");
+            require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
         }
 
         CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name, members: members});
@@ -146,7 +166,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit DeleteSubmitted(msg.sender, id, relayFee, _ackRelayFee);
+        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
         return true;
     }
 
@@ -174,7 +194,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit UpdateSubmitted(msg.sender, synPkg.id, synPkg.opType, synPkg.members, relayFee, _ackRelayFee);
+        emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members, relayFee, _ackRelayFee);
         return true;
     }
 

@@ -7,8 +7,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./NFTWrapResourceStorage.sol";
 import "../lib/BytesToTypes.sol";
 import "../lib/Memory.sol";
-import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
+import "../lib/RLPEncode.sol";
 import "../interface/IERC721NonTransferable.sol";
 import "../interface/IAccessControl.sol";
 

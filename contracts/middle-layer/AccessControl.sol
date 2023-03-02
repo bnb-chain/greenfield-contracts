@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import "./interface/IAccessControl.sol";
+import "../interface/IAccessControl.sol";
 
 contract AccessControl is Context, IAccessControl, ERC165 {
     // Role => Granter => Operator => ExpireTime

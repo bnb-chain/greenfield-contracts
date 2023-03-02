@@ -4,12 +4,12 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+import "./AccessControl.sol";
 import "./NFTWrapResourceStorage.sol";
 import "../interface/ICrossChain.sol";
 import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
-import "../AccessControl.sol";
+import "../lib/RLPEncode.sol";
 
 contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessControl {
     using RLPEncode for *;
@@ -34,26 +34,36 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         }
 
         if (acCode & AUTH_CODE_MIRROR != 0) {
+            acCode = acCode & ~AUTH_CODE_MIRROR;
             grantRole(ROLE_MIRROR, account, expireTime);
-        } else if (acCode & AUTH_CODE_CREATE != 0) {
-            grantRole(ROLE_CREATE, account, expireTime);
-        } else if (acCode & AUTH_CODE_DELETE != 0) {
-            grantRole(ROLE_DELETE, account, expireTime);
-        } else {
-            revert("unknown authorization code");
         }
+        if (acCode & AUTH_CODE_CREATE != 0) {
+            acCode = acCode & ~AUTH_CODE_CREATE;
+            grantRole(ROLE_CREATE, account, expireTime);
+        }
+        if (acCode & AUTH_CODE_DELETE != 0) {
+            acCode = acCode & ~AUTH_CODE_DELETE;
+            grantRole(ROLE_DELETE, account, expireTime);
+        }
+
+        require(acCode == 0, "invalid authorization code");
     }
 
     function revoke(address account, uint32 acCode) external {
         if (acCode & AUTH_CODE_MIRROR != 0) {
+            acCode = acCode & ~AUTH_CODE_MIRROR;
             revokeRole(ROLE_MIRROR, account);
-        } else if (acCode & AUTH_CODE_CREATE != 0) {
-            revokeRole(ROLE_CREATE, account);
-        } else if (acCode & AUTH_CODE_DELETE != 0) {
-            revokeRole(ROLE_DELETE, account);
-        } else {
-            revert("unknown authorization code");
         }
+        if (acCode & AUTH_CODE_CREATE != 0) {
+            acCode = acCode & ~AUTH_CODE_CREATE;
+            revokeRole(ROLE_CREATE, account);
+        }
+        if (acCode & AUTH_CODE_DELETE != 0) {
+            acCode = acCode & ~AUTH_CODE_DELETE;
+            revokeRole(ROLE_DELETE, account);
+        }
+
+        require(acCode == 0, "invalid authorization code");
     }
 
     /**
@@ -105,7 +115,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         ICrossChain(_crossChain).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit DeleteSubmitted(msg.sender, id, relayFee, _ackRelayFee);
+        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
         return true;
     }
 

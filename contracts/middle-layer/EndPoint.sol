@@ -3,10 +3,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
-import "../CrossChain.sol";
-import "../lib/RLPEncode.sol";
-import "../lib/RLPDecode.sol";
+
 import "../Config.sol";
+import "../CrossChain.sol";
+import "../lib/RLPDecode.sol";
+import "../lib/RLPEncode.sol";
 
 interface IApplication {
     function handleAckPackage(uint8 channelID, bytes calldata appMsg) external;

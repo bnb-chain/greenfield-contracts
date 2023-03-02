@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.0;
 
+import "./AccessControl.sol";
 import "./NFTWrapResourceHub.sol";
 import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
-import "../AccessControl.sol";
+import "../lib/RLPEncode.sol";
 
 contract BucketHub is NFTWrapResourceHub, AccessControl {
     using RLPEncode for *;

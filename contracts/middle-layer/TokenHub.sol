@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Config.sol";
-import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
+import "../lib/RLPEncode.sol";
 import "../interface/ICrossChain.sol";
 
 contract TokenHub is Initializable, Config {

@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.0;
 
+import "./AccessControl.sol";
 import "./NFTWrapResourceHub.sol";
-import "../interface/IERC721NonTransferable.sol";
-import "../interface/IERC1155NonTransferable.sol";
 import "../interface/ICrossChain.sol";
-import "../lib/RLPEncode.sol";
+import "../interface/IERC1155NonTransferable.sol";
+import "../interface/IERC721NonTransferable.sol";
 import "../lib/RLPDecode.sol";
-import "../AccessControl.sol";
+import "../lib/RLPEncode.sol";
 
 contract GroupHub is NFTWrapResourceHub, AccessControl {
     using RLPEncode for *;
@@ -56,15 +56,18 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     }
 
     event UpdateSubmitted(
-        address operator, uint256 id, uint8 opType, address[] members, uint256 relayFee, uint256 ackRelayFee
+        address owner,
+        address operator,
+        uint256 id,
+        uint8 opType,
+        address[] members,
+        uint256 relayFee,
+        uint256 ackRelayFee
     );
     event UpdateSuccess(address operator, uint256 id, uint8 opType);
     event UpdateFailed(address operator, uint256 id, uint8 opType);
 
-    function initialize(address _ERC721_token, address _ERC1155_token, address _additional)
-        public
-        initializer
-    {
+    function initialize(address _ERC721_token, address _ERC1155_token, address _additional) public initializer {
         ERC721Token = _ERC721_token;
         ERC1155Token = _ERC1155_token;
         additional = _additional;
