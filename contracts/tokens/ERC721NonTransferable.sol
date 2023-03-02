@@ -99,7 +99,7 @@ contract ERC721NonTransferable is Context, ERC165, IERC721NonTransferable {
     /**
      * @dev See {IERC721-approve}.
      */
-    function approve(address to, uint256 tokenId) public virtual override {
+    function approve(address to, uint256 tokenId) public virtual {
         address owner = _ownerOf(tokenId);
         require(to != owner, "ERC721: approval to current owner");
 
@@ -114,7 +114,7 @@ contract ERC721NonTransferable is Context, ERC165, IERC721NonTransferable {
     /**
      * @dev See {IERC721-setApprovalForAll}.
      */
-    function setApprovalForAll(address operator, bool approved) public virtual override {
+    function setApprovalForAll(address operator, bool approved) public virtual {
         _setApprovalForAll(_msgSender(), operator, approved);
     }
 
@@ -374,7 +374,7 @@ contract ERC721NonTransferable is Context, ERC165, IERC721NonTransferable {
      */
     function _approve(address to, uint256 tokenId) internal virtual {
         _tokenApprovals[tokenId] = to;
-        emit Approval(ERC721.ownerOf(tokenId), to, tokenId);
+        emit Approval(_ownerOf(tokenId), to, tokenId);
     }
 
     /**

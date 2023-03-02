@@ -16,7 +16,7 @@ import "./middle-layer/BucketHub.sol";
 import "./middle-layer/ObjectHub.sol";
 import "./middle-layer/GroupHub.sol";
 
-contract Deployer {
+contract Deployer1 {
     uint16 public immutable gnfdChainId;
 
     address public immutable proxyAdmin;
@@ -25,9 +25,6 @@ contract Deployer {
     address public immutable proxyTokenHub;
     address public immutable proxyLightClient;
     address public immutable proxyRelayerHub;
-    address public immutable proxyBucketHub;
-    address public immutable proxyObjectHub;
-    address public immutable proxyGroupHub;
 
     bytes public initConsensusStateBytes;
     address public implGovHub;
@@ -35,16 +32,8 @@ contract Deployer {
     address public implTokenHub;
     address public implLightClient;
     address public implRelayerHub;
-    address public implBucketHub;
-    address public implObjectHub;
-    address public implGroupHub;
-    address public bucketToken;
-    address public objectToken;
-    address public groupToken;
-    address public memberToken;
 
-    bool public initializedPart1;
-    bool public initializedPart2;
+    bool public initialized;
     bool public deployed;
 
     constructor(uint16 _gnfdChainId) {
@@ -62,24 +51,21 @@ contract Deployer {
         proxyTokenHub = calcCreateAddress(address(this), uint8(4));
         proxyLightClient = calcCreateAddress(address(this), uint8(5));
         proxyRelayerHub = calcCreateAddress(address(this), uint8(6));
-        proxyBucketHub = calcCreateAddress(address(this), uint8(7));
-        proxyObjectHub = calcCreateAddress(address(this), uint8(8));
-        proxyGroupHub = calcCreateAddress(address(this), uint8(9));
 
         // 1. proxyAdmin
         address deployedProxyAdmin = address(new GnfdProxyAdmin());
         require(deployedProxyAdmin == proxyAdmin, "invalid proxyAdmin address");
     }
 
-    function initAddrsPart1(
+    function init(
         address _implGovHub,
         address _implCrossChain,
         address _implTokenHub,
         address _implLightClient,
         address _implRelayerHub
     ) public {
-        require(!initializedPart1, "only not initializedPart1");
-        initializedPart1 = true;
+        require(!initialized, "only not initialized");
+        initialized = true;
 
         require(_isContract(_implGovHub), "invalid _implCrossChain");
         require(_isContract(_implCrossChain), "invalid _implCrossChain");
@@ -92,35 +78,6 @@ contract Deployer {
         implTokenHub = _implTokenHub;
         implLightClient = _implLightClient;
         implRelayerHub = _implRelayerHub;
-    }
-
-    function initAddrsPart2(
-        address _implBucketHub,
-        address _implObjectHub,
-        address _implGroupHub,
-        address _bucketToken,
-        address _objectToken,
-        address _groupToken,
-        address _memberToken
-    ) public {
-        require(!initializedPart2, "only not initializedPart2");
-        initializedPart2 = true;
-
-        require(_isContract(_implBucketHub), "invalid _implBucketHub");
-        require(_isContract(_implObjectHub), "invalid _implObjectHub");
-        require(_isContract(_implGroupHub), "invalid _implGroupHub");
-        require(_isContract(_bucketToken), "invalid _bucketToken");
-        require(_isContract(_objectToken), "invalid _objectToken");
-        require(_isContract(_groupToken), "invalid _groupToken");
-        require(_isContract(_memberToken), "invalid _memberToken");
-
-        implBucketHub = _implBucketHub;
-        implObjectHub = _implObjectHub;
-        implGroupHub = _implGroupHub;
-        bucketToken = _bucketToken;
-        objectToken = _objectToken;
-        groupToken = _groupToken;
-        memberToken = _memberToken;
     }
 
     function deploy(bytes calldata _initConsensusStateBytes) public {
@@ -153,26 +110,11 @@ contract Deployer {
         address deployedProxyRelayerHub = address(new GnfdProxy(implRelayerHub, proxyAdmin, ""));
         require(deployedProxyRelayerHub == proxyRelayerHub, "invalid proxyRelayerHub address");
 
-        // 7. BucketHub
-        address deployedProxyBucketHub = address(new GnfdProxy(implBucketHub, proxyAdmin, ""));
-        require(deployedProxyBucketHub == proxyBucketHub, "invalid proxyBucketHub address");
-
-        // 8. ObjectHub
-        address deployedProxyObjectHub = address(new GnfdProxy(implObjectHub, proxyAdmin, ""));
-        require(deployedProxyObjectHub == proxyObjectHub, "invalid proxyObjectHub address");
-
-        // 9. GroupHub
-        address deployedProxyGroupHub = address(new GnfdProxy(implGroupHub, proxyAdmin, ""));
-        require(deployedProxyGroupHub == proxyGroupHub, "invalid proxyGroupHub address");
-
-        // 10. init GovHub, set contracts addresses to GovHub
+        // 7. init GovHub, set contracts addresses to GovHub
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId);
         TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
         RelayerHub(payable(proxyRelayerHub)).initialize();
-        BucketHub(payable(proxyBucketHub)).initialize(bucketToken);
-        ObjectHub(payable(proxyObjectHub)).initialize(objectToken);
-        GroupHub(payable(proxyGroupHub)).initialize(groupToken, memberToken);
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
@@ -189,13 +131,6 @@ contract Deployer {
             Config(deployedProxyCrossChain).RELAYER_HUB() == proxyRelayerHub,
             "invalid proxyRelayerHub address on Config"
         );
-        require(
-            Config(deployedProxyCrossChain).BUCKET_HUB() == proxyBucketHub, "invalid proxyBucketHub address on Config"
-        );
-        require(
-            Config(deployedProxyCrossChain).OBJECT_HUB() == proxyObjectHub, "invalid proxyObjectHub address on Config"
-        );
-        require(Config(deployedProxyCrossChain).GROUP_HUB() == proxyGroupHub, "invalid proxyGroupHub address on Config");
     }
 
     function calcCreateAddress(address _deployer, uint8 _nonce) public pure returns (address) {

@@ -141,6 +141,15 @@ contract CrossChain is Initializable, Config {
         channelHandlerMap[GOV_CHANNEL_ID] = GOV_HUB;
         registeredContractChannelMap[TOKEN_HUB][GOV_CHANNEL_ID] = true;
 
+        channelHandlerMap[BUCKET_CHANNEL_ID] = BUCKET_HUB;
+        registeredContractChannelMap[BUCKET_HUB][BUCKET_CHANNEL_ID] = true;
+
+        channelHandlerMap[OBJECT_CHANNEL_ID] = OBJECT_HUB;
+        registeredContractChannelMap[OBJECT_HUB][OBJECT_CHANNEL_ID] = true;
+
+        channelHandlerMap[GROUP_CHANNEL_ID] = GROUP_HUB;
+        registeredContractChannelMap[GROUP_HUB][GROUP_CHANNEL_ID] = true;
+
         batchSizeForOracle = 50;
 
         oracleSequence = -1;

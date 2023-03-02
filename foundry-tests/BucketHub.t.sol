@@ -6,11 +6,7 @@ import "forge-std/Test.sol";
 
 import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/BucketHub.sol";
-
 import "../contracts/tokens/ERC721NonTransferable.sol";
-
-import "../contracts/lib/RLPEncode.sol";
-import "../contracts/lib/RLPDecode.sol";
 
 contract BucketHubTest is Test, BucketHub {
     using RLPEncode for *;
@@ -37,7 +33,15 @@ contract BucketHubTest is Test, BucketHub {
 
         vm.label(GOV_HUB, "govHub");
         vm.label(BUCKET_HUB, "bucketHub");
+        vm.label(CROSS_CHAIN, "crossChain");
         vm.label(address(bucketToken), "bucketToken");
+
+//        bytes memory newCode = vm.getDeployedCode("AdditionalBucketHub.sol");
+//        address additional = 0xDCA5CE2bE1151d6b421682774bcc796eca333500;
+//        vm.etch(additional, newCode);
+
+        //        newCode = vm.getDeployedCode("BucketHub.sol");
+        //        vm.etch(BUCKET_HUB, newCode);
     }
 
     function testBasicInfo() public {
@@ -60,36 +64,85 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     function testMirror(uint256 id) public {
-        CmnMirrorSynPackage memory mirrorSynPkg = CmnMirrorSynPackage({id: id, owner: msg.sender});
+        CmnMirrorSynPackage memory mirrorSynPkg = CmnMirrorSynPackage({id: id, owner: address(this)});
         bytes memory msgBytes = _encodeMirrorSynPackage(mirrorSynPkg);
 
         vm.expectEmit(true, true, true, true, address(bucketToken));
-        emit Transfer(address(0), msg.sender, id);
+        emit Transfer(address(0), address(this), id);
         vm.prank(CROSS_CHAIN);
         bucketHub.handleSynPackage(BUCKET_CHANNEL_ID, msgBytes);
     }
 
     function testCreate(uint256 id) public {
-        CmnCreateAckPackage memory createAckPkg = CmnCreateAckPackage({status: 0, creator: msg.sender, id: id});
+        CreateSynPackage memory synPkg = CreateSynPackage({
+            creator: address(this),
+            name: "test",
+            isPublic: true,
+            paymentAddress: address(this),
+            primarySpAddress: address(this),
+            primarySpApprovalExpiredHeight: 0,
+            primarySpSignature: "",
+            readQuota: 0
+        });
+
+        vm.expectEmit(true, true, true, true, address(bucketHub));
+        emit CreateSubmitted(address(this), address(this), "test", 2e15, 2e15);
+        bucketHub.createBucket{value: 4e15}(synPkg);
+
+        CmnCreateAckPackage memory createAckPkg = CmnCreateAckPackage({status: 0, creator: address(this), id: id});
         bytes memory msgBytes = _encodeCreateAckPackage(createAckPkg);
 
         vm.expectEmit(true, true, true, true, address(bucketToken));
-        emit Transfer(address(0), msg.sender, id);
+        emit Transfer(address(0), address(this), id);
         vm.prank(CROSS_CHAIN);
         bucketHub.handleAckPackage(BUCKET_CHANNEL_ID, msgBytes);
     }
 
     function testDelete(uint256 id) public {
         vm.prank(BUCKET_HUB);
-        bucketToken.mint(msg.sender, id);
+        bucketToken.mint(address(this), id);
+        assertEq(address(this), bucketToken.ownerOf(id));
+
+        vm.expectEmit(true, true, true, true, address(bucketHub));
+        emit DeleteSubmitted(address(this), id, 2e15, 2e15);
+        bucketHub.deleteBucket{value: 4e15}(id);
 
         CmnDeleteAckPackage memory deleteAckPkg = CmnDeleteAckPackage({status: 0, id: id});
         bytes memory msgBytes = _encodeDeleteAckPackage(deleteAckPkg);
 
         vm.startPrank(CROSS_CHAIN);
         vm.expectEmit(true, true, true, true, address(bucketToken));
-        emit Transfer(msg.sender, address(0), id);
+        emit Transfer(address(this), address(0), id);
         bucketHub.handleAckPackage(BUCKET_CHANNEL_ID, msgBytes);
+    }
+
+    function testGrant(uint256 id) public {
+        address granter = msg.sender;
+        address operator = address(this);
+
+        CreateSynPackage memory synPkg = CreateSynPackage({
+            creator: granter,
+            name: "test",
+            isPublic: true,
+            paymentAddress: address(this),
+            primarySpAddress: address(this),
+            primarySpApprovalExpiredHeight: 0,
+            primarySpSignature: "",
+            readQuota: 0
+        });
+
+        // failed without authorization
+        vm.expectRevert(bytes("no permission to create"));
+        bucketHub.createBucket{value: 4e15}(synPkg);
+
+        // grant and create successfully
+        uint256 expireTime = block.timestamp + 30 days;
+        vm.prank(msg.sender);
+        bucketHub.grant(operator, AUTH_CODE_CREATE, expireTime);
+
+        vm.expectEmit(true, true, true, true, address(bucketHub));
+        emit CreateSubmitted(granter, operator, "test", 2e15, 2e15);
+        bucketHub.createBucket{value: 4e15}(synPkg);
     }
 
     function _encodeGovSynPackage(ParamChangePackage memory proposal) internal pure returns (bytes memory) {

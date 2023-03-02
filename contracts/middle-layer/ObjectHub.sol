@@ -5,10 +5,13 @@ pragma solidity ^0.8.0;
 import "./NFTWrapResourceHub.sol";
 import "../interface/IERC721NonTransferable.sol";
 import "../interface/ICrossChain.sol";
+import "../AccessControl.sol";
 
-contract ObjectHub is NFTWrapResourceHub {
-    function initialize(address _ERC721_token) public initializer {
+contract ObjectHub is NFTWrapResourceHub, AccessControl {
+
+    function initialize(address _ERC721_token, address _additional) public initializer {
         ERC721Token = _ERC721_token;
+        additional = _additional;
 
         relayFee = 2e15;
         ackRelayFee = 2e15;

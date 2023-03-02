@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import "../interface/IAccessControl.sol";
+import "./interface/IAccessControl.sol";
 
-abstract contract AccessControl is Context, IAccessControl, ERC165 {
+contract AccessControl is Context, IAccessControl, ERC165 {
     // Role => Granter => Operator => ExpireTime
     mapping(bytes32 => mapping(address => mapping(address => uint256))) private _roles;
 
@@ -46,7 +46,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
     }
 
     /**
-     * @dev Grants `role` to `account`.
+     * @dev Grants `role` to `account` from msg.sender.
      *
      * If `account` had not been already granted `role`, emits a {RoleGranted}
      * event.
@@ -59,7 +59,7 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
     }
 
     /**
-     * @dev Revokes `role` from `account`.
+     * @dev Revokes `role` from `account` from msg.sender.
      *
      * If `account` had been granted `role`, emits a {RoleRevoked} event.
      *

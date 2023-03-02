@@ -4,11 +4,11 @@ pragma solidity ^0.8.0;
 
 import "./NFTWrapResourceHub.sol";
 import "../interface/IERC721NonTransferable.sol";
-import "../interface/ICrossChain.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
+import "../AccessControl.sol";
 
-contract BucketHub is NFTWrapResourceHub {
+contract BucketHub is NFTWrapResourceHub, AccessControl {
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -25,8 +25,9 @@ contract BucketHub is NFTWrapResourceHub {
         uint8 readQuota;
     }
 
-    function initialize(address _ERC721_token) public initializer {
+    function initialize(address _ERC721_token, address _additional) public initializer {
         ERC721Token = _ERC721_token;
+        additional = _additional;
 
         relayFee = 2e15;
         ackRelayFee = 2e15;
@@ -89,21 +90,7 @@ contract BucketHub is NFTWrapResourceHub {
      * @param synPkg Package containing information of the bucket to be created
      */
     function createBucket(CreateSynPackage memory synPkg) external payable returns (bool) {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        address owner = synPkg.creator;
-        if (_msgSender() != owner) {
-            _checkRole(AUTH_CODE_CREATE, owner);
-        }
-
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
-            BUCKET_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
-        );
-        emit CreateSubmitted(owner, _msgSender(), synPkg.name, relayFee, _ackRelayFee);
-        return true;
+        delegateAdditional();
     }
 
     /**
@@ -112,48 +99,6 @@ contract BucketHub is NFTWrapResourceHub {
      * @param id The bucket's id
      */
     function deleteBucket(uint256 id) external payable returns (bool) {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        if (
-            !(
-                _msgSender() == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == _msgSender()
-                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _msgSender())
-            )
-        ) {
-            _checkRole(AUTH_CODE_DELETE, owner);
-        }
-
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id});
-
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
-            BUCKET_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
-        );
-        emit DeleteSubmitted(_msgSender(), id, relayFee, _ackRelayFee);
-        return true;
-    }
-
-    /*----------------- internal function -----------------*/
-    function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](8);
-        elements[0] = synPkg.creator.encodeAddress();
-        elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = synPkg.isPublic.encodeBool();
-        elements[3] = synPkg.paymentAddress.encodeAddress();
-        elements[4] = synPkg.primarySpAddress.encodeAddress();
-        elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();
-        elements[6] = synPkg.primarySpSignature.encodeBytes();
-        elements[7] = uint256(synPkg.readQuota).encodeUint();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
-    }
-
-    function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
+        delegateAdditional();
     }
 }

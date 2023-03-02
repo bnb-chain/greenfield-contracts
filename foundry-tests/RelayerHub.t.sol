@@ -4,17 +4,6 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/Deployer.sol";
-import "../contracts/CrossChain.sol";
-import "../contracts/GnfdProxy.sol";
-import "../contracts/GnfdProxyAdmin.sol";
-import "../contracts/GnfdLightClient.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/TokenHub.sol";
-
-import "../contracts/lib/RLPEncode.sol";
-import "../contracts/lib/RLPDecode.sol";
-
 contract RelayerHubTest is Test {
     uint16 public constant gnfdChainId = 1;
     bytes public constant blsPubKeys =

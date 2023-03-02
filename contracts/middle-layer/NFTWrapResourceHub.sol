@@ -4,88 +4,19 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "../Config.sol";
-import "../lib/AccessControl.sol";
+import "./NFTWrapResourceStorage.sol";
 import "../lib/BytesToTypes.sol";
 import "../lib/Memory.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
 import "../interface/IERC721NonTransferable.sol";
+import "../interface/IAccessControl.sol";
 
-abstract contract NFTWrapResourceHub is Initializable, Config, AccessControl {
+abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
     using RLPEncode for *;
     using RLPDecode for *;
 
-    /*----------------- constants -----------------*/
-    // status of cross-chain package
-    uint32 public constant STATUS_SUCCESS = 0;
-    uint32 public constant STATUS_FAILED = 1;
-
-    // operation type
-    uint8 public constant TYPE_MIRROR = 1;
-    uint8 public constant TYPE_CREATE = 2;
-    uint8 public constant TYPE_DELETE = 3;
-
-    // ERC721 token contract
-    address public ERC721Token;
-
-    // authorization code
-    // can be used by bit operations
-    uint32 public constant AUTH_CODE_MIRROR = 0x00000001;
-    uint32 public constant AUTH_CODE_CREATE = 0x00000010;
-    uint32 public constant AUTH_CODE_DELETE = 0x00000100;
-
-    // role
-    bytes32 public constant ROLE_MIRROR = keccak256("ROLE_MIRROR");
-    bytes32 public constant ROLE_CREATE = keccak256("ROLE_CREATE");
-    bytes32 public constant ROLE_DELETE = keccak256("ROLE_DELETE");
-
-    /*----------------- struct / event / modifier -----------------*/
-    // struct CreateSynPackage should be defined in child contract
-
-    // GNFD to BSC
-    struct CmnCreateAckPackage {
-        uint32 status;
-        uint256 id;
-        address creator;
-    }
-
-    // BSC to GNFD
-    struct CmnDeleteSynPackage {
-        address operator;
-        uint256 id;
-    }
-
-    // GNFD to BSC
-    struct CmnDeleteAckPackage {
-        uint32 status;
-        uint256 id;
-    }
-
-    // GNFD to BSC
-    struct CmnMirrorSynPackage {
-        uint256 id; // resource ID
-        address owner;
-    }
-
-    // BSC to GNFD
-    struct CmnMirrorAckPackage {
-        uint32 status;
-        uint256 id;
-    }
-
-    event MirrorSuccess(uint256 id, address owner);
-    event MirrorFailed(uint256 id, address owner, bytes failReason);
-    event CreateSubmitted(address owner, address operator, string name, uint256 relayFee, uint256 ackRelayFee);
-    event CreateFailed(address creator, uint256 id);
-    event CreateSuccess(address creator, uint256 id);
-    event DeleteSubmitted(address operator, uint256 id, uint256 relayFee, uint256 ackRelayFee);
-    event DeleteFailed(uint256 id);
-    event DeleteSuccess(uint256 id);
-    event FailAckPkgReceived(uint8 channelId, bytes msgBytes);
-    event UnexpectedPackage(uint8 channelId, bytes msgBytes);
-    event ParamChange(string key, bytes value);
-
+    /*----------------- modifier -----------------*/
     modifier onlyCrossChainContract() {
         require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
         _;
@@ -107,28 +38,12 @@ abstract contract NFTWrapResourceHub is Initializable, Config, AccessControl {
 
     /*----------------- external function -----------------*/
 
-    function grant(address account, uint32 acCode, uint256 expireTime) external virtual {
-        if (acCode & AUTH_CODE_MIRROR != 0) {
-            grantRole(ROLE_MIRROR, account, expireTime);
-        } else if (acCode & AUTH_CODE_CREATE != 0) {
-            grantRole(ROLE_CREATE, account, expireTime);
-        } else if (acCode & AUTH_CODE_DELETE != 0) {
-            grantRole(ROLE_DELETE, account, expireTime);
-        } else {
-            revert("unknown authorization code");
-        }
+    function grant(address account, uint32 acCode, uint256 expireTime) external {
+        delegateAdditional();
     }
 
-    function revoke(address account, uint32 acCode) external virtual {
-        if (acCode & AUTH_CODE_MIRROR != 0) {
-            revokeRole(ROLE_MIRROR, account);
-        } else if (acCode & AUTH_CODE_CREATE != 0) {
-            revokeRole(ROLE_CREATE, account);
-        } else if (acCode & AUTH_CODE_DELETE != 0) {
-            revokeRole(ROLE_DELETE, account);
-        } else {
-            revert("unknown authorization code");
-        }
+    function revoke(address account, uint32 acCode) external {
+        delegateAdditional();
     }
 
     /*----------------- update param -----------------*/
@@ -291,5 +206,32 @@ abstract contract NFTWrapResourceHub is Initializable, Config, AccessControl {
         elements[0] = opType.encodeUint();
         elements[1] = msgBytes.encodeBytes();
         return elements.encodeList();
+    }
+
+    function delegateAdditional() internal {
+        address _target = additional;
+        assembly {
+            // The pointer to the free memory slot
+            let ptr := mload(0x40)
+            // Copy function signature and arguments from calldata at zero position into memory at pointer position
+            calldatacopy(ptr, 0x0, calldatasize())
+            // Delegatecall method of the implementation contract, returns 0 on error
+            let result := delegatecall(gas(), _target, ptr, calldatasize(), 0x0, 0)
+            // Get the size of the last return data
+            let size := returndatasize()
+            // Copy the size length of bytes from return data at zero position to pointer position
+            returndatacopy(ptr, 0x0, size)
+
+            // Depending on result value
+            switch result
+            case 0 {
+                // End execution and revert state changes
+                revert(ptr, size)
+            }
+            default {
+                // Return data with length of size at pointers position
+                return(ptr, size)
+            }
+        }
     }
 }

@@ -8,8 +8,9 @@ import "../interface/IERC1155NonTransferable.sol";
 import "../interface/ICrossChain.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
+import "../AccessControl.sol";
 
-contract GroupHub is NFTWrapResourceHub {
+contract GroupHub is NFTWrapResourceHub, AccessControl {
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -57,12 +58,16 @@ contract GroupHub is NFTWrapResourceHub {
     event UpdateSubmitted(
         address operator, uint256 id, uint8 opType, address[] members, uint256 relayFee, uint256 ackRelayFee
     );
-    event UpdateFailed(address operator, uint256 id, uint8 opType);
     event UpdateSuccess(address operator, uint256 id, uint8 opType);
+    event UpdateFailed(address operator, uint256 id, uint8 opType);
 
-    function initialize(address _ERC721_token, address _ERC1155_token) public initializer {
+    function initialize(address _ERC721_token, address _ERC1155_token, address _additional)
+        public
+        initializer
+    {
         ERC721Token = _ERC721_token;
         ERC1155Token = _ERC1155_token;
+        additional = _additional;
 
         relayFee = 2e15;
         ackRelayFee = 2e15;
@@ -128,27 +133,8 @@ contract GroupHub is NFTWrapResourceHub {
      * @param name The group's name
      * @param members The initial members of the group
      */
-    function createGroup(address owner, string calldata name, address[] calldata members)
-        external
-        payable
-        returns (bool)
-    {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        if (_msgSender() != owner) {
-            _checkRole(AUTH_CODE_CREATE, owner);
-        }
-
-        CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name, members: members});
-
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
-            GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
-        );
-        emit CreateSubmitted(owner, _msgSender(), name, relayFee, _ackRelayFee);
-        return true;
+    function createGroup(address owner, string memory name, address[] memory members) external payable returns (bool) {
+        delegateAdditional();
     }
 
     /**
@@ -157,28 +143,7 @@ contract GroupHub is NFTWrapResourceHub {
      * @param id The group's id
      */
     function deleteGroup(uint256 id) external payable returns (bool) {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        if (
-            !(
-                _msgSender() == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == _msgSender()
-                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _msgSender())
-            )
-        ) {
-            _checkRole(AUTH_CODE_DELETE, owner);
-        }
-
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id});
-
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
-            GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
-        );
-        emit DeleteSubmitted(msg.sender, id, relayFee, _ackRelayFee);
-        return true;
+        delegateAdditional();
     }
 
     /**
@@ -187,54 +152,7 @@ contract GroupHub is NFTWrapResourceHub {
      * @param synPkg Package containing information of the group to be updated
      */
     function updateGroup(UpdateSynPackage memory synPkg) external payable returns (bool) {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
-        if (
-            !(
-                _msgSender() == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == _msgSender()
-                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _msgSender())
-            )
-        ) {
-            _checkRole(AUTH_CODE_UPDATE, owner);
-        }
-
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
-            GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
-        );
-        emit UpdateSubmitted(msg.sender, synPkg.id, synPkg.opType, synPkg.members, relayFee, _ackRelayFee);
-        return true;
-    }
-
-    function grant(address account, uint32 acCode, uint256 expireTime) external override {
-        if (acCode & AUTH_CODE_MIRROR != 0) {
-            grantRole(ROLE_MIRROR, account, expireTime);
-        } else if (acCode & AUTH_CODE_CREATE != 0) {
-            grantRole(ROLE_CREATE, account, expireTime);
-        } else if (acCode & AUTH_CODE_DELETE != 0) {
-            grantRole(ROLE_DELETE, account, expireTime);
-        } else if (acCode & AUTH_CODE_UPDATE != 0) {
-            grantRole(ROLE_UPDATE, account, expireTime);
-        } else {
-            revert("unknown authorization code");
-        }
-    }
-
-    function revoke(address account, uint32 acCode) external override {
-        if (acCode & AUTH_CODE_MIRROR != 0) {
-            revokeRole(ROLE_MIRROR, account);
-        } else if (acCode & AUTH_CODE_CREATE != 0) {
-            revokeRole(ROLE_CREATE, account);
-        } else if (acCode & AUTH_CODE_DELETE != 0) {
-            revokeRole(ROLE_DELETE, account);
-        } else if (acCode & AUTH_CODE_UPDATE != 0) {
-            revokeRole(ROLE_UPDATE, account);
-        } else {
-            revert("unknown authorization code");
-        }
+        delegateAdditional();
     }
 
     /*----------------- update param -----------------*/
@@ -250,45 +168,11 @@ contract GroupHub is NFTWrapResourceHub {
     }
 
     /*----------------- internal function -----------------*/
-    function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory members = new bytes[](synPkg.members.length);
-        for (uint256 i; i < synPkg.members.length; ++i) {
-            members[i] = synPkg.members[i].encodeAddress();
-        }
-
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = synPkg.creator.encodeAddress();
-        elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = members.encodeList();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
-    }
-
     function _doCreate(address creator, uint256 id) internal override {
         IERC721NonTransferable(ERC721Token).mint(creator, id);
         string memory tokenURI = IERC721NonTransferable(ERC721Token).tokenURI(id);
         IERC1155NonTransferable(ERC1155Token).setTokenURI(id, tokenURI);
         emit CreateSuccess(creator, id);
-    }
-
-    function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
-    }
-
-    function _encodeUpdateSynPackage(UpdateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory members = new bytes[](synPkg.members.length);
-        for (uint256 i; i < synPkg.members.length; ++i) {
-            members[i] = synPkg.members[i].encodeAddress();
-        }
-
-        bytes[] memory elements = new bytes[](4);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        elements[2] = uint256(synPkg.opType).encodeUint();
-        elements[3] = members.encodeList();
-        return _RLPEncode(TYPE_UPDATE, elements.encodeList());
     }
 
     function _decodeUpdateAckPackage(RLPDecode.Iterator memory iter)

@@ -15,10 +15,6 @@ abstract contract Config {
     uint8 public constant OBJECT_CHANNEL_ID = 0x07;
     uint8 public constant GROUP_CHANNEL_ID = 0x08;
 
-    // relayer
-    uint256 public relayFee;
-    uint256 public ackRelayFee;
-
     // contract address
     // will calculate their deployed addresses from deploy script
     address public constant PROXY_ADMIN = address(0);
@@ -30,4 +26,8 @@ abstract contract Config {
     address public constant BUCKET_HUB = address(0);
     address public constant OBJECT_HUB = address(0);
     address public constant GROUP_HUB = address(0);
+
+    // relayer
+    uint256 public relayFee;
+    uint256 public ackRelayFee;
 }

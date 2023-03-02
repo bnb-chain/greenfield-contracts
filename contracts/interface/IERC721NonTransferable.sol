@@ -19,6 +19,10 @@ interface IERC721NonTransferable {
      */
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
+    function name() external view returns (string memory);
+
+    function symbol() external view returns (string memory);
+
     function balanceOf(address owner) external view returns (uint256 balance);
 
     function ownerOf(uint256 tokenId) external view returns (address owner);
