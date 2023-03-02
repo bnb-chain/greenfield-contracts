@@ -23,7 +23,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     uint8 public constant UPDATE_DELETE = 2;
 
     // authorization code
-    uint32 public constant AUTH_CODE_UPDATE = 0x00001000;
+    uint32 public constant AUTH_CODE_UPDATE = uint32(uint8(0x03));
 
     // role
     bytes32 public constant ROLE_UPDATE = keccak256("ROLE_UPDATE");

@@ -17,12 +17,10 @@ contract NFTWrapResourceStorage is Config {
 
     // authorization code
     // can be used by bit operations
-    uint32 public constant AUTH_CODE_MIRROR = 0x00000001;
-    uint32 public constant AUTH_CODE_CREATE = 0x00000010;
-    uint32 public constant AUTH_CODE_DELETE = 0x00000100;
+    uint32 public constant AUTH_CODE_CREATE = 1; // 0001
+    uint32 public constant AUTH_CODE_DELETE = 2; // 0010
 
     // role
-    bytes32 public constant ROLE_MIRROR = keccak256("ROLE_MIRROR");
     bytes32 public constant ROLE_CREATE = keccak256("ROLE_CREATE");
     bytes32 public constant ROLE_DELETE = keccak256("ROLE_DELETE");
 

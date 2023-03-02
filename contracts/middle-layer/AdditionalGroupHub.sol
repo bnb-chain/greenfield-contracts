@@ -24,10 +24,10 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
     uint8 public constant UPDATE_DELETE = 2;
 
     // authorization code
-    uint32 public constant AUTH_CODE_UPDATE = 0x00001000;
+    uint32 public constant AUTH_CODE_UPDATE = 4; // 0100
 
     // role
-    bytes32 public ROLE_UPDATE;
+    bytes32 public constant ROLE_UPDATE = keccak256("ROLE_UPDATE");
 
     // ERC1155 token contract
     address public ERC1155Token;
