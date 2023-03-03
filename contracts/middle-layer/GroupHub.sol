@@ -230,6 +230,10 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
             }
         } else if (ackPkg.opType == UPDATE_DELETE) {
             for (uint256 i; i < ackPkg.members.length; ++i) {
+                // skip if the member has no token
+                if (IERC1155NonTransferable(ERC1155Token).balanceOf(ackPkg.members[i], ackPkg.id) == 0) {
+                    continue;
+                }
                 IERC1155NonTransferable(ERC1155Token).burn(ackPkg.members[i], ackPkg.id, 1);
             }
         } else {
