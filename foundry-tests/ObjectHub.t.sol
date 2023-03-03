@@ -68,6 +68,78 @@ contract ObjectHubTest is Test, ObjectHub {
         objectHub.handleSynPackage(OBJECT_CHANNEL_ID, msgBytes);
     }
 
+    function testDelete(uint256 id) public {
+        vm.prank(OBJECT_HUB);
+        objectToken.mint(address(this), id);
+        assertEq(address(this), objectToken.ownerOf(id));
+
+        vm.expectEmit(true, true, true, true, address(objectHub));
+        emit DeleteSubmitted(address(this), address(this), id, 2e15, 2e15);
+        objectHub.deleteObject{value: 4e15}(id);
+
+        CmnDeleteAckPackage memory deleteAckPkg = CmnDeleteAckPackage({status: 0, id: id});
+        bytes memory msgBytes = _encodeDeleteAckPackage(deleteAckPkg);
+
+        vm.startPrank(CROSS_CHAIN);
+        vm.expectEmit(true, true, true, true, address(objectToken));
+        emit Transfer(address(this), address(0), id);
+        objectHub.handleAckPackage(OBJECT_CHANNEL_ID, msgBytes);
+    }
+
+    function testGrantAndRevoke() public {
+        uint256 id = 1;
+        address granter = msg.sender;
+        address operator = address(this);
+
+
+        // failed without authorization
+        vm.prank(OBJECT_HUB);
+        objectToken.mint(granter, id);
+        vm.expectRevert(bytes("no permission to delete"));
+        objectHub.deleteObject{value: 4e15}(id);
+
+        // wrong auth code
+        uint256 expireTime = block.timestamp + 1 days;
+        uint32 authCode = 1;
+        vm.expectRevert(bytes("invalid authorization code"));
+        vm.prank(msg.sender);
+        objectHub.grant(operator, authCode, expireTime);
+
+        // grant
+        authCode = 2; // delete
+        vm.prank(msg.sender);
+        objectHub.grant(operator, authCode, expireTime);
+
+        // delete success
+        vm.expectEmit(true, true, true, true, address(objectHub));
+        emit DeleteSubmitted(granter, operator, id, 2e15, 2e15);
+        objectHub.deleteObject{value: 4e15}(id);
+
+        // grant expire
+        id = id + 1;
+        vm.prank(OBJECT_HUB);
+        objectToken.mint(granter, id);
+
+        vm.warp(expireTime + 1);
+        vm.expectRevert(bytes("no permission to delete"));
+        objectHub.deleteObject{value: 4e15}(id);
+
+        // revoke and delete failed
+        expireTime = block.timestamp + 1 days;
+        vm.prank(msg.sender);
+        objectHub.grant(operator, authCode, expireTime);
+        objectHub.deleteObject{value: 4e15}(id);
+
+        vm.prank(msg.sender);
+        objectHub.revoke(operator, authCode);
+
+        id = id + 1;
+        vm.prank(OBJECT_HUB);
+        objectToken.mint(granter, id);
+        vm.expectRevert(bytes("no permission to delete"));
+        objectHub.deleteObject{value: 4e15}(id);
+    }
+
     function _encodeGovSynPackage(ParamChangePackage memory proposal) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
         elements[0] = bytes(proposal.key).encodeBytes();
@@ -81,5 +153,12 @@ contract ObjectHubTest is Test, ObjectHub {
         elements[0] = synPkg.id.encodeUint();
         elements[1] = synPkg.owner.encodeAddress();
         return _RLPEncode(TYPE_MIRROR, elements.encodeList());
+    }
+
+    function _encodeDeleteAckPackage(CmnDeleteAckPackage memory ackPkg) internal pure returns (bytes memory) {
+        bytes[] memory elements = new bytes[](2);
+        elements[0] = ackPkg.status.encodeUint();
+        elements[1] = ackPkg.id.encodeUint();
+        return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 }

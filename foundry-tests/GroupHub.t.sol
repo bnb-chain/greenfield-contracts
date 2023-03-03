@@ -83,11 +83,9 @@ contract GroupHubTest is Test, GroupHub {
     }
 
     function testCreate(uint256 id) public {
-        address[] memory members;
-
         vm.expectEmit(true, true, true, true, address(groupHub));
         emit CreateSubmitted(address(this), address(this), "test", 2e15, 2e15);
-        groupHub.createGroup{value: 4e15}(address(this), "test", members);
+        groupHub.createGroup{value: 4e15}(address(this), "test");
 
         CmnCreateAckPackage memory createAckPkg = CmnCreateAckPackage({status: 0, creator: address(this), id: id});
         bytes memory msgBytes = _encodeCreateAckPackage(createAckPkg);
@@ -150,28 +148,26 @@ contract GroupHubTest is Test, GroupHub {
         address granter = msg.sender;
         address operator = address(this);
 
-        address[] memory members;
-
         // failed without authorization
         vm.expectRevert(bytes("no permission to create"));
-        groupHub.createGroup{value: 4e15}(granter, "test1", members);
+        groupHub.createGroup{value: 4e15}(granter, "test1");
 
         // wrong auth code
         uint256 expireTime = block.timestamp + 1 days;
-        uint32 authCode = 0x00011110;
+        uint32 authCode = 8;
         vm.expectRevert(bytes("invalid authorization code"));
         vm.prank(msg.sender);
         groupHub.grant(operator, authCode, expireTime);
 
         // grant
-        authCode = 0x00000110; // create and delete
+        authCode = 3; // create and delete
         vm.prank(msg.sender);
         groupHub.grant(operator, authCode, expireTime);
 
         // create success
         vm.expectEmit(true, true, true, true, address(groupHub));
         emit CreateSubmitted(granter, operator, "test1", 2e15, 2e15);
-        groupHub.createGroup{value: 4e15}(granter, "test1", members);
+        groupHub.createGroup{value: 4e15}(granter, "test1");
 
         // delete success
         uint256 tokenId = 0;
@@ -185,19 +181,19 @@ contract GroupHubTest is Test, GroupHub {
         // grant expire
         vm.warp(expireTime + 1);
         vm.expectRevert(bytes("no permission to create"));
-        groupHub.createGroup{value: 4e15}(granter, "test2", members);
+        groupHub.createGroup{value: 4e15}(granter, "test2");
 
         // revoke and create failed
         expireTime = block.timestamp + 1 days;
         vm.prank(msg.sender);
         groupHub.grant(operator, AUTH_CODE_CREATE, expireTime);
-        groupHub.createGroup{value: 4e15}(granter, "test2", members);
+        groupHub.createGroup{value: 4e15}(granter, "test2");
 
         vm.prank(msg.sender);
         groupHub.revoke(operator, AUTH_CODE_CREATE);
 
         vm.expectRevert(bytes("no permission to create"));
-        groupHub.createGroup{value: 4e15}(granter, "test3", members);
+        groupHub.createGroup{value: 4e15}(granter, "test3");
     }
 
     function _encodeGovSynPackage(ParamChangePackage memory proposal) internal pure returns (bytes memory) {

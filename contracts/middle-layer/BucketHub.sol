@@ -50,7 +50,7 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     }
 
     /**
-     * @dev handle ack cross-chain package from GNFD，it means create/delete operation Successly to GNFD.
+     * @dev handle ack cross-chain package from GNFD，it means create/delete operation handled by GNFD successfully.
      *
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */

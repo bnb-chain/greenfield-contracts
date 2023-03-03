@@ -37,7 +37,6 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
     struct CreateSynPackage {
         address creator;
         string name;
-        address[] members;
     }
 
     struct UpdateSynPackage {
@@ -73,10 +72,6 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             expireTime = block.timestamp + 30 days; // 30 days in default
         }
 
-        if (acCode & AUTH_CODE_MIRROR != 0) {
-            acCode = acCode & ~AUTH_CODE_MIRROR;
-            grantRole(ROLE_MIRROR, account, expireTime);
-        }
         if (acCode & AUTH_CODE_CREATE != 0) {
             acCode = acCode & ~AUTH_CODE_CREATE;
             grantRole(ROLE_CREATE, account, expireTime);
@@ -94,10 +89,6 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
     }
 
     function revoke(address account, uint32 acCode) external {
-        if (acCode & AUTH_CODE_MIRROR != 0) {
-            acCode = acCode & ~AUTH_CODE_MIRROR;
-            revokeRole(ROLE_MIRROR, account);
-        }
         if (acCode & AUTH_CODE_CREATE != 0) {
             acCode = acCode & ~AUTH_CODE_CREATE;
             revokeRole(ROLE_CREATE, account);
@@ -119,9 +110,8 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      *
      * @param owner The group's owner
      * @param name The group's name
-     * @param members The initial members of the group
      */
-    function createGroup(address owner, string memory name, address[] memory members) external payable returns (bool) {
+    function createGroup(address owner, string memory name) external payable returns (bool) {
         require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
@@ -130,7 +120,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
         }
 
-        CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name, members: members});
+        CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name});
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -200,15 +190,9 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
 
     /*----------------- internal function -----------------*/
     function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory members = new bytes[](synPkg.members.length);
-        for (uint256 i; i < synPkg.members.length; ++i) {
-            members[i] = synPkg.members[i].encodeAddress();
-        }
-
-        bytes[] memory elements = new bytes[](3);
+        bytes[] memory elements = new bytes[](2);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = members.encodeList();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }
 

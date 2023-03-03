@@ -33,10 +33,6 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
             expireTime = block.timestamp + 30 days; // 30 days in default
         }
 
-        if (acCode & AUTH_CODE_MIRROR != 0) {
-            acCode = acCode & ~AUTH_CODE_MIRROR;
-            grantRole(ROLE_MIRROR, account, expireTime);
-        }
         if (acCode & AUTH_CODE_CREATE != 0) {
             acCode = acCode & ~AUTH_CODE_CREATE;
             grantRole(ROLE_CREATE, account, expireTime);
@@ -50,10 +46,6 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
     }
 
     function revoke(address account, uint32 acCode) external {
-        if (acCode & AUTH_CODE_MIRROR != 0) {
-            acCode = acCode & ~AUTH_CODE_MIRROR;
-            revokeRole(ROLE_MIRROR, account);
-        }
         if (acCode & AUTH_CODE_CREATE != 0) {
             acCode = acCode & ~AUTH_CODE_CREATE;
             revokeRole(ROLE_CREATE, account);

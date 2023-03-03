@@ -130,13 +130,13 @@ contract BucketHubTest is Test, BucketHub {
 
         // wrong auth code
         uint256 expireTime = block.timestamp + 1 days;
-        uint32 authCode = 0x00001110;
+        uint32 authCode = 7;
         vm.expectRevert(bytes("invalid authorization code"));
         vm.prank(msg.sender);
         bucketHub.grant(operator, authCode, expireTime);
 
         // grant
-        authCode = 0x00000110; // create and delete
+        authCode = 3; // create and delete
         vm.prank(msg.sender);
         bucketHub.grant(operator, authCode, expireTime);
 

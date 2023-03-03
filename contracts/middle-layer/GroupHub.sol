@@ -36,7 +36,6 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     struct CreateSynPackage {
         address creator;
         string name;
-        address[] members;
     }
 
     struct UpdateSynPackage {
@@ -93,7 +92,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     }
 
     /**
-     * @dev handle ack cross-chain package from GNFD，it means create/delete operation Successly to GNFD.
+     * @dev handle ack cross-chain package from GNFD，it means create/delete/update operation handled by GNFD successfully.
      *
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
@@ -134,9 +133,8 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
      *
      * @param owner The group's owner
      * @param name The group's name
-     * @param members The initial members of the group
      */
-    function createGroup(address owner, string memory name, address[] memory members) external payable returns (bool) {
+    function createGroup(address owner, string memory name) external payable returns (bool) {
         delegateAdditional();
     }
 
