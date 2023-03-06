@@ -26,4 +26,8 @@ abstract contract Config {
         require(msg.sender == GOV_HUB, "only GovHub contract");
         _;
     }
+
+    function _isContract(address account) internal view returns (bool) {
+        return account.code.length > 0;
+    }
 }
