@@ -11,6 +11,10 @@ import "../interface/IERC721NonTransferable.sol";
 import "../lib/RLPDecode.sol";
 import "../lib/RLPEncode.sol";
 
+// Highlight: This contract must have the same storage layout as GroupHub
+// which means same state variables and same order of state variables.
+// Because it will be used as a delegate call target.
+// NOTE: The inherited contracts order must be the same as GroupHub.
 contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessControl {
     using RLPEncode for *;
     using RLPDecode for *;

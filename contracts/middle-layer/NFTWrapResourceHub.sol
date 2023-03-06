@@ -12,6 +12,7 @@ import "../lib/RLPEncode.sol";
 import "../interface/IERC721NonTransferable.sol";
 import "../interface/IAccessControl.sol";
 
+// DO NOT define any state variables in this contract.
 abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
     using RLPEncode for *;
     using RLPDecode for *;
