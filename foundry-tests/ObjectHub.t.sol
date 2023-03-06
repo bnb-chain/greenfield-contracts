@@ -91,7 +91,6 @@ contract ObjectHubTest is Test, ObjectHub {
         address granter = msg.sender;
         address operator = address(this);
 
-
         // failed without authorization
         vm.prank(OBJECT_HUB);
         objectToken.mint(granter, id);

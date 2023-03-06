@@ -23,7 +23,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     uint8 public constant UPDATE_DELETE = 2;
 
     // authorization code
-    uint32 public constant AUTH_CODE_UPDATE = uint32(uint8(0x03));
+    uint32 public constant AUTH_CODE_UPDATE = 4; // 0100
 
     // role
     bytes32 public constant ROLE_UPDATE = keccak256("ROLE_UPDATE");
@@ -36,6 +36,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     struct CreateSynPackage {
         address creator;
         string name;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     struct UpdateSynPackage {
@@ -43,6 +44,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         uint256 id; // group id
         uint8 opType; // add/remove members
         address[] members;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     // GNFD to BSC
@@ -52,6 +54,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         uint256 id; // group id
         uint8 opType; // add/remove members
         address[] members;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     event UpdateSubmitted(
@@ -73,6 +76,10 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
 
         relayFee = 2e15;
         ackRelayFee = 2e15;
+        callbackGasPrice = 1e9;
+        transferGas = 2300;
+
+        channelId = GROUP_CHANNEL_ID;
     }
 
     /*----------------- middle-layer app function -----------------*/
@@ -96,7 +103,11 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
      *
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleAckPackage(uint8, bytes calldata msgBytes) external override onlyCrossChainContract {
+    function handleAckPackage(uint8, uint32 sequence, bytes calldata msgBytes)
+        external
+        override
+        onlyCrossChainContract
+    {
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(msgIter.next().toUint());
@@ -107,23 +118,74 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
             revert("wrong ack package");
         }
 
+        ExtraData memory extraData;
         if (opType == TYPE_CREATE) {
-            _handleCreateAckPackage(pkgIter);
+            extraData = _handleCreateAckPackage(pkgIter);
         } else if (opType == TYPE_DELETE) {
-            _handleDeleteAckPackage(pkgIter);
+            extraData = _handleDeleteAckPackage(pkgIter);
         } else if (opType == TYPE_UPDATE) {
-            _handleUpdateAckPackage(pkgIter);
+            extraData = _handleUpdateAckPackage(pkgIter);
         } else {
             revert("unexpected operation type");
         }
+
+        uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
+        if (extraData.failureStrategy != FailureHandleStrategy.NoCallBack) {
+            uint256 gasBefore = gasleft();
+            bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
+            try IApplication(extraData.appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(
+                channelId, msgBytes, extraData.callbackData
+            ) {} catch (bytes memory reason) {
+                if (extraData.failureStrategy != FailureHandleStrategy.Skip) {
+                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, false, reason);
+                    retryQueue[extraData.appAddress].pushBack(pkgHash);
+                }
+            }
+
+            uint256 gasUsed = gasleft() - gasBefore;
+            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callbackGasPrice;
+        }
+
+        // refund
+        (success,) = extraData.refundAddress.call{gas: transferGas, value: refundFee}("");
+        require(success, "refund failed");
     }
 
     /**
      * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain syn request to GNFD.
      *
+     * @param sequence The sequence of the fail ack package
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external override onlyCrossChainContract {
+    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes)
+        external
+        override
+        onlyCrossChainContract
+    {
+        (ExtraData memory extraData, bool success) = _decodeFailAckPackage(msgBytes);
+        require(success, "decode fail ack package failed");
+
+        uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
+        if (extraData.failureStrategy != FailureHandleStrategy.NoCallBack) {
+            uint256 gasBefore = gasleft();
+            bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
+            try IApplication(extraData.appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(
+                channelId, msgBytes, extraData.callbackData
+            ) {} catch (bytes memory reason) {
+                if (extraData.failureStrategy != FailureHandleStrategy.Skip) {
+                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, false, reason);
+                    retryQueue[extraData.appAddress].pushBack(pkgHash);
+                }
+            }
+
+            uint256 gasUsed = gasleft() - gasBefore;
+            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callbackGasPrice;
+        }
+
+        // refund
+        (success,) = extraData.refundAddress.call{gas: transferGas, value: refundFee}("");
+        require(success, "refund failed");
+
         emit FailAckPkgReceived(channelId, msgBytes);
     }
 
@@ -169,13 +231,6 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- internal function -----------------*/
-    function _doCreate(address creator, uint256 id) internal override {
-        IERC721NonTransferable(ERC721Token).mint(creator, id);
-        string memory tokenURI = IERC721NonTransferable(ERC721Token).tokenURI(id);
-        IERC1155NonTransferable(ERC1155Token).setTokenURI(id, tokenURI);
-        emit CreateSuccess(creator, id);
-    }
-
     function _decodeUpdateAckPackage(RLPDecode.Iterator memory iter)
         internal
         pure
@@ -183,8 +238,8 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     {
         UpdateAckPackage memory ackPkg;
 
-        bool success = false;
-        uint256 idx = 0;
+        bool success;
+        uint256 idx;
         while (iter.hasNext()) {
             if (idx == 0) {
                 ackPkg.status = uint32(iter.next().toUint());
@@ -210,7 +265,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         return (ackPkg, success);
     }
 
-    function _handleUpdateAckPackage(RLPDecode.Iterator memory iter) internal {
+    function _handleUpdateAckPackage(RLPDecode.Iterator memory iter) internal returns (ExtraData memory _extraData) {
         (UpdateAckPackage memory ackPkg, bool success) = _decodeUpdateAckPackage(iter);
         require(success, "unrecognized update ack package");
 
@@ -221,6 +276,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         } else {
             revert("unexpected status code");
         }
+
+        (_extraData, success) = _bytesToExtraData(ackPkg.extraData);
+        require(success, "unrecognized extra data");
     }
 
     function _doUpdate(UpdateAckPackage memory ackPkg) internal {
@@ -240,5 +298,44 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
             revert("unexpected update operation");
         }
         emit UpdateSuccess(ackPkg.operator, ackPkg.id, ackPkg.opType);
+    }
+
+    function _decodeFailAckPackage(bytes memory msgBytes)
+        internal
+        pure
+        returns (ExtraData memory extraData, bool success)
+    {
+        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
+
+        uint8 opType = uint8(msgIter.next().toUint());
+        RLPDecode.Iterator memory pkgIter;
+        if (msgIter.hasNext()) {
+            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
+        } else {
+            return (extraData, false);
+        }
+
+        uint256 elementsNum;
+        if (opType == TYPE_CREATE) {
+            elementsNum = 3;
+        } else if (opType == TYPE_DELETE) {
+            elementsNum = 3;
+        } else if (opType == TYPE_UPDATE) {
+            elementsNum = 5;
+        } else {
+            return (extraData, false);
+        }
+
+        for (uint256 i = 0; i < elementsNum - 1; i++) {
+            if (pkgIter.hasNext()) {
+                pkgIter.next();
+            } else {
+                return (extraData, false);
+            }
+        }
+
+        if (pkgIter.hasNext()) {
+            (extraData, success) = _bytesToExtraData(pkgIter.next().toBytes());
+        }
     }
 }

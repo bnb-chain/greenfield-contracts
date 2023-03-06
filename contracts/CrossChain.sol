@@ -238,14 +238,14 @@ contract CrossChain is Initializable, Config {
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
         } else if (packageType == ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleAckPackage(channelId, packageLoad) {}
+            try IMiddleLayer(_handler).handleAckPackage(channelId, sequence, packageLoad) {}
             catch Error(string memory reason) {
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
         } else if (packageType == FAIL_ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleFailAckPackage(channelId, packageLoad) {}
+            try IMiddleLayer(_handler).handleFailAckPackage(channelId, sequence, packageLoad) {}
             catch Error(string memory reason) {
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
             } catch (bytes memory lowLevelData) {

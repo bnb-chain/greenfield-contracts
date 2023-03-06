@@ -41,6 +41,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
     struct CreateSynPackage {
         address creator;
         string name;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     struct UpdateSynPackage {
@@ -48,6 +49,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         uint256 id; // group id
         uint8 opType; // add/remove members
         address[] members;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     // GNFD to BSC
@@ -57,6 +59,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         uint256 id; // group id
         uint8 opType; // add/remove members
         address[] members;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     event UpdateSubmitted(
@@ -114,10 +117,32 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      *
      * @param owner The group's owner
      * @param name The group's name
+     * @param refundAddress The address to receive the refund of the gas fee
+     * @param callbackData The data to be sent back to the application
      */
-    function createGroup(address owner, string memory name) external payable returns (bool) {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
+    function createGroup(address owner, string memory name, address refundAddress, bytes memory callbackData)
+        external
+        payable
+        returns (bool)
+    {
+        address _appAddress = msg.sender;
+        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
+
+        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+
+        // check package queue
+        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+            require(
+                packageQueue[_appAddress].length == 0,
+                "package queue is not empty, please process the previous package first"
+            );
+        }
+
+        // check refund address
+        (bool success,) = refundAddress.call{gas: transferGas}("");
+        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
 
         // check authorization
         if (msg.sender != owner) {
@@ -125,6 +150,13 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         }
 
         CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name});
+        ExtraData memory extraData = ExtraData({
+            appAddress: _appAddress,
+            refundAddress: refundAddress,
+            failureHandleStrategy: failStrategy,
+            callbackData: callbackData
+        });
+        synPkg.extraData = _extraDataToBytes(extraData);
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -138,10 +170,32 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * @dev delete a group and send cross-chain request from BSC to GNFD
      *
      * @param id The group's id
+     * @param refundAddress The address to receive the refund of the gas fee
+     * @param callbackData The data to be sent back to the application
      */
-    function deleteGroup(uint256 id) external payable returns (bool) {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
+    function deleteGroup(uint256 id, address refundAddress, bytes memory callbackData)
+        external
+        payable
+        returns (bool)
+    {
+        address _appAddress = msg.sender;
+        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
+
+        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+
+        // check package queue
+        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+            require(
+                packageQueue[_appAddress].length == 0,
+                "package queue is not empty, please process the previous package first"
+            );
+        }
+
+        // check refund address
+        (bool success,) = refundAddress.call{gas: transferGas}("");
+        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
@@ -155,6 +209,13 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         }
 
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id});
+        ExtraData memory extraData = ExtraData({
+            appAddress: _appAddress,
+            refundAddress: refundAddress,
+            failureHandleStrategy: failStrategy,
+            callbackData: callbackData
+        });
+        synPkg.extraData = _extraDataToBytes(extraData);
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -168,10 +229,32 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * @dev update a group's member and send cross-chain request from BSC to GNFD
      *
      * @param synPkg Package containing information of the group to be updated
+     * @param refundAddress The address to receive the refund of the gas fee
+     * @param callbackData The data to be sent back to the application
      */
-    function updateGroup(UpdateSynPackage memory synPkg) external payable returns (bool) {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
+    function updateGroup(UpdateSynPackage memory synPkg, address refundAddress, bytes memory callbackData)
+        external
+        payable
+        returns (bool)
+    {
+        address _appAddress = msg.sender;
+        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
+
+        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+
+        // check package queue
+        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+            require(
+                packageQueue[_appAddress].length == 0,
+                "package queue is not empty, please process the previous package first"
+            );
+        }
+
+        // check refund address
+        (bool success,) = refundAddress.call{gas: transferGas}("");
+        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
@@ -184,6 +267,14 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             require(hasRole(ROLE_UPDATE, owner, msg.sender), "no update permission");
         }
 
+        ExtraData memory extraData = ExtraData({
+            appAddress: _appAddress,
+            refundAddress: refundAddress,
+            failureHandleStrategy: failStrategy,
+            callbackData: callbackData
+        });
+        synPkg.extraData = _extraDataToBytes(extraData);
+
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
@@ -194,16 +285,18 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
 
     /*----------------- internal function -----------------*/
     function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
+        bytes[] memory elements = new bytes[](3);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();
+        elements[2] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }
 
     function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
+        bytes[] memory elements = new bytes[](3);
         elements[0] = synPkg.operator.encodeAddress();
         elements[1] = synPkg.id.encodeUint();
+        elements[2] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 
@@ -213,12 +306,22 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             members[i] = synPkg.members[i].encodeAddress();
         }
 
-        bytes[] memory elements = new bytes[](4);
+        bytes[] memory elements = new bytes[](5);
         elements[0] = synPkg.operator.encodeAddress();
         elements[1] = synPkg.id.encodeUint();
         elements[2] = uint256(synPkg.opType).encodeUint();
         elements[3] = members.encodeList();
+        elements[4] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_UPDATE, elements.encodeList());
+    }
+
+    function _extraDataToBytes(ExtraData memory _extraData) internal pure returns (bytes memory) {
+        bytes[] memory elements = new bytes[](4);
+        elements[0] = _extraData.appAddress.encodeAddress();
+        elements[1] = _extraData.refundAddress.encodeAddress();
+        elements[2] = uint256(_extraData.failureStrategy).encodeUint();
+        elements[3] = _extraData.callbackData.encodeBytes();
+        return elements.encodeList();
     }
 
     function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory) {

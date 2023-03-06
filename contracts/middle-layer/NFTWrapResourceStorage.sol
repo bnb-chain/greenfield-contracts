@@ -3,8 +3,9 @@
 pragma solidity ^0.8.0;
 
 import "../Config.sol";
+import "../PackageQueue.sol";
 
-contract NFTWrapResourceStorage is Config {
+contract NFTWrapResourceStorage is Config, PackageQueue {
     /*----------------- constants -----------------*/
     // status of cross-chain package
     uint32 public constant STATUS_SUCCESS = 0;
@@ -28,6 +29,14 @@ contract NFTWrapResourceStorage is Config {
     address public ERC721Token;
     address public additional;
 
+    // dApp info
+    struct ExtraData {
+        address appAddress;
+        address refundAddress;
+        FailureHandleStrategy failureStrategy;
+        bytes callbackData;
+    }
+
     // struct CreateSynPackage should be defined in child contract
 
     // GNFD to BSC
@@ -35,18 +44,21 @@ contract NFTWrapResourceStorage is Config {
         uint32 status;
         uint256 id;
         address creator;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     // BSC to GNFD
     struct CmnDeleteSynPackage {
         address operator;
         uint256 id;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     // GNFD to BSC
     struct CmnDeleteAckPackage {
         uint32 status;
         uint256 id;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     // GNFD to BSC
@@ -59,6 +71,11 @@ contract NFTWrapResourceStorage is Config {
     struct CmnMirrorAckPackage {
         uint32 status;
         uint256 id;
+    }
+
+    struct PlaceHolder {
+        // reserve for future use
+        uint256[50] slots;
     }
 
     event MirrorSuccess(uint256 id, address owner);

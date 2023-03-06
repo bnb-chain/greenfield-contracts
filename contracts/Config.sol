@@ -30,4 +30,7 @@ abstract contract Config {
     // relayer
     uint256 public relayFee;
     uint256 public ackRelayFee;
+
+    uint256 public callbackGasPrice;
+    uint256 public transferGas;
 }

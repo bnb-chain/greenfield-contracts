@@ -30,6 +30,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         uint256 primarySpApprovalExpiredHeight;
         bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
         uint8 readQuota;
+        bytes extraData; // rlp encode of ExtraData
     }
 
     function grant(address account, uint32 acCode, uint256 expireTime) external {
@@ -66,16 +67,46 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      * @dev create a bucket and send cross-chain request from BSC to GNFD
      *
      * @param synPkg Package containing information of the bucket to be created
+     * @param refundAddress The address to receive the refund of the gas fee
+     * @param callbackData The data to be sent back to the application
      */
-    function createBucket(CreateSynPackage memory synPkg) external payable returns (bool) {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
+    function createBucket(CreateSynPackage memory synPkg, address refundAddress, bytes memory callbackData)
+        external
+        payable
+        returns (bool)
+    {
+        address _appAddress = msg.sender;
+        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
+
+        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+
+        // check package queue
+        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+            require(
+                packageQueue[_appAddress].length == 0,
+                "package queue is not empty, please process the previous package first"
+            );
+        }
+
+        // check refund address
+        (bool success,) = refundAddress.call{gas: transferGas}("");
+        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
 
         // check authorization
         address owner = synPkg.creator;
         if (msg.sender != owner) {
             require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
         }
+
+        ExtraData memory extraData = ExtraData({
+            appAddress: _appAddress,
+            refundAddress: refundAddress,
+            failureHandleStrategy: failStrategy,
+            callbackData: callbackData
+        });
+        synPkg.extraData = _extraDataToBytes(extraData);
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -89,10 +120,32 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      * @dev delete a bucket and send cross-chain request from BSC to GNFD
      *
      * @param id The bucket's id
+     * @param refundAddress The address to receive the refund of the gas fee
+     * @param callbackData The data to be sent back to the application
      */
-    function deleteBucket(uint256 id) external payable returns (bool) {
-        require(msg.value >= relayFee + ackRelayFee, "received BNB amount should be no less than the minimum relayFee");
-        uint256 _ackRelayFee = msg.value - relayFee;
+    function deleteBucket(uint256 id, address refundAddress, bytes memory callbackData)
+        external
+        payable
+        returns (bool)
+    {
+        address _appAddress = msg.sender;
+        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
+
+        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+
+        // check package queue
+        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+            require(
+                packageQueue[_appAddress].length == 0,
+                "package queue is not empty, please process the previous package first"
+            );
+        }
+
+        // check refund address
+        (bool success,) = refundAddress.call{gas: transferGas}("");
+        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
@@ -106,6 +159,13 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         }
 
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id});
+        ExtraData memory extraData = ExtraData({
+            appAddress: _appAddress,
+            refundAddress: refundAddress,
+            failureHandleStrategy: failStrategy,
+            callbackData: callbackData
+        });
+        synPkg.extraData = _extraDataToBytes(extraData);
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -117,7 +177,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
 
     /*----------------- internal function -----------------*/
     function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](8);
+        bytes[] memory elements = new bytes[](9);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();
         elements[2] = synPkg.isPublic.encodeBool();
@@ -126,14 +186,25 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();
         elements[6] = synPkg.primarySpSignature.encodeBytes();
         elements[7] = uint256(synPkg.readQuota).encodeUint();
+        elements[8] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }
 
     function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
+        bytes[] memory elements = new bytes[](3);
         elements[0] = synPkg.operator.encodeAddress();
         elements[1] = synPkg.id.encodeUint();
+        elements[2] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
+    }
+
+    function _extraDataToBytes(ExtraData memory _extraData) internal pure returns (bytes memory) {
+        bytes[] memory elements = new bytes[](4);
+        elements[0] = _extraData.appAddress.encodeAddress();
+        elements[1] = _extraData.refundAddress.encodeAddress();
+        elements[2] = uint256(_extraData.failureStrategy).encodeUint();
+        elements[3] = _extraData.callbackData.encodeBytes();
+        return elements.encodeList();
     }
 
     function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory) {

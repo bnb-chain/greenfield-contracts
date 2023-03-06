@@ -108,8 +108,8 @@ contract GovHub is Config, Initializable {
         ParamChangePackage memory pkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
+        bool success;
+        uint256 idx;
         while (iter.hasNext()) {
             if (idx == 0) {
                 pkg.key = string(iter.next().toBytes());

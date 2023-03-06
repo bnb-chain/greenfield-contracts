@@ -178,8 +178,8 @@ contract TokenHub is Initializable, Config {
         TransferInSynPackage memory transInSynPkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
+        bool success;
+        uint256 idx;
         while (iter.hasNext()) {
             if (idx == 0) {
                 transInSynPkg.amount = iter.next().toUint();
@@ -244,8 +244,8 @@ contract TokenHub is Initializable, Config {
         TransferOutAckPackage memory transOutAckPkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
+        bool success;
+        uint256 idx;
         while (iter.hasNext()) {
             if (idx == 0) {
                 transOutAckPkg.refundAmount = iter.next().toUint();
@@ -286,8 +286,8 @@ contract TokenHub is Initializable, Config {
         TransferOutSynPackage memory transOutSynPkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
+        bool success;
+        uint256 idx;
         while (iter.hasNext()) {
             if (idx == 0) {
                 transOutSynPkg.amount = iter.next().toUint();
