@@ -1,5 +1,5 @@
 import { BigNumber } from 'ethers';
-import {CrossChain, Deployer} from '../typechain-types';
+import {CrossChain, Deployer, GnfdLightClient, RelayerHub, TokenHub} from '../typechain-types';
 import {expect} from "chai";
 
 const fs = require('fs');
@@ -18,6 +18,9 @@ const main = async () => {
 
     const implGovHub = await deployContract('GovHub');
     const implCrossChain = (await deployContract('CrossChain')) as CrossChain;
+    const implTokenHub = (await deployContract('TokenHub')) as TokenHub;
+    const implLightClient = (await deployContract('GnfdLightClient')) as GnfdLightClient;
+    const implRelayerHub = (await deployContract('RelayerHub')) as RelayerHub;
 
     if (
         await implCrossChain.PROXY_ADMIN() !== deployment.ProxyAdmin ||
@@ -33,11 +36,17 @@ const main = async () => {
 
     log('deploy implGovHub success', implGovHub.address);
     log('deploy implCrossChain success', implCrossChain.address);
+    log('deploy implTokenHub success', implTokenHub.address);
+    log('deploy implLightClient success', implLightClient.address);
+    log('deploy implRelayerHub success', implRelayerHub.address);
 
     const upgrade: any = {
         Deployer: deployer.address,
         implGovHub: implGovHub.address,
         implCrossChain: implCrossChain.address,
+        implTokenHub: implTokenHub.address,
+        implLightClient: implLightClient.address,
+        implRelayerHub: implRelayerHub.address,
         gnfdChainId,
     };
     log('all contracts', upgrade);

@@ -12,7 +12,7 @@ import {
 const { ethers } = require('hardhat');
 
 const log = console.log;
-const txHash = '0xd5d5ac37ff78520d54d53093b34fd2f11222da3cf276b9247b0336b5d91d4ad8'
+const txHash = '0x8f89394bebc848f31f3837c03b4f8c6ec842389416250225c6d74841d2cfdbc2'
 
 const getLogsFromReceipt = async () => {
     const receipt = await ethers.provider.getTransactionReceipt(txHash)
