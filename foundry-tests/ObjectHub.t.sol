@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
+import "../contracts/CrossChain.sol";
 import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/ObjectHub.sol";
 import "../contracts/tokens/ERC721NonTransferable.sol";
@@ -21,15 +22,21 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+    event ReceivedAckPkg(uint8 channelId, bytes msgData, bytes callBackData);
+    event ReceivedFailAckPkg(uint8 channelId, bytes msgData, bytes callBackData);
 
     ERC721NonTransferable public objectToken;
     ObjectHub public objectHub;
     GovHub public govHub;
+    CrossChain public crossChain;
+
+    receive() external payable {}
 
     function setUp() public {
         vm.createSelectFork("test");
 
         govHub = GovHub(GOV_HUB);
+        crossChain = CrossChain(CROSS_CHAIN);
         objectHub = ObjectHub(OBJECT_HUB);
         objectToken = ERC721NonTransferable(objectHub.ERC721Token());
 
@@ -37,6 +44,8 @@ contract ObjectHubTest is Test, ObjectHub {
         vm.label(OBJECT_HUB, "objectHub");
         vm.label(CROSS_CHAIN, "crossChain");
         vm.label(address(objectToken), "objectToken");
+
+        objectHub.setFailureHandleStrategy(FailureHandleStrategy.NoCallBack);
     }
 
     function testBasicInfo() public {
@@ -75,15 +84,15 @@ contract ObjectHubTest is Test, ObjectHub {
 
         vm.expectEmit(true, true, true, true, address(objectHub));
         emit DeleteSubmitted(address(this), address(this), id, 2e15, 2e15);
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{value: 41e14}(id, address(this), "");
 
-        CmnDeleteAckPackage memory deleteAckPkg = CmnDeleteAckPackage({status: 0, id: id});
-        bytes memory msgBytes = _encodeDeleteAckPackage(deleteAckPkg);
+        bytes memory msgBytes = _encodeDeleteAckPackage(0, id, address(this), FailureHandleStrategy.NoCallBack);
 
+        uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
         vm.startPrank(CROSS_CHAIN);
         vm.expectEmit(true, true, true, true, address(objectToken));
         emit Transfer(address(this), address(0), id);
-        objectHub.handleAckPackage(OBJECT_CHANNEL_ID, msgBytes);
+        objectHub.handleAckPackage(OBJECT_CHANNEL_ID, sequence, msgBytes);
     }
 
     function testGrantAndRevoke() public {
@@ -95,7 +104,7 @@ contract ObjectHubTest is Test, ObjectHub {
         vm.prank(OBJECT_HUB);
         objectToken.mint(granter, id);
         vm.expectRevert(bytes("no permission to delete"));
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{value: 41e14}(id, address(this), "");
 
         // wrong auth code
         uint256 expireTime = block.timestamp + 1 days;
@@ -112,7 +121,7 @@ contract ObjectHubTest is Test, ObjectHub {
         // delete success
         vm.expectEmit(true, true, true, true, address(objectHub));
         emit DeleteSubmitted(granter, operator, id, 2e15, 2e15);
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{value: 41e14}(id, address(this), "");
 
         // grant expire
         id = id + 1;
@@ -121,13 +130,13 @@ contract ObjectHubTest is Test, ObjectHub {
 
         vm.warp(expireTime + 1);
         vm.expectRevert(bytes("no permission to delete"));
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{value: 41e14}(id, address(this), "");
 
         // revoke and delete failed
         expireTime = block.timestamp + 1 days;
         vm.prank(msg.sender);
         objectHub.grant(operator, authCode, expireTime);
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{value: 41e14}(id, address(this), "");
 
         vm.prank(msg.sender);
         objectHub.revoke(operator, authCode);
@@ -136,9 +145,57 @@ contract ObjectHubTest is Test, ObjectHub {
         vm.prank(OBJECT_HUB);
         objectToken.mint(granter, id);
         vm.expectRevert(bytes("no permission to delete"));
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{value: 41e14}(id, address(this), "");
     }
 
+    function testCallBack() public {
+        vm.prank(OBJECT_HUB);
+        objectToken.mint(address(this), 0);
+
+        // app closed
+        objectHub.setFailureHandleStrategy(FailureHandleStrategy.Closed);
+        vm.expectRevert(bytes("application closed"));
+        objectHub.deleteObject{value: 41e14}(0, address(this), "");
+
+        // hand in order
+        objectHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInOrder);
+
+        objectHub.deleteObject{value: 41e14}(0, address(this), "");
+        bytes memory msgBytes = _encodeDeleteAckPackage(0, 0, address(this), FailureHandleStrategy.HandleInOrder);
+
+        uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
+        vm.expectEmit(true, true, true, true, address(this));
+        emit ReceivedAckPkg(OBJECT_CHANNEL_ID, msgBytes, "");
+        vm.prank(CROSS_CHAIN);
+        objectHub.handleAckPackage(OBJECT_CHANNEL_ID, sequence, msgBytes);
+    }
+
+    function testFailAck() public {
+        vm.prank(OBJECT_HUB);
+        objectToken.mint(address(this), 0);
+        objectHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInOrder);
+
+        objectHub.deleteObject{value: 41e14}(0, address(this), "");
+        bytes memory msgBytes = _encodeDeleteAckPackage(0, 0, address(this), FailureHandleStrategy.HandleInOrder);
+
+        uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
+        vm.expectEmit(true, true, true, true, address(this));
+        emit ReceivedFailAckPkg(OBJECT_CHANNEL_ID, msgBytes, "");
+        vm.prank(CROSS_CHAIN);
+        objectHub.handleFailAckPackage(OBJECT_CHANNEL_ID, sequence, msgBytes);
+    }
+
+    /*----------------- middle-layer app function -----------------*/
+    // override the function in GroupHub
+    function handleAckPackage(uint8 channelId, bytes calldata ackPkg, bytes calldata callBackData) external {
+        emit ReceivedAckPkg(channelId, ackPkg, callBackData);
+    }
+
+    function handleFailAckPackage(uint8 channelId, bytes calldata failPkg, bytes calldata callBackData) external {
+        emit ReceivedFailAckPkg(channelId, failPkg, callBackData);
+    }
+
+    /*----------------- Internal function -----------------*/
     function _encodeGovSynPackage(ParamChangePackage memory proposal) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
         elements[0] = bytes(proposal.key).encodeBytes();
@@ -154,10 +211,22 @@ contract ObjectHubTest is Test, ObjectHub {
         return _RLPEncode(TYPE_MIRROR, elements.encodeList());
     }
 
-    function _encodeDeleteAckPackage(CmnDeleteAckPackage memory ackPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = ackPkg.status.encodeUint();
-        elements[1] = ackPkg.id.encodeUint();
+    function _encodeDeleteAckPackage(uint32 status, uint256 id, address refundAddr, FailureHandleStrategy failStrategy)
+        internal
+        view
+        returns (bytes memory)
+    {
+        ExtraData memory extraData = ExtraData({
+            appAddress: address(this),
+            refundAddress: refundAddr,
+            failureHandleStrategy: failStrategy,
+            callBackData: ""
+        });
+
+        bytes[] memory elements = new bytes[](3);
+        elements[0] = status.encodeUint();
+        elements[1] = id.encodeUint();
+        elements[2] = _extraDataToBytes(extraData).encodeBytes();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 }

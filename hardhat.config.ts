@@ -1,17 +1,30 @@
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
+import { HardhatUserConfig } from 'hardhat/config';
+import '@nomicfoundation/hardhat-toolbox';
 import 'dotenv/config';
 
-
 const config: HardhatUserConfig = {
-    solidity: "0.8.17",
+    solidity: {
+        compilers: [
+            {
+                version: '0.8.17',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200,
+                    },
+                },
+            },
+        ],
+    },
 
     networks: {
-        'test': {
-            url: process.env.RPC_TEST || "http://127.0.0.1:8545",
+        test: {
+            url: process.env.RPC_TEST || 'http://127.0.0.1:8545',
             accounts: [
-                process.env.DeployerPrivateKey || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
-                process.env.RelayerPrivateKey || '0x03ec592c156849665fa319fc7a11960dbd76f59ed06f664103b58668fb78b2f9',
+                process.env.DeployerPrivateKey ||
+                    '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+                process.env.RelayerPrivateKey ||
+                    '0x03ec592c156849665fa319fc7a11960dbd76f59ed06f664103b58668fb78b2f9',
                 '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
                 '0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6',
                 '0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a',
@@ -20,28 +33,32 @@ const config: HardhatUserConfig = {
                 '0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356',
                 '0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97',
                 '0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6',
-            ]
+            ],
         },
-        'local': {
-            url: process.env.BSC_LOCAL || "http://127.0.0.1:8545",
+        local: {
+            url: process.env.BSC_LOCAL || 'http://127.0.0.1:8545',
             accounts: [
-                process.env.DeployerPrivateKey || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
-                process.env.RelayerPrivateKey || '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',  // relayer
-            ]
+                process.env.DeployerPrivateKey ||
+                    '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', // developer
+                process.env.RelayerPrivateKey ||
+                    '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d', // relayer
+            ],
         },
         'bsc-testnet': {
             url: process.env.BSC_TESTNET_RPC || 'https://data-seed-prebsc-1-s1.binance.org:8545/',
             accounts: [
-                process.env.DeployerPrivateKey || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
-            ]
+                process.env.DeployerPrivateKey ||
+                    '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', // developer
+            ],
         },
-        'bsc': {
+        bsc: {
             url: process.env.BSC_RPC || 'https://bsc-dataseed1.binance.org',
             accounts: [
-                process.env.DeployerPrivateKey || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
-            ]
+                process.env.DeployerPrivateKey ||
+                    '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', // developer
+            ],
         },
-    }
+    },
 };
 
 export default config;

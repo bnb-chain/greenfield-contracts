@@ -31,7 +31,7 @@ contract PackageQueue {
     struct RetryPackage {
         address appAddress;
         bytes msgBytes;
-        bytes callbackData;
+        bytes callBackData;
         bool isFailAck;
         bytes failReason;
     }
@@ -58,11 +58,11 @@ contract PackageQueue {
     function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
         address appAddress = msg.sender;
         bytes memory _msgBytes = packageMap[pkgHash].msgBytes;
-        bytes memory _callbackData = packageMap[pkgHash].callbackData;
+        bytes memory _callBackData = packageMap[pkgHash].callBackData;
         if (packageMap[pkgHash].isFailAck) {
-            IApplication(appAddress).handleFailAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _msgBytes, _callbackData);
+            IApplication(appAddress).handleFailAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _msgBytes, _callBackData);
         } else {
-            IApplication(appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _msgBytes, _callbackData);
+            IApplication(appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _msgBytes, _callBackData);
         }
         delete packageMap[pkgHash];
         _cleanQueue(appAddress);

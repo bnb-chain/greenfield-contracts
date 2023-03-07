@@ -29,7 +29,7 @@ contract EndPoint is Config, PackageQueue {
 
         relayFee = 2e15;
         ackRelayFee = 2e15;
-        callbackGasPrice = 1e9;
+        callBackGasPrice = 1e9;
         transferGas = 2300;
     }
 
@@ -41,8 +41,8 @@ contract EndPoint is Config, PackageQueue {
         FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
@@ -157,7 +157,7 @@ contract EndPoint is Config, PackageQueue {
         }
         require(success, "rlp decode failed");
 
-        uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
+        uint256 refundFee = CALLBACK_GAS_LIMIT * callBackGasPrice;
         if (_strategy != FailureHandleStrategy.NoCallBack) {
             uint256 gasBefore = gasleft();
             try IApplication(_appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _appMsg, "") {}
@@ -168,8 +168,8 @@ contract EndPoint is Config, PackageQueue {
                 }
             }
 
-            uint256 gasUsed = gasleft() - gasBefore;
-            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callbackGasPrice;
+            uint256 gasUsed = gasBefore - gasleft();
+            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callBackGasPrice;
         }
 
         // refund
@@ -203,7 +203,7 @@ contract EndPoint is Config, PackageQueue {
         }
         require(success, "rlp decode failed");
 
-        uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
+        uint256 refundFee = CALLBACK_GAS_LIMIT * callBackGasPrice;
         if (_strategy != FailureHandleStrategy.NoCallBack) {
             uint256 gasBefore = gasleft();
             try IApplication(_appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _appMsg, "") {}
@@ -214,8 +214,8 @@ contract EndPoint is Config, PackageQueue {
                 }
             }
 
-            uint256 gasUsed = gasleft() - gasBefore;
-            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callbackGasPrice;
+            uint256 gasUsed = gasBefore - gasleft();
+            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callBackGasPrice;
         }
 
         // refund

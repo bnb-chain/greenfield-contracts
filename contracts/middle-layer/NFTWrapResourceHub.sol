@@ -31,11 +31,11 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
     /*----------------- middle-layer function -----------------*/
 
     // need to be implemented in child contract
-    function handleSynPackage(uint8 channelId, bytes calldata) external virtual returns (bytes memory) {}
+    function handleSynPackage(uint8 channelId, bytes calldata callBackData) external virtual returns (bytes memory) {}
 
-    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata) external virtual {}
+    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata callBackData) external virtual {}
 
-    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata) external virtual {}
+    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata callBackData) external virtual {}
 
     /*----------------- external function -----------------*/
 
@@ -237,7 +237,7 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
                 _extraData.failureHandleStrategy = FailureHandleStrategy(uint8(iter.next().toUint()));
                 success = true; // the call back data can be empty
             } else if (idx == 3) {
-                _extraData.callbackData = iter.next().toBytes();
+                _extraData.callBackData = iter.next().toBytes();
             } else {
                 break;
             }

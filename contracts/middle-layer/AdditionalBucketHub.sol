@@ -70,9 +70,9 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      *
      * @param synPkg Package containing information of the bucket to be created
      * @param refundAddress The address to receive the refund of the gas fee
-     * @param callbackData The data to be sent back to the application
+     * @param callBackData The data to be sent back to the application
      */
-    function createBucket(CreateSynPackage memory synPkg, address refundAddress, bytes memory callbackData)
+    function createBucket(CreateSynPackage memory synPkg, address refundAddress, bytes memory callBackData)
         external
         payable
         returns (bool)
@@ -81,8 +81,8 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
@@ -106,7 +106,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
             appAddress: _appAddress,
             refundAddress: refundAddress,
             failureHandleStrategy: failStrategy,
-            callbackData: callbackData
+            callBackData: callBackData
         });
         synPkg.extraData = _extraDataToBytes(extraData);
 
@@ -123,9 +123,9 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      *
      * @param id The bucket's id
      * @param refundAddress The address to receive the refund of the gas fee
-     * @param callbackData The data to be sent back to the application
+     * @param callBackData The data to be sent back to the application
      */
-    function deleteBucket(uint256 id, address refundAddress, bytes memory callbackData)
+    function deleteBucket(uint256 id, address refundAddress, bytes memory callBackData)
         external
         payable
         returns (bool)
@@ -134,8 +134,8 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
@@ -165,7 +165,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
             appAddress: _appAddress,
             refundAddress: refundAddress,
             failureHandleStrategy: failStrategy,
-            callbackData: callbackData
+            callBackData: callBackData
         });
         synPkg.extraData = _extraDataToBytes(extraData);
 

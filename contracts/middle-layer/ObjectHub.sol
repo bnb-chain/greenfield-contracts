@@ -22,7 +22,7 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
 
         relayFee = 2e15;
         ackRelayFee = 2e15;
-        callbackGasPrice = 1e9;
+        callBackGasPrice = 1e9;
         transferGas = 2300;
 
         channelId = OBJECT_CHANNEL_ID;
@@ -73,21 +73,22 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
             revert("unexpected operation type");
         }
 
-        uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
+        uint256 refundFee = CALLBACK_GAS_LIMIT * callBackGasPrice;
         if (extraData.failureHandleStrategy != FailureHandleStrategy.NoCallBack) {
             uint256 gasBefore = gasleft();
             bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
             try IApplication(extraData.appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(
-                channelId, msgBytes, extraData.callbackData
+                channelId, msgBytes, extraData.callBackData
             ) {} catch (bytes memory reason) {
                 if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, false, reason);
+                    packageMap[pkgHash] =
+                        RetryPackage(extraData.appAddress, msgBytes, extraData.callBackData, false, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
 
-            uint256 gasUsed = gasleft() - gasBefore;
-            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callbackGasPrice;
+            uint256 gasUsed = gasBefore - gasleft();
+            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callBackGasPrice;
         }
 
         // refund
@@ -109,21 +110,22 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
         (ExtraData memory extraData, bool success) = _decodeFailAckPackage(msgBytes);
         require(success, "decode fail ack package failed");
 
-        uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
+        uint256 refundFee = CALLBACK_GAS_LIMIT * callBackGasPrice;
         if (extraData.failureHandleStrategy != FailureHandleStrategy.NoCallBack) {
             uint256 gasBefore = gasleft();
             bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
             try IApplication(extraData.appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(
-                channelId, msgBytes, extraData.callbackData
+                channelId, msgBytes, extraData.callBackData
             ) {} catch (bytes memory reason) {
                 if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
+                    packageMap[pkgHash] =
+                        RetryPackage(extraData.appAddress, msgBytes, extraData.callBackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
 
-            uint256 gasUsed = gasleft() - gasBefore;
-            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callbackGasPrice;
+            uint256 gasUsed = gasBefore - gasleft();
+            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callBackGasPrice;
         }
 
         // refund
@@ -138,8 +140,14 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
      * @dev delete a Object and send cross-chain request from BSC to GNFD
      *
      * @param id The bucket's id
+     * @param refundAddress The address to receive the refund of the gas fee
+     * @param callBackData The data to be sent back to the application
      */
-    function deleteObject(uint256 id) external payable returns (bool) {
+    function deleteObject(uint256 id, address refundAddress, bytes memory callBackData)
+        external
+        payable
+        returns (bool)
+    {
         delegateAdditional();
     }
 

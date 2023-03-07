@@ -120,9 +120,9 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * @param owner The group's owner
      * @param name The group's name
      * @param refundAddress The address to receive the refund of the gas fee
-     * @param callbackData The data to be sent back to the application
+     * @param callBackData The data to be sent back to the application
      */
-    function createGroup(address owner, string memory name, address refundAddress, bytes memory callbackData)
+    function createGroup(address owner, string memory name, address refundAddress, bytes memory callBackData)
         external
         payable
         returns (bool)
@@ -131,8 +131,8 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
@@ -156,7 +156,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             appAddress: _appAddress,
             refundAddress: refundAddress,
             failureHandleStrategy: failStrategy,
-            callbackData: callbackData
+            callBackData: callBackData
         });
         synPkg.extraData = _extraDataToBytes(extraData);
 
@@ -173,9 +173,9 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      *
      * @param id The group's id
      * @param refundAddress The address to receive the refund of the gas fee
-     * @param callbackData The data to be sent back to the application
+     * @param callBackData The data to be sent back to the application
      */
-    function deleteGroup(uint256 id, address refundAddress, bytes memory callbackData)
+    function deleteGroup(uint256 id, address refundAddress, bytes memory callBackData)
         external
         payable
         returns (bool)
@@ -184,8 +184,8 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
@@ -215,7 +215,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             appAddress: _appAddress,
             refundAddress: refundAddress,
             failureHandleStrategy: failStrategy,
-            callbackData: callbackData
+            callBackData: callBackData
         });
         synPkg.extraData = _extraDataToBytes(extraData);
 
@@ -232,9 +232,9 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      *
      * @param synPkg Package containing information of the group to be updated
      * @param refundAddress The address to receive the refund of the gas fee
-     * @param callbackData The data to be sent back to the application
+     * @param callBackData The data to be sent back to the application
      */
-    function updateGroup(UpdateSynPackage memory synPkg, address refundAddress, bytes memory callbackData)
+    function updateGroup(UpdateSynPackage memory synPkg, address refundAddress, bytes memory callBackData)
         external
         payable
         returns (bool)
@@ -243,8 +243,8 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
+        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
@@ -273,7 +273,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             appAddress: _appAddress,
             refundAddress: refundAddress,
             failureHandleStrategy: failStrategy,
-            callbackData: callbackData
+            callBackData: callBackData
         });
         synPkg.extraData = _extraDataToBytes(extraData);
 

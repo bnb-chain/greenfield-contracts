@@ -39,7 +39,7 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
         address appAddress;
         address refundAddress;
         FailureHandleStrategy failureHandleStrategy;
-        bytes callbackData;
+        bytes callBackData;
     }
 
     // struct CreateSynPackage should be defined in child contract
@@ -98,7 +98,7 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
         elements[0] = _extraData.appAddress.encodeAddress();
         elements[1] = _extraData.refundAddress.encodeAddress();
         elements[2] = uint256(_extraData.failureHandleStrategy).encodeUint();
-        elements[3] = _extraData.callbackData.encodeBytes();
+        elements[3] = _extraData.callBackData.encodeBytes();
         return elements.encodeList();
     }
 
