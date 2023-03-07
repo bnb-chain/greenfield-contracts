@@ -50,7 +50,6 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
      */
     function handleSynPackage(uint8, bytes calldata msgBytes)
         external
-        virtual
         override
         onlyCrossChainContract
         returns (bytes memory)
@@ -66,7 +65,6 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
      */
     function handleAckPackage(uint8, uint64 sequence, bytes calldata msgBytes)
         external
-        virtual
         override
         onlyCrossChainContract
     {
@@ -120,7 +118,6 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
      */
     function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes)
         external
-        virtual
         override
         onlyCrossChainContract
     {
@@ -153,14 +150,7 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
-    /**
-     * @dev create a bucket and send cross-chain request from BSC to GNFD
-     *
-     * @param synPkg Package containing information of the bucket to be created
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
-     */
-    function createBucket(CreateSynPackage memory synPkg, address refundAddress, bytes memory callBackData)
+    function createBucket(CreateSynPackage memory, address, bytes memory)
         external
         payable
         returns (bool)
@@ -168,14 +158,7 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         delegateAdditional();
     }
 
-    /**
-     * @dev delete a bucket and send cross-chain request from BSC to GNFD
-     *
-     * @param id The bucket's id
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
-     */
-    function deleteBucket(uint256 id, address refundAddress, bytes memory callBackData)
+    function deleteBucket(uint256, address, bytes memory)
         external
         payable
         returns (bool)

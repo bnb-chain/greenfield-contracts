@@ -29,7 +29,6 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
     }
 
     /*----------------- middle-layer function -----------------*/
-
     // need to be implemented in child contract
     function handleSynPackage(uint8 channelId, bytes calldata callBackData) external virtual returns (bytes memory) {}
 
@@ -38,12 +37,11 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
     function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata callBackData) external virtual {}
 
     /*----------------- external function -----------------*/
-
-    function grant(address account, uint32 acCode, uint256 expireTime) external {
+    function grant(address, uint32, uint256) external {
         delegateAdditional();
     }
 
-    function revoke(address account, uint32 acCode) external {
+    function revoke(address, uint32) external {
         delegateAdditional();
     }
 

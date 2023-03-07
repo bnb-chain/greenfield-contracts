@@ -196,15 +196,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
-    /**
-     * @dev create a group and send cross-chain request from BSC to GNFD
-     *
-     * @param owner The group's owner
-     * @param name The group's name
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
-     */
-    function createGroup(address owner, string memory name, address refundAddress, bytes memory callBackData)
+    function createGroup(address, string memory, address, bytes memory)
         external
         payable
         returns (bool)
@@ -212,14 +204,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         delegateAdditional();
     }
 
-    /**
-     * @dev delete a group and send cross-chain request from BSC to GNFD
-     *
-     * @param id The group's id
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
-     */
-    function deleteGroup(uint256 id, address refundAddress, bytes memory callBackData)
+    function deleteGroup(uint256, address, bytes memory)
         external
         payable
         returns (bool)
@@ -227,14 +212,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         delegateAdditional();
     }
 
-    /**
-     * @dev update a group's member and send cross-chain request from BSC to GNFD
-     *
-     * @param synPkg Package containing information of the group to be updated
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
-     */
-    function updateGroup(UpdateSynPackage memory synPkg, address refundAddress, bytes memory callBackData)
+    function updateGroup(UpdateSynPackage memory, address, bytes memory)
         external
         payable
         returns (bool)

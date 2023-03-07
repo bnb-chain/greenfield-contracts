@@ -136,14 +136,7 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
-    /**
-     * @dev delete a Object and send cross-chain request from BSC to GNFD
-     *
-     * @param id The bucket's id
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
-     */
-    function deleteObject(uint256 id, address refundAddress, bytes memory callBackData)
+    function deleteObject(uint256, address, bytes memory)
         external
         payable
         returns (bool)
