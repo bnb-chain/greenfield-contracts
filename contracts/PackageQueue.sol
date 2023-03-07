@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
+import "./interface/IApplication.sol";
+
 contract PackageQueue {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
@@ -14,7 +16,7 @@ contract PackageQueue {
     // app address => FailureHandleStrategy
     mapping(address => FailureHandleStrategy) public failureHandleMap;
     // app address => retry queue of package hash
-    mapping(address => DoubleEndedQueueUpgradeable.Bytes32Deque) private retryQueue;
+    mapping(address => DoubleEndedQueueUpgradeable.Bytes32Deque) public retryQueue;
     // app retry package hash => retry package
     mapping(bytes32 => RetryPackage) public packageMap;
 
@@ -28,7 +30,8 @@ contract PackageQueue {
 
     struct RetryPackage {
         address appAddress;
-        bytes appMsg;
+        bytes msgBytes;
+        bytes callbackData;
         bool isFailAck;
         bytes failReason;
     }
@@ -54,11 +57,12 @@ contract PackageQueue {
 
     function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
         address appAddress = msg.sender;
-        bytes memory _appMsg = packageMap[pkgHash].appMsg;
+        bytes memory _msgBytes = packageMap[pkgHash].msgBytes;
+        bytes memory _callbackData = packageMap[pkgHash].callbackData;
         if (packageMap[pkgHash].isFailAck) {
-            IApplication(appAddress).handleFailAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _appMsg);
+            IApplication(appAddress).handleFailAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _msgBytes, _callbackData);
         } else {
-            IApplication(appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _appMsg);
+            IApplication(appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _msgBytes, _callbackData);
         }
         delete packageMap[pkgHash];
         _cleanQueue(appAddress);

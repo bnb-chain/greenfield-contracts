@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./AccessControl.sol";
 import "./NFTWrapResourceStorage.sol";
@@ -16,6 +17,7 @@ import "../lib/RLPEncode.sol";
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as GroupHub.
 contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessControl {
+    using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -135,21 +137,21 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                packageQueue[_appAddress].length == 0,
-                "package queue is not empty, please process the previous package first"
+                retryQueue[_appAddress].length() == 0,
+                "retry queue is not empty, please process the previous package first"
             );
         }
 
         // check refund address
         (bool success,) = refundAddress.call{gas: transferGas}("");
-        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
+        require(success && (refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         // check authorization
         if (msg.sender != owner) {
             require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
         }
 
-        CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name});
+        CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name, extraData: ""});
         ExtraData memory extraData = ExtraData({
             appAddress: _appAddress,
             refundAddress: refundAddress,
@@ -188,14 +190,14 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                packageQueue[_appAddress].length == 0,
-                "package queue is not empty, please process the previous package first"
+                retryQueue[_appAddress].length() == 0,
+                "retry queue is not empty, please process the previous package first"
             );
         }
 
         // check refund address
         (bool success,) = refundAddress.call{gas: transferGas}("");
-        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
+        require(success && (refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
@@ -208,7 +210,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             require(hasRole(ROLE_DELETE, owner, msg.sender), "no delete permission");
         }
 
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id});
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id, extraData: ""});
         ExtraData memory extraData = ExtraData({
             appAddress: _appAddress,
             refundAddress: refundAddress,
@@ -247,14 +249,14 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                packageQueue[_appAddress].length == 0,
-                "package queue is not empty, please process the previous package first"
+                retryQueue[_appAddress].length() == 0,
+                "retry queue is not empty, please process the previous package first"
             );
         }
 
         // check refund address
         (bool success,) = refundAddress.call{gas: transferGas}("");
-        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
+        require(success && (refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
@@ -313,21 +315,5 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         elements[3] = members.encodeList();
         elements[4] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_UPDATE, elements.encodeList());
-    }
-
-    function _extraDataToBytes(ExtraData memory _extraData) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](4);
-        elements[0] = _extraData.appAddress.encodeAddress();
-        elements[1] = _extraData.refundAddress.encodeAddress();
-        elements[2] = uint256(_extraData.failureStrategy).encodeUint();
-        elements[3] = _extraData.callbackData.encodeBytes();
-        return elements.encodeList();
-    }
-
-    function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = opType.encodeUint();
-        elements[1] = msgBytes.encodeBytes();
-        return elements.encodeList();
     }
 }

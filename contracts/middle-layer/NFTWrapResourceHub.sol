@@ -234,7 +234,7 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
             } else if (idx == 1) {
                 _extraData.refundAddress = iter.next().toAddress();
             } else if (idx == 2) {
-                _extraData.failureStrategy = uint8(iter.next().toUint());
+                _extraData.failureHandleStrategy = FailureHandleStrategy(uint8(iter.next().toUint()));
                 success = true; // the call back data can be empty
             } else if (idx == 3) {
                 _extraData.callbackData = iter.next().toBytes();
@@ -243,13 +243,6 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
             }
             idx++;
         }
-    }
-
-    function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = opType.encodeUint();
-        elements[1] = msgBytes.encodeBytes();
-        return elements.encodeList();
     }
 
     function delegateAdditional() internal {

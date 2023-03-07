@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
+
 import "./AccessControl.sol";
 import "./NFTWrapResourceHub.sol";
 import "../interface/ICrossChain.sol";
@@ -10,6 +12,7 @@ import "../lib/RLPDecode.sol";
 import "../lib/RLPEncode.sol";
 
 contract ObjectHub is NFTWrapResourceHub, AccessControl {
+    using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -48,7 +51,11 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
      * @param sequence The sequence of the ack package
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleAckPackage(uint8, bytes calldata msgBytes) external override onlyCrossChainContract {
+    function handleAckPackage(uint8, uint64 sequence, bytes calldata msgBytes)
+        external
+        override
+        onlyCrossChainContract
+    {
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(msgIter.next().toUint());
@@ -67,14 +74,14 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
         }
 
         uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
-        if (extraData.failureStrategy != FailureHandleStrategy.NoCallBack) {
+        if (extraData.failureHandleStrategy != FailureHandleStrategy.NoCallBack) {
             uint256 gasBefore = gasleft();
             bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
             try IApplication(extraData.appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch (bytes memory reason) {
-                if (extraData.failureStrategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, false, reason);
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
+                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, false, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
@@ -84,7 +91,7 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
         }
 
         // refund
-        (success,) = extraData.refundAddress.call{gas: transferGas, value: refundFee}("");
+        (bool success,) = extraData.refundAddress.call{gas: transferGas, value: refundFee}("");
         require(success, "refund failed");
     }
 
@@ -103,14 +110,14 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
         require(success, "decode fail ack package failed");
 
         uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
-        if (extraData.failureStrategy != FailureHandleStrategy.NoCallBack) {
+        if (extraData.failureHandleStrategy != FailureHandleStrategy.NoCallBack) {
             uint256 gasBefore = gasleft();
             bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
             try IApplication(extraData.appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch (bytes memory reason) {
-                if (extraData.failureStrategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, false, reason);
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
+                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }

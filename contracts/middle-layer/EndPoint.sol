@@ -13,6 +13,7 @@ import "../lib/RLPDecode.sol";
 import "../lib/RLPEncode.sol";
 
 contract EndPoint is Config, PackageQueue {
+    using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -37,7 +38,8 @@ contract EndPoint is Config, PackageQueue {
     // @param _refundAddress - if the source transaction is cheaper than the amount of value passed, refund the additional amount to this address
     function send(bytes calldata _appMsg, address payable _refundAddress) external payable {
         address _appAddress = msg.sender;
-        require(failureHandleMap[_appAddress] != FailureHandleStrategy.Closed, "application closed");
+        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
         require(msg.value >= relayFee + ackRelayFee + callbackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
         uint256 _ackRelayFee = msg.value - relayFee - callbackGasPrice * CALLBACK_GAS_LIMIT;
@@ -45,14 +47,14 @@ contract EndPoint is Config, PackageQueue {
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                packageQueue[_appAddress].length == 0,
-                "package queue is not empty, please process the previous package first"
+                retryQueue[_appAddress].length() == 0,
+                "retry queue is not empty, please process the previous package first"
             );
         }
 
         // check refund address
         (bool success,) = _refundAddress.call{gas: transferGas}("");
-        require(_refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
+        require(success && (_refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         bytes[] memory elements = new bytes[](5);
         elements[0] = _appAddress.encodeAddress();
@@ -161,7 +163,7 @@ contract EndPoint is Config, PackageQueue {
             try IApplication(_appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _appMsg, "") {}
             catch (bytes memory reason) {
                 if (_strategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false, reason);
+                    packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, "", false, reason);
                     retryQueue[_appAddress].pushBack(pkgHash);
                 }
             }
@@ -207,7 +209,7 @@ contract EndPoint is Config, PackageQueue {
             try IApplication(_appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _appMsg, "") {}
             catch (bytes memory reason) {
                 if (_strategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false, reason);
+                    packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, "", false, reason);
                     retryQueue[_appAddress].pushBack(pkgHash);
                 }
             }

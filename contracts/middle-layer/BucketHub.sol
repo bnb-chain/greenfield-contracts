@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
+
 import "./AccessControl.sol";
 import "./NFTWrapResourceHub.sol";
 import "../interface/IERC721NonTransferable.sol";
@@ -9,6 +11,7 @@ import "../lib/RLPDecode.sol";
 import "../lib/RLPEncode.sol";
 
 contract BucketHub is NFTWrapResourceHub, AccessControl {
+    using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -85,14 +88,14 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         }
 
         uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
-        if (extraData.failureStrategy != FailureHandleStrategy.NoCallBack) {
+        if (extraData.failureHandleStrategy != FailureHandleStrategy.NoCallBack) {
             uint256 gasBefore = gasleft();
             bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
             try IApplication(extraData.appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch (bytes memory reason) {
-                if (extraData.failureStrategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, false, reason);
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
+                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, false, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
@@ -102,7 +105,7 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         }
 
         // refund
-        (success,) = extraData.refundAddress.call{gas: transferGas, value: refundFee}("");
+        (bool success,) = extraData.refundAddress.call{gas: transferGas, value: refundFee}("");
         require(success, "refund failed");
     }
 
@@ -121,14 +124,14 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         require(success, "decode fail ack package failed");
 
         uint256 refundFee = CALLBACK_GAS_LIMIT * callbackGasPrice;
-        if (extraData.failureStrategy != FailureHandleStrategy.NoCallBack) {
+        if (extraData.failureHandleStrategy != FailureHandleStrategy.NoCallBack) {
             uint256 gasBefore = gasleft();
             bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
             try IApplication(extraData.appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch (bytes memory reason) {
-                if (extraData.failureStrategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, false, reason);
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
+                    packageMap[pkgHash] = RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }

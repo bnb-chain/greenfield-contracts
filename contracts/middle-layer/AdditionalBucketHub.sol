@@ -3,6 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./AccessControl.sol";
 import "./NFTWrapResourceStorage.sol";
@@ -16,6 +17,7 @@ import "../lib/RLPEncode.sol";
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as BucketHub.
 contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessControl {
+    using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -85,14 +87,14 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                packageQueue[_appAddress].length == 0,
-                "package queue is not empty, please process the previous package first"
+                retryQueue[_appAddress].length() == 0,
+                "retry queue is not empty, please process the previous package first"
             );
         }
 
         // check refund address
         (bool success,) = refundAddress.call{gas: transferGas}("");
-        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
+        require(success && (refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         // check authorization
         address owner = synPkg.creator;
@@ -138,14 +140,14 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                packageQueue[_appAddress].length == 0,
-                "package queue is not empty, please process the previous package first"
+                retryQueue[_appAddress].length() == 0,
+                "retry queue is not empty, please process the previous package first"
             );
         }
 
         // check refund address
         (bool success,) = refundAddress.call{gas: transferGas}("");
-        require(refundAddress != address(0) & success, "invalid refundAddress"); // the _refundAddress must be payable
+        require(success && (refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
@@ -158,7 +160,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
             require(hasRole(ROLE_DELETE, owner, msg.sender), "no permission to delete");
         }
 
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id});
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id, extraData: ""});
         ExtraData memory extraData = ExtraData({
             appAddress: _appAddress,
             refundAddress: refundAddress,
@@ -196,21 +198,5 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         elements[1] = synPkg.id.encodeUint();
         elements[2] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
-    }
-
-    function _extraDataToBytes(ExtraData memory _extraData) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](4);
-        elements[0] = _extraData.appAddress.encodeAddress();
-        elements[1] = _extraData.refundAddress.encodeAddress();
-        elements[2] = uint256(_extraData.failureStrategy).encodeUint();
-        elements[3] = _extraData.callbackData.encodeBytes();
-        return elements.encodeList();
-    }
-
-    function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = opType.encodeUint();
-        elements[1] = msgBytes.encodeBytes();
-        return elements.encodeList();
     }
 }

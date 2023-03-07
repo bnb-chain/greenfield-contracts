@@ -4,8 +4,13 @@ pragma solidity ^0.8.0;
 
 import "../Config.sol";
 import "../PackageQueue.sol";
+import "../lib/RLPDecode.sol";
+import "../lib/RLPEncode.sol";
 
 contract NFTWrapResourceStorage is Config, PackageQueue {
+    using RLPEncode for *;
+    using RLPDecode for *;
+
     /*----------------- constants -----------------*/
     // status of cross-chain package
     uint32 public constant STATUS_SUCCESS = 0;
@@ -33,7 +38,7 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
     struct ExtraData {
         address appAddress;
         address refundAddress;
-        FailureHandleStrategy failureStrategy;
+        FailureHandleStrategy failureHandleStrategy;
         bytes callbackData;
     }
 
@@ -73,10 +78,8 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
         uint256 id;
     }
 
-    struct PlaceHolder {
-        // reserve for future use
-        uint256[50] slots;
-    }
+    // PlaceHolder reserve for future use
+    uint256[50] public slots;
 
     event MirrorSuccess(uint256 id, address owner);
     event MirrorFailed(uint256 id, address owner, bytes failReason);
@@ -89,4 +92,20 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
     event FailAckPkgReceived(uint8 channelId, bytes msgBytes);
     event UnexpectedPackage(uint8 channelId, bytes msgBytes);
     event ParamChange(string key, bytes value);
+
+    function _extraDataToBytes(ExtraData memory _extraData) internal pure returns (bytes memory) {
+        bytes[] memory elements = new bytes[](4);
+        elements[0] = _extraData.appAddress.encodeAddress();
+        elements[1] = _extraData.refundAddress.encodeAddress();
+        elements[2] = uint256(_extraData.failureHandleStrategy).encodeUint();
+        elements[3] = _extraData.callbackData.encodeBytes();
+        return elements.encodeList();
+    }
+
+    function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory) {
+        bytes[] memory elements = new bytes[](2);
+        elements[0] = opType.encodeUint();
+        elements[1] = msgBytes.encodeBytes();
+        return elements.encodeList();
+    }
 }
