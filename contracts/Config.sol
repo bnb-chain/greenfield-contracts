@@ -15,12 +15,12 @@ abstract contract Config {
 
     // contract address
     // will calculate their deployed addresses from deploy script
-    address public constant PROXY_ADMIN = 0x3B02fF1e626Ed7a8fd6eC5299e2C54e1421B626B;
-    address public constant GOV_HUB = 0xBA12646CC07ADBe43F8bD25D83FB628D29C8A762;
-    address public constant CROSS_CHAIN = 0x7ab4C4804197531f7ed6A6bc0f0781f706ff7953;
-    address public constant TOKEN_HUB = 0xc8CB5439c767A63aca1c01862252B2F3495fDcFE;
-    address public constant LIGHT_CLIENT = 0xD79aE87F2c003Ec925fB7e9C11585709bfe41473;
-    address public constant RELAYER_HUB = 0xB7aa4c318000BB9bD16108F81C40D02E48af1C42;
+    address public constant PROXY_ADMIN = 0xB5d064b44960FdedA1072f983C3E8f1e123cE154;
+    address public constant GOV_HUB = 0xA43C8fA0cb6567312091fb14ebf4d0f65De4a6E4;
+    address public constant CROSS_CHAIN = 0x39c3A55F68Bf9f2992776991F25Aac6813a4F1d0;
+    address public constant TOKEN_HUB = 0x5bFD50cBC7139F731a576a8dd7375c8D0ec48eba;
+    address public constant LIGHT_CLIENT = 0x0D077176f54744A78Da0B8CBB58Fdd76552B4ead;
+    address public constant RELAYER_HUB = 0x3fe71142DFD985400eedE943A5494c7310B4af18;
 
     modifier onlyGov() {
         require(msg.sender == GOV_HUB, "only GovHub contract");
