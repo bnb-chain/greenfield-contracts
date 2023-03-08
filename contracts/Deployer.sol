@@ -23,7 +23,7 @@ contract Deployer {
     address public immutable proxyLightClient;
     address public immutable proxyRelayerHub;
 
-    uint256 bnbTransferInLimit;
+    uint256 bnbTransferOutLimit;
     bytes public initConsensusStateBytes;
     address public implGovHub;
     address public implCrossChain;
@@ -33,9 +33,9 @@ contract Deployer {
 
     bool public deployed;
 
-    constructor(uint16 _gnfdChainId, uint256 _bnbTransferInLimit) {
+    constructor(uint16 _gnfdChainId, uint256 _bnbTransferOutLimit) {
         gnfdChainId = _gnfdChainId;
-        bnbTransferInLimit = _bnbTransferInLimit;
+        bnbTransferOutLimit = _bnbTransferOutLimit;
         /*
             @dev deploy workflow
             a. Generate contracts addresses in advance first while deploy `Deployer`
@@ -104,12 +104,12 @@ contract Deployer {
 
         // 7. init GovHub, set contracts addresses to GovHub
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId);
-        TokenHub(payable(proxyTokenHub)).initialize(bnbTransferInLimit);
+        TokenHub(payable(proxyTokenHub)).initialize(bnbTransferOutLimit);
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
         RelayerHub(payable(proxyRelayerHub)).initialize();
 
         require(CrossChain(payable(proxyCrossChain)).gnfdChainId() == gnfdChainId, "gnfdChainId mismatch");
-        require(TokenHub(payable(proxyTokenHub)).bnbTransferInLimit() == bnbTransferInLimit, "bnbTransferInLimit mismatch");
+        require(TokenHub(payable(proxyTokenHub)).bnbTransferOutLimit() == bnbTransferOutLimit, "bnbTransferOutLimit mismatch");
         require(
             keccak256(GnfdLightClient(proxyLightClient).consensusStateBytes()) == keccak256(_initConsensusStateBytes),
             "_initConsensusStateBytes mismatch"

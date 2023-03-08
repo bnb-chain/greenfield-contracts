@@ -30,7 +30,7 @@ contract TokenHub is Initializable, Config {
     /*----------------- storage layer -----------------*/
     uint256 public relayFee;
     uint256 public ackRelayFee;
-    uint256 public bnbTransferInLimit;
+    uint256 public bnbTransferOutLimit;
 
     /*----------------- struct / event / modifier -----------------*/
     struct TransferOutSynPackage {
@@ -85,12 +85,12 @@ contract TokenHub is Initializable, Config {
         relayFee = 2e15;
         ackRelayFee = 2e15;
 
-        bnbTransferInLimit = _bnbUpperLimit;
+        bnbTransferOutLimit = _bnbUpperLimit;
     }
 
     receive() external payable {
         if (msg.value > 0) {
-            require(address(this).balance + msg.value <= bnbTransferInLimit, "exceeds the bnb upper limit");
+            require(address(this).balance + msg.value <= bnbTransferOutLimit, "exceeds the bnbTransferOutLimit");
             emit ReceiveDeposit(msg.sender, msg.value);
         }
     }
@@ -156,7 +156,7 @@ contract TokenHub is Initializable, Config {
             "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee"
         );
 
-        require(address(this).balance + msg.value <= bnbTransferInLimit, "exceeds the bnb upper limit");
+        require(address(this).balance + msg.value <= bnbTransferOutLimit, "exceeds the bnbTransferOutLimit");
 
         uint256 _ackRelayFee = msg.value - amount - relayFee;
 
@@ -195,11 +195,11 @@ contract TokenHub is Initializable, Config {
             uint256 newRelayFee = BytesToTypes.bytesToUint256(valueLength, value);
             require(newRelayFee > 0 && newRelayFee <= 1 ether, "the newRelayFee should be in (0, 1 ether]");
             relayFee = newRelayFee;
-        } else if (Memory.compareStrings(key, "bnbTransferInLimit")) {
-            require(valueLength == 32, "invalid bnbTransferInLimit value length");
-            uint256 newBNBTransferInLimit = BytesToTypes.bytesToUint256(valueLength, value);
-            require(newBNBTransferInLimit > 0, "the newBNBTransferInLimit should not be zero");
-            bnbTransferInLimit = newBNBTransferInLimit;
+        } else if (Memory.compareStrings(key, "bnbTransferOutLimit")) {
+            require(valueLength == 32, "invalid bnbTransferOutLimit value length");
+            uint256 newBNBTransferOutLimit = BytesToTypes.bytesToUint256(valueLength, value);
+            require(newBNBTransferOutLimit > 0, "the newBNBTransferOutLimit should not be zero");
+            bnbTransferOutLimit = newBNBTransferOutLimit;
         } else {
             require(false, "unknown param");
         }
