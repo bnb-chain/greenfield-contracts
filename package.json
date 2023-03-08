@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "deploy:test": "npx hardhat run scripts/deploy.ts --network test",
-    "deploy:qa": "npx hardhat run scripts/deploy.ts --network qa",
+    "deploy:test": "npx hardhat run scripts/deploy-qa.ts --network test",
+    "deploy:qa": "npx hardhat run scripts/deploy-qa.ts --network qa",
     "lint:ts": "npx prettier --write scripts/** test/**",
     "lint": "forge fmt"
   },

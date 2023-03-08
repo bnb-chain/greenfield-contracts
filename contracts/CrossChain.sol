@@ -273,81 +273,12 @@ contract CrossChain is Initializable, Config {
         }
     }
 
-    function cancelTransfer(address attacker) external onlyRelayer {
-        bytes32 _contentHash = keccak256(abi.encode(attacker));
+    function cancelTransfer(address tokenAddr, address attacker) onlyRelayer external {
+        bytes32 _contentHash = keccak256(abi.encode(tokenAddr, attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {
-            ITokenHub(TOKEN_HUB).cancelTransferIn(attacker);
+            ITokenHub(TOKEN_HUB).cancelTransferIn(tokenAddr, attacker);
         }
-    }
-
-    function updateParam(string calldata key, bytes calldata value)
-    onlyGov
-    whenNotSuspended
-    external {
-        uint256 valueLength = value.length;
-        if (Memory.compareStrings(key, "batchSizeForOracle")) {
-            require(valueLength == 32, "invalid batchSizeForOracle value length");
-            uint256 newBatchSizeForOracle = BytesToTypes.bytesToUint256(valueLength, value);
-            require(newBatchSizeForOracle <= 10000 && newBatchSizeForOracle >= 10, "the newBatchSizeForOracle should be in [10, 10000]");
-            batchSizeForOracle = newBatchSizeForOracle;
-        } else if (Memory.compareStrings(key, "addOrUpdateChannel")) {
-            require(valueLength == 21, "length of value for addOrUpdateChannel should be 21, channelId + handlerAddress");
-            bytes memory valueLocal = value;
-            uint8 channelId;
-            assembly {
-                channelId := mload(add(valueLocal, 1))
-            }
-
-            address handlerContract;
-            assembly {
-                handlerContract := mload(add(valueLocal, 21))
-            }
-
-            require(_isContract(handlerContract), "address is not a contract");
-            channelHandlerMap[channelId] = handlerContract;
-            registeredContractChannelMap[handlerContract][channelId] = true;
-            emit AddChannel(channelId, handlerContract);
-        } else if (Memory.compareStrings(key, "enableOrDisableChannel")) {
-            bytes memory valueLocal = value;
-            require(valueLocal.length == 2, "length of value for enableOrDisableChannel should be 2, channelId:isEnable");
-
-            uint8 channelId;
-            assembly {
-                channelId := mload(add(valueLocal, 1))
-            }
-
-            uint8 status;
-            assembly {
-                status := mload(add(valueLocal, 2))
-            }
-
-            bool isEnable = (status == 1);
-            address handlerContract = channelHandlerMap[channelId];
-            if (handlerContract != address(0x00)) { //channel existing
-                registeredContractChannelMap[handlerContract][channelId] = isEnable;
-                emit EnableOrDisableChannel(channelId, isEnable);
-            }
-        } else if (Memory.compareStrings(key, "suspendQuorum")) {
-            require(value.length == 2, "length of value for suspendQuorum should be 2");
-            uint16 suspendQuorum = BytesToTypes.bytesToUint16(2, value);
-            require(suspendQuorum > 0 && suspendQuorum < 100, "invalid suspend quorum");
-            quorumMap[SUSPEND_PROPOSAL] = suspendQuorum;
-        } else if (Memory.compareStrings(key, "reopenQuorum")) {
-            require(value.length == 2, "length of value for reopenQuorum should be 2");
-            uint16 reopenQuorum = BytesToTypes.bytesToUint16(2, value);
-            require(reopenQuorum > 0 && reopenQuorum < 100, "invalid reopen quorum");
-            quorumMap[REOPEN_PROPOSAL] = reopenQuorum;
-        } else if (Memory.compareStrings(key, "cancelTransferQuorum")) {
-            require(value.length == 2, "length of value for cancelTransferQuorum should be 2");
-            uint16 cancelTransferQuorum = BytesToTypes.bytesToUint16(2, value);
-            require(cancelTransferQuorum > 0 && cancelTransferQuorum < 100, "invalid cancel transfer quorum");
-            quorumMap[CANCEL_TRANSFER_PROPOSAL] = cancelTransferQuorum;
-        } else {
-            require(false, "unknown param");
-        }
-
-        emit ParamChange(key, value);
     }
 
     /*----------------- internal function -----------------*/
