@@ -12,8 +12,11 @@ import "./CrossChain.sol";
 import "./RelayerHub.sol";
 import "./middle-layer/GovHub.sol";
 import "./middle-layer/TokenHub.sol";
+import "./middle-layer/BucketHub.sol";
+import "./middle-layer/ObjectHub.sol";
+import "./middle-layer/GroupHub.sol";
 
-contract Deployer {
+contract Deployer1 {
     uint16 public immutable gnfdChainId;
 
     address public immutable proxyAdmin;
@@ -30,6 +33,7 @@ contract Deployer {
     address public implLightClient;
     address public implRelayerHub;
 
+    bool public initialized;
     bool public deployed;
 
     constructor(uint16 _gnfdChainId) {
@@ -53,16 +57,15 @@ contract Deployer {
         require(deployedProxyAdmin == proxyAdmin, "invalid proxyAdmin address");
     }
 
-    function deploy(
-        bytes calldata _initConsensusStateBytes,
+    function init(
         address _implGovHub,
         address _implCrossChain,
         address _implTokenHub,
         address _implLightClient,
         address _implRelayerHub
     ) public {
-        require(!deployed, "only not deployed");
-        deployed = true;
+        require(!initialized, "only not initialized");
+        initialized = true;
 
         require(_isContract(_implGovHub), "invalid _implCrossChain");
         require(_isContract(_implCrossChain), "invalid _implCrossChain");
@@ -70,12 +73,18 @@ contract Deployer {
         require(_isContract(_implLightClient), "invalid _implLightClient");
         require(_isContract(_implRelayerHub), "invalid _implRelayerHub");
 
-        initConsensusStateBytes = _initConsensusStateBytes;
         implGovHub = _implGovHub;
         implCrossChain = _implCrossChain;
         implTokenHub = _implTokenHub;
         implLightClient = _implLightClient;
         implRelayerHub = _implRelayerHub;
+    }
+
+    function deploy(bytes calldata _initConsensusStateBytes) public {
+        require(!deployed, "only not deployed");
+        deployed = true;
+
+        initConsensusStateBytes = _initConsensusStateBytes;
 
         // 2. GovHub, transfer ownership of proxyAdmin to GovHub
         address deployedProxyGovHub = address(new GnfdProxy(implGovHub, proxyAdmin, ""));

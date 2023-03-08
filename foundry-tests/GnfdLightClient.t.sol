@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0.
+
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
+
 import "../contracts/GnfdLightClient.sol";
 
 contract GnfdLightClientTest is Test {
@@ -75,5 +78,4 @@ contract GnfdLightClientTest is Test {
         output2 = abi.encodePacked(input2, input1);
         assertEq(output1, output2);
     }
-
 }

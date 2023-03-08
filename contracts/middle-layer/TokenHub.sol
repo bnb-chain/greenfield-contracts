@@ -4,12 +4,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Config.sol";
-import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
-
-interface ICrossChain {
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee) external;
-}
+import "../lib/RLPEncode.sol";
+import "../interface/ICrossChain.sol";
 
 contract TokenHub is Initializable, Config {
     using RLPEncode for *;
@@ -24,11 +21,6 @@ contract TokenHub is Initializable, Config {
 
     uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 10000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
-
-    /*----------------- storage layer -----------------*/
-    address public govHub;
-    uint256 public relayFee;
-    uint256 public ackRelayFee;
 
     /*----------------- struct / event / modifier -----------------*/
     struct TransferOutSynPackage {
@@ -100,12 +92,11 @@ contract TokenHub is Initializable, Config {
         onlyCrossChainContract
         returns (bytes memory)
     {
-        if (channelId == TRANSFER_IN_CHANNELID) {
+        if (channelId == TRANSFER_IN_CHANNEL_ID) {
             return _handleTransferInSynPackage(msgBytes);
         } else {
             // should not happen
-            require(false, "unrecognized syn package");
-            return new bytes(0);
+            revert("unrecognized syn package");
         }
     }
 
@@ -117,7 +108,7 @@ contract TokenHub is Initializable, Config {
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
     function handleAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
-        if (channelId == TRANSFER_OUT_CHANNELID) {
+        if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutAckPackage(msgBytes);
         } else {
             emit UnexpectedPackage(channelId, msgBytes);
@@ -131,7 +122,7 @@ contract TokenHub is Initializable, Config {
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
     function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
-        if (channelId == TRANSFER_OUT_CHANNELID) {
+        if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutFailAckPackage(msgBytes);
         } else {
             emit UnexpectedPackage(channelId, msgBytes);
@@ -156,7 +147,7 @@ contract TokenHub is Initializable, Config {
 
         address _crosschain = CROSS_CHAIN;
         ICrossChain(_crosschain).sendSynPackage(
-            TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee
+            TRANSFER_OUT_CHANNEL_ID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee
         );
         emit TransferOutSuccess(msg.sender, amount, relayFee, _ackRelayFee);
         return true;

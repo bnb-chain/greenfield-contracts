@@ -4,9 +4,9 @@ const log = console.log;
 const unit = ethers.constants.WeiPerEther;
 
 const main = async () => {
-    const { chainId } = await ethers.provider.getNetwork()
-    log('chainId', chainId)
-    const contracts: any = require(`../deployment/${ chainId }-deployment.json`)
+    const { chainId } = await ethers.provider.getNetwork();
+    log('chainId', chainId);
+    const contracts: any = require(`../deployment/${chainId}-deployment.json`);
     const tokenHub = contracts.TokenHub;
 
     const [operator] = await ethers.getSigners();
@@ -19,9 +19,9 @@ const main = async () => {
     });
     await tx.wait(1);
 
-    const validators = contracts.initConsensusState.validators
+    const validators = contracts.initConsensusState.validators;
     for (let i = 0; i < validators.length; i++) {
-        const relayer = validators[i].relayerAddress
+        const relayer = validators[i].relayerAddress;
         tx = await operator.sendTransaction({
             to: ethers.utils.getAddress(relayer),
             value: unit.mul(100),
