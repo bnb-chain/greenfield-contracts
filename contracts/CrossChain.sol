@@ -273,11 +273,11 @@ contract CrossChain is Initializable, Config {
         }
     }
 
-    function cancelTransfer(address tokenAddr, address attacker) onlyRelayer external {
-        bytes32 _contentHash = keccak256(abi.encode(tokenAddr, attacker));
+    function cancelTransfer(address attacker) onlyRelayer external {
+        bytes32 _contentHash = keccak256(abi.encode(attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {
-            ITokenHub(TOKEN_HUB).cancelTransferIn(tokenAddr, attacker);
+            ITokenHub(TOKEN_HUB).cancelTransferIn(attacker);
         }
     }
 

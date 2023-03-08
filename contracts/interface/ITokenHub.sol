@@ -5,6 +5,6 @@ interface ITokenHub {
         external
         payable
         returns (bool);
-    function cancelTransferIn(address tokenAddr, address attacker) external;
+    function cancelTransferIn(address attacker) external;
     function claimRelayFee(uint256 amount) external returns (uint256);
 }
