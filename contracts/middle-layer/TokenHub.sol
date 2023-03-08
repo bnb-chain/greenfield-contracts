@@ -28,6 +28,7 @@ contract TokenHub is Initializable, Config {
     /*----------------- storage layer -----------------*/
     uint256 public relayFee;
     uint256 public ackRelayFee;
+    uint256 public bnbUpperLimit;
 
     /*----------------- struct / event / modifier -----------------*/
     struct TransferOutSynPackage {
@@ -77,13 +78,17 @@ contract TokenHub is Initializable, Config {
     }
 
     /*----------------- external function -----------------*/
-    function initialize() public initializer {
+    function initialize(uint256 _bnbUpperLimit) public initializer {
+        require(_bnbUpperLimit > 0, "zero _bnbUpperLimit");
         relayFee = 2e15;
         ackRelayFee = 2e15;
+
+        bnbUpperLimit = _bnbUpperLimit;
     }
 
     receive() external payable {
         if (msg.value > 0) {
+            require(address(this).balance + msg.value <= bnbUpperLimit, "exceeds the bnb upper limit");
             emit ReceiveDeposit(msg.sender, msg.value);
         }
     }
@@ -148,6 +153,9 @@ contract TokenHub is Initializable, Config {
             msg.value >= amount + relayFee + ackRelayFee,
             "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee"
         );
+
+        require(address(this).balance + msg.value <= bnbUpperLimit, "exceeds the bnb upper limit");
+
         uint256 _ackRelayFee = msg.value - amount - relayFee;
 
         TransferOutSynPackage memory transOutSynPkg =

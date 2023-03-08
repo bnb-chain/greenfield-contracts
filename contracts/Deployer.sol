@@ -23,6 +23,7 @@ contract Deployer {
     address public immutable proxyLightClient;
     address public immutable proxyRelayerHub;
 
+    uint256 bnbUpperLimit;
     bytes public initConsensusStateBytes;
     address public implGovHub;
     address public implCrossChain;
@@ -32,9 +33,9 @@ contract Deployer {
 
     bool public deployed;
 
-    constructor(uint16 _gnfdChainId) {
+    constructor(uint16 _gnfdChainId, uint256 _bnbUpperLimit) {
         gnfdChainId = _gnfdChainId;
-
+        bnbUpperLimit = _bnbUpperLimit;
         /*
             @dev deploy workflow
             a. Generate contracts addresses in advance first while deploy `Deployer`
@@ -103,15 +104,24 @@ contract Deployer {
 
         // 7. init GovHub, set contracts addresses to GovHub
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId);
-        TokenHub(payable(proxyTokenHub)).initialize();
+        TokenHub(payable(proxyTokenHub)).initialize(bnbUpperLimit);
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
         RelayerHub(payable(proxyRelayerHub)).initialize();
+
+        require(CrossChain(payable(proxyCrossChain)).gnfdChainId() == gnfdChainId, "gnfdChainId mismatch");
+        require(TokenHub(payable(proxyTokenHub)).bnbUpperLimit() == bnbUpperLimit, "bnbUpperLimit mismatch");
+        require(
+            keccak256(GnfdLightClient(proxyLightClient).consensusStateBytes()) == keccak256(_initConsensusStateBytes),
+            "_initConsensusStateBytes mismatch"
+        );
 
         require(Config(proxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(proxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
         require(Config(proxyCrossChain).CROSS_CHAIN() == proxyCrossChain, "invalid proxyCrossChain address on Config");
         require(Config(proxyCrossChain).TOKEN_HUB() == proxyTokenHub, "invalid proxyTokenHub address on Config");
-        require(Config(proxyCrossChain).LIGHT_CLIENT() == proxyLightClient, "invalid proxyLightClient address on Config");
+        require(
+            Config(proxyCrossChain).LIGHT_CLIENT() == proxyLightClient, "invalid proxyLightClient address on Config"
+        );
         require(Config(proxyCrossChain).RELAYER_HUB() == proxyRelayerHub, "invalid proxyRelayerHub address on Config");
 
         require(Config(proxyGovHub).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
@@ -125,14 +135,18 @@ contract Deployer {
         require(Config(proxyLightClient).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
         require(Config(proxyLightClient).CROSS_CHAIN() == proxyCrossChain, "invalid proxyCrossChain address on Config");
         require(Config(proxyLightClient).TOKEN_HUB() == proxyTokenHub, "invalid proxyTokenHub address on Config");
-        require(Config(proxyLightClient).LIGHT_CLIENT() == proxyLightClient, "invalid proxyLightClient address on Config");
+        require(
+            Config(proxyLightClient).LIGHT_CLIENT() == proxyLightClient, "invalid proxyLightClient address on Config"
+        );
         require(Config(proxyLightClient).RELAYER_HUB() == proxyRelayerHub, "invalid proxyRelayerHub address on Config");
 
         require(Config(proxyRelayerHub).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(proxyRelayerHub).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
         require(Config(proxyRelayerHub).CROSS_CHAIN() == proxyCrossChain, "invalid proxyCrossChain address on Config");
         require(Config(proxyRelayerHub).TOKEN_HUB() == proxyTokenHub, "invalid proxyTokenHub address on Config");
-        require(Config(proxyRelayerHub).LIGHT_CLIENT() == proxyLightClient, "invalid proxyLightClient address on Config");
+        require(
+            Config(proxyRelayerHub).LIGHT_CLIENT() == proxyLightClient, "invalid proxyLightClient address on Config"
+        );
         require(Config(proxyRelayerHub).RELAYER_HUB() == proxyRelayerHub, "invalid proxyRelayerHub address on Config");
 
         require(Config(proxyTokenHub).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
