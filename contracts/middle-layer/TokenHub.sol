@@ -6,6 +6,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Config.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
+import "../lib/Memory.sol";
+import "../lib/BytesToTypes.sol";
 
 interface ICrossChain {
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee) external;
@@ -28,7 +30,7 @@ contract TokenHub is Initializable, Config {
     /*----------------- storage layer -----------------*/
     uint256 public relayFee;
     uint256 public ackRelayFee;
-    uint256 public bnbUpperLimit;
+    uint256 public bnbTransferInLimit;
 
     /*----------------- struct / event / modifier -----------------*/
     struct TransferOutSynPackage {
@@ -83,12 +85,12 @@ contract TokenHub is Initializable, Config {
         relayFee = 2e15;
         ackRelayFee = 2e15;
 
-        bnbUpperLimit = _bnbUpperLimit;
+        bnbTransferInLimit = _bnbUpperLimit;
     }
 
     receive() external payable {
         if (msg.value > 0) {
-            require(address(this).balance + msg.value <= bnbUpperLimit, "exceeds the bnb upper limit");
+            require(address(this).balance + msg.value <= bnbTransferInLimit, "exceeds the bnb upper limit");
             emit ReceiveDeposit(msg.sender, msg.value);
         }
     }
@@ -154,7 +156,7 @@ contract TokenHub is Initializable, Config {
             "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee"
         );
 
-        require(address(this).balance + msg.value <= bnbUpperLimit, "exceeds the bnb upper limit");
+        require(address(this).balance + msg.value <= bnbTransferInLimit, "exceeds the bnb upper limit");
 
         uint256 _ackRelayFee = msg.value - amount - relayFee;
 
@@ -183,6 +185,26 @@ contract TokenHub is Initializable, Config {
         }
 
         return actualAmount;
+    }
+
+    function updateParam(string calldata key, bytes calldata value) onlyGov external {
+        uint256 valueLength = value.length;
+
+        if (Memory.compareStrings(key, "relayFee")) {
+            require(valueLength == 32, "invalid relayFee value length");
+            uint256 newRelayFee = BytesToTypes.bytesToUint256(valueLength, value);
+            require(newRelayFee > 0 && newRelayFee <= 1 ether, "the newRelayFee should be in (0, 1 ether]");
+            relayFee = newRelayFee;
+        } else if (Memory.compareStrings(key, "bnbTransferInLimit")) {
+            require(valueLength == 32, "invalid bnbTransferInLimit value length");
+            uint256 newBNBTransferInLimit = BytesToTypes.bytesToUint256(valueLength, value);
+            require(newBNBTransferInLimit > 0, "the newBNBTransferInLimit should not be zero");
+            bnbTransferInLimit = newBNBTransferInLimit;
+        } else {
+            require(false, "unknown param");
+        }
+
+        emit ParamChange(key, value);
     }
 
     /*----------------- internal function -----------------*/

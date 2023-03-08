@@ -28,7 +28,7 @@ forge install --no-git --no-commit OpenZeppelin/openzeppelin-contracts-upgradeab
 
 ## Build
 ```shell
-npx hardhat build
+npx hardhat compile
 forge build
 ```
 
