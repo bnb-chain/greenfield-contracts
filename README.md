@@ -5,9 +5,13 @@ Greenfield Contracts is the bridge between GreenField and BSC for cross-chain co
 
 set environment
 ```shell
+# require Node.js 14+
 cp .env.example .env
 # modify the env variable `DeployerPrivateKey` to your own private key
 
+# Launch a local test BSC and modify RPC varialbes in .env as your local config
+# refer to https://github.com/bnb-chain/node-deploy
+# using https://github.com/bnb-chain/bsc-private/tree/ins-precompile as the BSC binary that includes the precompile contracts for BLS features 
 # Launch a local test BSC
 ```
 
@@ -17,33 +21,26 @@ curl -L https://foundry.paradigm.xyz | bash
 foundryup
 ```
 
-Install dependency:
+Install dependencies:
 ```shell
-npm install yarn -g
-yarn install
-forge install --no-git --no-commit foundry-rs/forge-std@v1.1.1
-forge install --no-git --no-commit OpenZeppelin/openzeppelin-contracts@v4.8.1
-forge install --no-git --no-commit OpenZeppelin/openzeppelin-contracts-upgradeable@v4.8.1
+make install-dependencies
 ```
 
 ## Build
 ```shell
-npx hardhat compile
-forge build
+make build
 ```
 
 ## Deploy
 ```shell
 # make sure built your local BSC
-RPC_TEST=http://localhost:8545 npm run deploy:test
+npm run deploy:test
 ```
 
 ## Test
 ```shell
 # make sure built your local BSC  
-RPC_TEST=http://localhost:8545 npm run deploy:test
-npx hardhat test --network test
-forge t -vvvv --ffi
+make test
 ```
 
 ## License

@@ -19,6 +19,8 @@ contract GovHub is Config, Initializable {
     uint8 public constant ADDRESS_LENGTH = 20;
     uint8 public constant PARAM_UPDATE_MESSAGE_TYPE = 0;
 
+    uint32 public constant CODE_OK = 0;
+    uint32 public constant ERROR_FAIL_DECODE = 100;
     uint32 public constant ERROR_TARGET_NOT_CONTRACT = 101;
     uint32 public constant ERROR_TARGET_CONTRACT_FAIL = 102;
     uint32 public constant ERROR_INVALID_IMPLEMENTATION = 103;

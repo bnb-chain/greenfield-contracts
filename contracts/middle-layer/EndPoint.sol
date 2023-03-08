@@ -3,10 +3,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
-import "../CrossChain.sol";
-import "../lib/RLPEncode.sol";
-import "../lib/RLPDecode.sol";
+
 import "../Config.sol";
+import "../CrossChain.sol";
+import "../lib/RLPDecode.sol";
+import "../lib/RLPEncode.sol";
 
 interface IApplication {
     function handleAckPackage(uint8 channelID, bytes calldata appMsg) external;
@@ -98,7 +99,7 @@ contract EndPoint is Config {
         elements[5] = _appMsg.encodeBytes();
 
         bytes memory msgBytes = _RLPEncode(EVENT_SEND, elements.encodeList());
-        ICrossChain(crossChainContract).sendSynPackage(APP_CHANNELID, msgBytes, toGNFDRelayerFee);
+        ICrossChain(crossChainContract).sendSynPackage(APP_CHANNEL_ID, msgBytes, toGNFDRelayerFee);
     }
 
     function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes) external onlyCrossChain {
@@ -162,9 +163,9 @@ contract EndPoint is Config {
         address appAddress = msg.sender;
         bytes memory _appMsg = packageMap[pkgHash].appMsg;
         if (packageMap[pkgHash].isFailAck) {
-            IApplication(appAddress).handleFailAckPackage(APP_CHANNELID, _appMsg);
+            IApplication(appAddress).handleFailAckPackage(APP_CHANNEL_ID, _appMsg);
         } else {
-            IApplication(appAddress).handleAckPackage(APP_CHANNELID, _appMsg);
+            IApplication(appAddress).handleAckPackage(APP_CHANNEL_ID, _appMsg);
         }
         delete packageMap[pkgHash];
         _cleanQueue(appAddress);
@@ -233,7 +234,7 @@ contract EndPoint is Config {
         require(success, "rlp decode failed");
 
         uint256 gasBefore = gasleft();
-        try IApplication(_appAddress).handleAckPackage{gas: _gasLimit}(APP_CHANNELID, _appMsg) {}
+        try IApplication(_appAddress).handleAckPackage{gas: _gasLimit}(APP_CHANNEL_ID, _appMsg) {}
         catch (bytes memory reason) {
             if (_strategy != FailureHandleStrategy.Skip) {
                 packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, false, reason);
@@ -281,7 +282,7 @@ contract EndPoint is Config {
         require(success, "rlp decode failed");
 
         uint256 gasBefore = gasleft();
-        try IApplication(_appAddress).handleFailAckPackage{gas: _gasLimit}(APP_CHANNELID, _appMsg) {}
+        try IApplication(_appAddress).handleFailAckPackage{gas: _gasLimit}(APP_CHANNEL_ID, _appMsg) {}
         catch (bytes memory reason) {
             if (_strategy != FailureHandleStrategy.Skip) {
                 packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, true, reason);
