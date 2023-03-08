@@ -20,13 +20,13 @@ contract CrossChain is Initializable, Config {
     uint256 public constant IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
     uint256 public constant OUT_TURN_RELAYER_BACKOFF_PERIOD = 3 seconds;
 
-    // 0xebbda044f67428d7e9b472f9124983082bcda4f84f5148ca0a9ccbe06350f196
+    // SUSPEND_PROPOSAL = 0xebbda044f67428d7e9b472f9124983082bcda4f84f5148ca0a9ccbe06350f196
     bytes32 public constant SUSPEND_PROPOSAL = keccak256("SUSPEND_PROPOSAL");
-    // 0xcf82004e82990eca84a75e16ba08aa620238e076e0bc7fc4c641df44bbf5b55a
+    // REOPEN_PROPOSAL = 0xcf82004e82990eca84a75e16ba08aa620238e076e0bc7fc4c641df44bbf5b55a
     bytes32 public constant REOPEN_PROPOSAL = keccak256("REOPEN_PROPOSAL");
-    // 0x605b57daa79220f76a5cdc8f5ee40e59093f21a4e1cec30b9b99c555e94c75b9
+    // CANCEL_TRANSFER_PROPOSAL = 0x605b57daa79220f76a5cdc8f5ee40e59093f21a4e1cec30b9b99c555e94c75b9
     bytes32 public constant CANCEL_TRANSFER_PROPOSAL = keccak256("CANCEL_TRANSFER_PROPOSAL");
-    // 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
+    // EMPTY_CONTENT_HASH = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
     bytes32 public constant EMPTY_CONTENT_HASH = keccak256("");
     uint256 public constant EMERGENCY_PROPOSAL_EXPIRE_PERIOD = 1 hours;
 
