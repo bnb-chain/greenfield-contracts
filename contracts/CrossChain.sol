@@ -273,7 +273,7 @@ contract CrossChain is Initializable, Config {
         }
     }
 
-    function cancelTransfer(address attacker) onlyRelayer external {
+    function cancelTransfer(address attacker) external onlyRelayer {
         bytes32 _contentHash = keccak256(abi.encode(attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {
