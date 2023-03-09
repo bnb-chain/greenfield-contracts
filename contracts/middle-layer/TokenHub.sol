@@ -24,7 +24,6 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
 
     uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 5000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
-    uint256 public constant REFUND_FEE_UPPER_LIMIT = 1e18;
 
     /*----------------- storage layer -----------------*/
     uint256 public relayFee;
