@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../Config.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
@@ -11,7 +11,7 @@ interface ICrossChain {
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee) external;
 }
 
-contract TokenHub is Initializable, Config {
+contract TokenHub is ReentrancyGuardUpgradeable, Config {
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -84,6 +84,8 @@ contract TokenHub is Initializable, Config {
 
     /*----------------- external function -----------------*/
     function initialize() public initializer {
+        __ReentrancyGuard_init();
+
         relayFee = 2e15;
         minAckRelayFee = 2e15;
     }
@@ -153,7 +155,7 @@ contract TokenHub is Initializable, Config {
         emit RefundCallbackFeeAdded(_refundAddress, _refundFee);
     }
 
-    function claimRefundFee(address _refundAddress, uint256 _refundFee) external {
+    function claimRefundFee(address _refundAddress, uint256 _refundFee) external nonReentrant {
         require(_refundFee > 0, "zero _refundFee");
         require(_refundFee <= refundMap[_refundAddress], "claimable refundFee not enough");
         require(_refundFee <=  REFUND_FEE_UPPER_LIMIT, "_refundFee exceeds REFUND_FEE_UPPER_LIMIT");
