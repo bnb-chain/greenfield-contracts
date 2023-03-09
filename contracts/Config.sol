@@ -7,13 +7,13 @@ import "./interface/ILightClient.sol";
 abstract contract Config {
     uint8 public constant TRANSFER_IN_CHANNEL_ID = 0x01;
     uint8 public constant TRANSFER_OUT_CHANNEL_ID = 0x02;
-    uint8 public constant APP_CHANNEL_ID = 0x03;
-    uint8 public constant GOV_CHANNEL_ID = 0x05;
+    uint8 public constant GOV_CHANNEL_ID = 0x03;
+    uint8 public constant APP_CHANNEL_ID = 0x04;
 
     // TODO channel ID
-    uint8 public constant BUCKET_CHANNEL_ID = 0x06;
-    uint8 public constant OBJECT_CHANNEL_ID = 0x07;
-    uint8 public constant GROUP_CHANNEL_ID = 0x08;
+    uint8 public constant BUCKET_CHANNEL_ID = 0x05;
+    uint8 public constant OBJECT_CHANNEL_ID = 0x06;
+    uint8 public constant GROUP_CHANNEL_ID = 0x07;
 
     // contract address
     // will calculate their deployed addresses from deploy script
@@ -31,6 +31,8 @@ abstract contract Config {
     uint256 public relayFee;
     uint256 public ackRelayFee;
 
-    uint256 public callBackGasPrice;
     uint256 public transferGas;
+
+    // PlaceHolder reserve for future use
+    uint256[50] public ConfigSlots;
 }

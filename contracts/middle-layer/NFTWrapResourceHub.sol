@@ -13,7 +13,7 @@ import "../interface/IERC721NonTransferable.sol";
 import "../interface/IAccessControl.sol";
 
 // DO NOT define any state variables in this contract.
-abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
+abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -30,11 +30,20 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
 
     /*----------------- middle-layer function -----------------*/
     // need to be implemented in child contract
-    function handleSynPackage(uint8 channelId, bytes calldata callBackData) external virtual returns (bytes memory) {}
+    function handleSynPackage(uint8 channelId, bytes calldata callbackData) external virtual returns (bytes memory) {}
 
-    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata callBackData) external virtual {}
+    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata callbackData, uint256 callbackGasLimit)
+        external
+        virtual
+        returns (uint256 remainingGas, address refundAddress)
+    {}
 
-    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata callBackData) external virtual {}
+    function handleFailAckPackage(
+        uint8 channelId,
+        uint64 sequence,
+        bytes calldata callbackData,
+        uint256 callbackGasLimit
+    ) external virtual returns (uint256 remainingGas, address refundAddress) {}
 
     /*----------------- external function -----------------*/
     function grant(address, uint32, uint256) external {
@@ -72,9 +81,9 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
                 ackPkg.id = iter.next().toUint();
             } else if (idx == 2) {
                 ackPkg.creator = iter.next().toAddress();
+                success = true; // extraData is optional
             } else if (idx == 3) {
                 ackPkg.extraData = iter.next().toBytes();
-                success = true;
             } else {
                 break;
             }
@@ -99,8 +108,10 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
             revert("unexpected status code");
         }
 
-        (_extraData, success) = _bytesToExtraData(ackPkg.extraData);
-        require(success, "unrecognized extra data");
+        if (ackPkg.extraData.length > 0) {
+            (_extraData, success) = _bytesToExtraData(ackPkg.extraData);
+            require(success, "unrecognized extra data");
+        }
     }
 
     function _doCreate(address creator, uint256 id) internal virtual {
@@ -122,9 +133,9 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
                 ackPkg.status = uint32(iter.next().toUint());
             } else if (idx == 1) {
                 ackPkg.id = iter.next().toUint();
+                success = true; // extraData is optional
             } else if (idx == 2) {
                 ackPkg.extraData = iter.next().toBytes();
-                success = true;
             } else {
                 break;
             }
@@ -149,8 +160,10 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
             revert("unexpected status code");
         }
 
-        (_extraData, success) = _bytesToExtraData(ackPkg.extraData);
-        require(success, "unrecognized extra data");
+        if (ackPkg.extraData.length > 0) {
+            (_extraData, success) = _bytesToExtraData(ackPkg.extraData);
+            require(success, "unrecognized extra data");
+        }
     }
 
     function _doDelete(uint256 id) internal virtual {
@@ -235,7 +248,7 @@ abstract contract NFTWrapResourceHub is Initializable, NFTWrapResourceStorage {
                 _extraData.failureHandleStrategy = FailureHandleStrategy(uint8(iter.next().toUint()));
                 success = true; // the call back data can be empty
             } else if (idx == 3) {
-                _extraData.callBackData = iter.next().toBytes();
+                _extraData.callbackData = iter.next().toBytes();
             } else {
                 break;
             }

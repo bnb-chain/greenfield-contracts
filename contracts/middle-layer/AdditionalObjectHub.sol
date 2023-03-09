@@ -47,32 +47,22 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
      * @dev delete a object and send cross-chain request from BSC to GNFD
      *
      * @param id The bucket's id
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
      */
-    function deleteObject(uint256 id, address refundAddress, bytes memory callBackData)
-        external
-        payable
-        returns (bool)
-    {
-        address _appAddress = msg.sender;
-        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+    function deleteObject(uint256 id) external payable returns (bool) {
+        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
+        // check fee
+        require(msg.value >= relayFee + ackRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                retryQueue[_appAddress].length() == 0,
+                retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
             );
         }
-
-        // check refund address
-        (bool success,) = refundAddress.call{gas: transferGas}("");
-        require(success && (refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
@@ -85,14 +75,8 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
             require(hasRole(ROLE_DELETE, owner, msg.sender), "no permission to delete");
         }
 
+        // make sure the extra data is as expected
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id, extraData: ""});
-        ExtraData memory extraData = ExtraData({
-            appAddress: _appAddress,
-            refundAddress: refundAddress,
-            failureHandleStrategy: failStrategy,
-            callBackData: callBackData
-        });
-        synPkg.extraData = _extraDataToBytes(extraData);
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -102,6 +86,63 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
         return true;
     }
 
+    /**
+     * @dev delete a object and send cross-chain request from BSC to GNFD
+     * Callback function will be called when the request is processed
+     *
+     * @param id The bucket's id
+     * @param extraData The extra data for callback function
+     */
+    function deleteObject(uint256 id, uint256 callbackGasLimit, ExtraData memory extraData)
+        external
+        payable
+        returns (bool)
+    {
+        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
+
+        // check relay fee and callback fee
+        require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+
+        // check package queue
+        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+            require(
+                retryQueue[msg.sender].length() == 0,
+                "retry queue is not empty, please process the previous package first"
+            );
+        }
+
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+        if (
+            !(
+                msg.sender == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender
+                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender)
+            )
+        ) {
+            require(hasRole(ROLE_DELETE, owner, msg.sender), "no permission to delete");
+        }
+
+        // make sure the extra data is as expected
+        extraData.appAddress = msg.sender;
+        extraData.failureHandleStrategy = failStrategy;
+        CmnDeleteSynPackage memory synPkg =
+            CmnDeleteSynPackage({operator: owner, id: id, extraData: _extraDataToBytes(extraData)});
+
+        // check refund address
+        (bool success,) = extraData.refundAddress.call{gas: transferGas}("");
+        require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
+
+        address _crossChain = CROSS_CHAIN;
+        ICrossChain(_crossChain).sendSynPackage(
+            OBJECT_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
+        );
+        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
+        return true;
+    }
+
+    /*----------------- internal function -----------------*/
     function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = synPkg.operator.encodeAddress();

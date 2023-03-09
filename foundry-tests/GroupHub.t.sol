@@ -24,8 +24,8 @@ contract GroupHubTest is Test, GroupHub {
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
     event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
-    event ReceivedAckPkg(uint8 channelId, bytes msgData, bytes callBackData);
-    event ReceivedFailAckPkg(uint8 channelId, bytes msgData, bytes callBackData);
+    event ReceivedAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
+    event ReceivedFailAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
 
     ERC721NonTransferable public groupToken;
     ERC1155NonTransferable public memberToken;
@@ -50,7 +50,7 @@ contract GroupHubTest is Test, GroupHub {
         vm.label(address(groupToken), "groupToken");
         vm.label(address(memberToken), "memberToken");
 
-        groupHub.setFailureHandleStrategy(FailureHandleStrategy.NoCallBack);
+        groupHub.setFailureHandleStrategy(FailureHandleStrategy.NoCallback);
     }
 
     function testBasicInfo() public {
@@ -97,7 +97,7 @@ contract GroupHubTest is Test, GroupHub {
         groupHub.createGroup{value: 41e14}(address(this), "test", address(this), "");
 
         bytes memory msgBytes =
-            _encodeCreateAckPackage(0, id, address(this), address(this), FailureHandleStrategy.NoCallBack);
+            _encodeCreateAckPackage(0, id, address(this), address(this), FailureHandleStrategy.NoCallback);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(groupToken));
@@ -114,7 +114,7 @@ contract GroupHubTest is Test, GroupHub {
         emit DeleteSubmitted(address(this), address(this), id, 2e15, 2e15);
         groupHub.deleteGroup{value: 41e14}(id, address(this), "");
 
-        bytes memory msgBytes = _encodeDeleteAckPackage(0, id, address(this), FailureHandleStrategy.NoCallBack);
+        bytes memory msgBytes = _encodeDeleteAckPackage(0, id, address(this), FailureHandleStrategy.NoCallback);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
         vm.startPrank(CROSS_CHAIN);
@@ -146,7 +146,7 @@ contract GroupHubTest is Test, GroupHub {
             members: newMembers,
             extraData: ""
         });
-        bytes memory msgBytes = _encodeUpdateAckPackage(updateAckPkg, address(this), FailureHandleStrategy.NoCallBack);
+        bytes memory msgBytes = _encodeUpdateAckPackage(updateAckPkg, address(this), FailureHandleStrategy.NoCallback);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(memberToken));
@@ -209,7 +209,7 @@ contract GroupHubTest is Test, GroupHub {
         groupHub.createGroup{value: 41e14}(granter, "test3", address(this), "");
     }
 
-    function testCallBack() public {
+    function testCallback() public {
         // app closed
         groupHub.setFailureHandleStrategy(FailureHandleStrategy.Closed);
         vm.expectRevert(bytes("application closed"));
@@ -245,12 +245,12 @@ contract GroupHubTest is Test, GroupHub {
 
     /*----------------- middle-layer app function -----------------*/
     // override the function in GroupHub
-    function handleAckPackage(uint8 channelId, bytes calldata ackPkg, bytes calldata callBackData) external {
-        emit ReceivedAckPkg(channelId, ackPkg, callBackData);
+    function handleAckPackage(uint8 channelId, bytes calldata ackPkg, bytes calldata callbackData) external {
+        emit ReceivedAckPkg(channelId, ackPkg, callbackData);
     }
 
-    function handleFailAckPackage(uint8 channelId, bytes calldata failPkg, bytes calldata callBackData) external {
-        emit ReceivedFailAckPkg(channelId, failPkg, callBackData);
+    function handleFailAckPackage(uint8 channelId, bytes calldata failPkg, bytes calldata callbackData) external {
+        emit ReceivedFailAckPkg(channelId, failPkg, callbackData);
     }
 
     /*----------------- Internal function -----------------*/
@@ -280,7 +280,7 @@ contract GroupHubTest is Test, GroupHub {
             appAddress: address(this),
             refundAddress: refundAddr,
             failureHandleStrategy: failStrategy,
-            callBackData: ""
+            callbackData: ""
         });
 
         bytes[] memory elements = new bytes[](4);
@@ -300,7 +300,7 @@ contract GroupHubTest is Test, GroupHub {
             appAddress: address(this),
             refundAddress: refundAddr,
             failureHandleStrategy: failStrategy,
-            callBackData: ""
+            callbackData: ""
         });
 
         bytes[] memory elements = new bytes[](3);
@@ -324,7 +324,7 @@ contract GroupHubTest is Test, GroupHub {
             appAddress: address(this),
             refundAddress: refundAddr,
             failureHandleStrategy: failStrategy,
-            callBackData: ""
+            callbackData: ""
         });
 
         bytes[] memory elements = new bytes[](6);

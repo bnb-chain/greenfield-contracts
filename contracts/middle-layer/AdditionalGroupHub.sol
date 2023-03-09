@@ -73,8 +73,8 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         uint256 relayFee,
         uint256 ackRelayFee
     );
-    event UpdateSuccess(address operator, uint256 id, uint8 opType);
-    event UpdateFailed(address operator, uint256 id, uint8 opType);
+    event UpdateSuccess(address indexed operator, uint256 indexed id, uint8 opType);
+    event UpdateFailed(address indexed operator, uint256 indexed id, uint8 opType);
 
     function grant(address account, uint32 acCode, uint256 expireTime) external {
         if (expireTime == 0) {
@@ -119,46 +119,82 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      *
      * @param owner The group's owner
      * @param name The group's name
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
      */
-    function createGroup(address owner, string memory name, address refundAddress, bytes memory callBackData)
-        external
-        payable
-        returns (bool)
-    {
-        address _appAddress = msg.sender;
-        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+    function createGroup(address owner, string memory name) external payable returns (bool) {
+        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
+        // check fee
+        require(msg.value >= relayFee + ackRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                retryQueue[_appAddress].length() == 0,
+                retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
             );
         }
-
-        // check refund address
-        (bool success,) = refundAddress.call{gas: transferGas}("");
-        require(success && (refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         // check authorization
         if (msg.sender != owner) {
             require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
         }
 
+        // make sure the extra data is as expected
         CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name, extraData: ""});
-        ExtraData memory extraData = ExtraData({
-            appAddress: _appAddress,
-            refundAddress: refundAddress,
-            failureHandleStrategy: failStrategy,
-            callBackData: callBackData
-        });
-        synPkg.extraData = _extraDataToBytes(extraData);
+
+        address _crossChain = CROSS_CHAIN;
+        ICrossChain(_crossChain).sendSynPackage(
+            GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
+        );
+        emit CreateSubmitted(owner, msg.sender, name, relayFee, _ackRelayFee);
+        return true;
+    }
+
+    /**
+     * @dev create a group and send cross-chain request from BSC to GNFD.
+     * Callback function will be called when the request is processed.
+     *
+     * @param owner The group's owner
+     * @param name The group's name
+     * @param callbackGasLimit Gas limit for callback function
+     * @param extraData Extra data for callback function
+     */
+    function createGroup(address owner, string memory name, uint256 callbackGasLimit, ExtraData memory extraData)
+        external
+        payable
+        returns (bool)
+    {
+        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
+
+        // check relay fee and callback fee
+        require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+
+        // check package queue
+        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+            require(
+                retryQueue[msg.sender].length() == 0,
+                "retry queue is not empty, please process the previous package first"
+            );
+        }
+
+        // check authorization
+        if (msg.sender != owner) {
+            require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
+        }
+
+        // make sure the extra data is as expected
+        extraData.appAddress = msg.sender;
+        extraData.failureHandleStrategy = failStrategy;
+        CreateSynPackage memory synPkg =
+            CreateSynPackage({creator: owner, name: name, extraData: _extraDataToBytes(extraData)});
+
+        // check refund address
+        (bool success,) = extraData.refundAddress.call{gas: transferGas}("");
+        require(success && (extraData.refundAddress != address(0)), "invalid refund address");
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -172,32 +208,22 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * @dev delete a group and send cross-chain request from BSC to GNFD
      *
      * @param id The group's id
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
      */
-    function deleteGroup(uint256 id, address refundAddress, bytes memory callBackData)
-        external
-        payable
-        returns (bool)
-    {
-        address _appAddress = msg.sender;
-        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+    function deleteGroup(uint256 id) external payable returns (bool) {
+        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
+        // check fee
+        require(msg.value >= relayFee + ackRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                retryQueue[_appAddress].length() == 0,
+                retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
             );
         }
-
-        // check refund address
-        (bool success,) = refundAddress.call{gas: transferGas}("");
-        require(success && (refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
@@ -210,14 +236,65 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             require(hasRole(ROLE_DELETE, owner, msg.sender), "no delete permission");
         }
 
+        // make sure the extra data is as expected
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id, extraData: ""});
-        ExtraData memory extraData = ExtraData({
-            appAddress: _appAddress,
-            refundAddress: refundAddress,
-            failureHandleStrategy: failStrategy,
-            callBackData: callBackData
-        });
-        synPkg.extraData = _extraDataToBytes(extraData);
+
+        address _crossChain = CROSS_CHAIN;
+        ICrossChain(_crossChain).sendSynPackage(
+            GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
+        );
+        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
+        return true;
+    }
+
+    /**
+     * @dev delete a group and send cross-chain request from BSC to GNFD
+     * Callback function will be called when the request is processed.
+     *
+     * @param id The group's id
+     * @param callbackGasLimit Gas limit for callback function
+     * @param extraData Extra data for callback function
+     */
+    function deleteGroup(uint256 id, uint256 callbackGasLimit, ExtraData memory extraData)
+        external
+        payable
+        returns (bool)
+    {
+        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
+
+        // check relay fee and callback fee
+        require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+
+        // check package queue
+        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+            require(
+                retryQueue[msg.sender].length() == 0,
+                "retry queue is not empty, please process the previous package first"
+            );
+        }
+
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+        if (
+            !(
+                msg.sender == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender
+                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender)
+            )
+        ) {
+            require(hasRole(ROLE_DELETE, owner, msg.sender), "no delete permission");
+        }
+
+        // make sure the extra data is as expected
+        extraData.appAddress = msg.sender;
+        extraData.failureHandleStrategy = failStrategy;
+        CmnDeleteSynPackage memory synPkg =
+            CmnDeleteSynPackage({operator: owner, id: id, extraData: _extraDataToBytes(extraData)});
+
+        // check refund address
+        (bool success,) = extraData.refundAddress.call{gas: transferGas}("");
+        require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(
@@ -231,32 +308,21 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * @dev update a group's member and send cross-chain request from BSC to GNFD
      *
      * @param synPkg Package containing information of the group to be updated
-     * @param refundAddress The address to receive the refund of the gas fee
-     * @param callBackData The data to be sent back to the application
      */
-    function updateGroup(UpdateSynPackage memory synPkg, address refundAddress, bytes memory callBackData)
-        external
-        payable
-        returns (bool)
-    {
-        address _appAddress = msg.sender;
-        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
+    function updateGroup(UpdateSynPackage memory synPkg) external payable returns (bool) {
+        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
+        require(msg.value >= relayFee + ackRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
             require(
-                retryQueue[_appAddress].length() == 0,
+                retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
             );
         }
-
-        // check refund address
-        (bool success,) = refundAddress.call{gas: transferGas}("");
-        require(success && (refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
@@ -269,13 +335,64 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
             require(hasRole(ROLE_UPDATE, owner, msg.sender), "no update permission");
         }
 
-        ExtraData memory extraData = ExtraData({
-            appAddress: _appAddress,
-            refundAddress: refundAddress,
-            failureHandleStrategy: failStrategy,
-            callBackData: callBackData
-        });
+        // make sure the extra data is as expected
+        synPkg.extraData = "";
+
+        address _crossChain = CROSS_CHAIN;
+        ICrossChain(_crossChain).sendSynPackage(
+            GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
+        );
+        emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members, relayFee, _ackRelayFee);
+        return true;
+    }
+
+    /**
+     * @dev update a group's member and send cross-chain request from BSC to GNFD
+     * Callback function will be called when the request is processed.
+     *
+     * @param synPkg Package containing information of the group to be updated
+     * @param callbackGasLimit Gas limit for callback function
+     * @param extraData Extra data for callback function
+     */
+    function updateGroup(UpdateSynPackage memory synPkg, uint256 callbackGasLimit, ExtraData memory extraData)
+        external
+        payable
+        returns (bool)
+    {
+        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
+        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
+
+        // check relay fee and callback fee
+        require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+
+        // check package queue
+        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+            require(
+                retryQueue[msg.sender].length() == 0,
+                "retry queue is not empty, please process the previous package first"
+            );
+        }
+
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
+        if (
+            !(
+                msg.sender == owner || IERC721NonTransferable(ERC721Token).getApproved(synPkg.id) == msg.sender
+                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender)
+            )
+        ) {
+            require(hasRole(ROLE_UPDATE, owner, msg.sender), "no update permission");
+        }
+
+        // make sure the extra data is as expected
+        extraData.appAddress = msg.sender;
+        extraData.failureHandleStrategy = failStrategy;
         synPkg.extraData = _extraDataToBytes(extraData);
+
+        // check refund address
+        (bool success,) = extraData.refundAddress.call{gas: transferGas}("");
+        require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         address _crossChain = CROSS_CHAIN;
         ICrossChain(_crossChain).sendSynPackage(

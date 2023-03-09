@@ -29,20 +29,20 @@ contract EndPoint is Config, PackageQueue {
 
         relayFee = 2e15;
         ackRelayFee = 2e15;
-        callBackGasPrice = 1e9;
         transferGas = 2300;
     }
 
     // @notice send a cross-chain application message to GNFD
     // @param _appPayload - a custom bytes payload to send to the destination contract
     // @param _refundAddress - if the source transaction is cheaper than the amount of value passed, refund the additional amount to this address
-    function send(bytes calldata _appMsg, address payable _refundAddress) external payable {
+    // @param _callbackGasLimit - the gas limit for callback
+    function send(bytes calldata _appMsg, address payable _refundAddress, uint256 _callbackGasLimit) external payable {
         address _appAddress = msg.sender;
         FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
         require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
-        require(msg.value >= relayFee + ackRelayFee + callBackGasPrice * CALLBACK_GAS_LIMIT, "not enough relay fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callBackGasPrice * CALLBACK_GAS_LIMIT;
+        require(msg.value >= relayFee + ackRelayFee + _callbackGasLimit * tx.gasprice, "not enough relay fee");
+        uint256 _ackRelayFee = msg.value - relayFee - _callbackGasLimit * tx.gasprice;
 
         // check package queue
         if (failStrategy == FailureHandleStrategy.HandleInOrder) {
@@ -66,7 +66,11 @@ contract EndPoint is Config, PackageQueue {
         ICrossChain(CROSS_CHAIN).sendSynPackage(channelId, msgBytes, relayFee, _ackRelayFee);
     }
 
-    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes) external onlyCrossChain {
+    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256 callbackGasLimit)
+        external
+        onlyCrossChain
+        returns (uint256 remainingGas, address refundAddress)
+    {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 status;
@@ -100,13 +104,17 @@ contract EndPoint is Config, PackageQueue {
 
         if (eventType == EVENT_SEND) {
             bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
-            _handleSendAckPackage(pkgHash, paramIter);
+            _handleSendAckPackage(pkgHash, paramIter, callbackGasLimit);
         } else {
             revert("unknown event type");
         }
     }
 
-    function handleFailAckPackage(uint8 channelId, uint256 sequence, bytes calldata msgBytes) external onlyCrossChain {
+    function handleFailAckPackage(uint8 channelId, uint256 sequence, bytes calldata msgBytes, uint256 callbackGasLimit)
+        external
+        onlyCrossChain
+        returns (uint256 remainingGas, address refundAddress)
+    {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
         uint8 eventType = uint8(iter.next().toUint());
         RLPDecode.Iterator memory paramIter;
@@ -117,7 +125,7 @@ contract EndPoint is Config, PackageQueue {
         }
         if (eventType == EVENT_SEND) {
             bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
-            _handleSendFailAckPackage(pkgHash, paramIter);
+            _handleSendFailAckPackage(pkgHash, paramIter, callbackGasLimit);
         } else {
             revert("unknown event type");
         }
@@ -131,7 +139,10 @@ contract EndPoint is Config, PackageQueue {
         return elements.encodeList();
     }
 
-    function _handleSendAckPackage(bytes32 pkgHash, RLPDecode.Iterator memory paramIter) internal {
+    function _handleSendAckPackage(bytes32 pkgHash, RLPDecode.Iterator memory paramIter, uint256 callbackGasLimit)
+        internal
+        returns (uint256 remainingGas, address refundAddress)
+    {
         bool success;
         uint256 idx;
 
@@ -157,27 +168,32 @@ contract EndPoint is Config, PackageQueue {
         }
         require(success, "rlp decode failed");
 
-        uint256 refundFee = CALLBACK_GAS_LIMIT * callBackGasPrice;
-        if (_strategy != FailureHandleStrategy.NoCallBack) {
-            uint256 gasBefore = gasleft();
-            try IApplication(_appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _appMsg, "") {}
-            catch (bytes memory reason) {
-                if (_strategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, "", false, reason);
-                    retryQueue[_appAddress].pushBack(pkgHash);
-                }
-            }
+        uint256 gasBefore = gasleft();
 
-            uint256 gasUsed = gasBefore - gasleft();
-            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callBackGasPrice;
+        bytes memory reason;
+        try IApplication(_appAddress).handleAckPackage{gas: callbackGasLimit}(channelId, _appMsg, "") {}
+        catch Error(string memory error) {
+            reason = bytes(error);
+        } catch (bytes memory lowLevelData) {
+            reason = lowLevelData;
         }
 
-        // refund
-        (success,) = _refundAddress.call{gas: transferGas, value: refundFee}("");
-        require(success, "refund failed");
+        if (reason.length > 0) {
+            emit AppHandleFailAckPkgFailed(_appAddress, pkgHash, reason);
+            if (_strategy != FailureHandleStrategy.Skip) {
+                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, "", false, reason);
+                retryQueue[_appAddress].pushBack(pkgHash);
+            }
+        }
+
+        remainingGas = callbackGasLimit - (gasBefore - gasleft()); // gas limit - gas used
+        refundAddress = _refundAddress;
     }
 
-    function _handleSendFailAckPackage(bytes32 pkgHash, RLPDecode.Iterator memory paramIter) internal {
+    function _handleSendFailAckPackage(bytes32 pkgHash, RLPDecode.Iterator memory paramIter, uint256 callbackGasLimit)
+        internal
+        returns (uint256 remainingGas, address refundAddress)
+    {
         bool success;
         uint256 idx;
 
@@ -203,23 +219,25 @@ contract EndPoint is Config, PackageQueue {
         }
         require(success, "rlp decode failed");
 
-        uint256 refundFee = CALLBACK_GAS_LIMIT * callBackGasPrice;
-        if (_strategy != FailureHandleStrategy.NoCallBack) {
-            uint256 gasBefore = gasleft();
-            try IApplication(_appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _appMsg, "") {}
-            catch (bytes memory reason) {
-                if (_strategy != FailureHandleStrategy.Skip) {
-                    packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, "", false, reason);
-                    retryQueue[_appAddress].pushBack(pkgHash);
-                }
-            }
+        uint256 gasBefore = gasleft();
 
-            uint256 gasUsed = gasBefore - gasleft();
-            refundFee = (CALLBACK_GAS_LIMIT - gasUsed) * callBackGasPrice;
+        bytes memory reason;
+        try IApplication(_appAddress).handleAckPackage{gas: callbackGasLimit}(channelId, _appMsg, "") {}
+        catch Error(string memory error) {
+            reason = bytes(error);
+        } catch (bytes memory lowLevelData) {
+            reason = lowLevelData;
         }
 
-        // refund
-        (success,) = _refundAddress.call{gas: transferGas, value: refundFee}("");
-        require(success, "refund failed");
+        if (reason.length > 0) {
+            emit AppHandleFailAckPkgFailed(_appAddress, pkgHash, reason);
+            if (_strategy != FailureHandleStrategy.Skip) {
+                packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, "", false, reason);
+                retryQueue[_appAddress].pushBack(pkgHash);
+            }
+        }
+
+        remainingGas = callbackGasLimit - (gasBefore - gasleft()); // gas limit - gas used
+        refundAddress = _refundAddress;
     }
 }

@@ -9,8 +9,6 @@ import "./interface/IApplication.sol";
 contract PackageQueue {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
-    uint256 public constant CALLBACK_GAS_LIMIT = 100000; // TODO use constant for now
-
     uint8 public channelId;
 
     // app address => FailureHandleStrategy
@@ -21,20 +19,22 @@ contract PackageQueue {
     mapping(bytes32 => RetryPackage) public packageMap;
 
     enum FailureHandleStrategy {
-        Closed, // any dapp must register its failure strategy first
-        HandleInOrder,
-        Cache,
-        Skip,
-        NoCallBack
+        Closed, // any dapp must register its failure strategy first or the status will be closed
+        HandleInOrder, // ack package must be handled in order and dapp cannot send new syn package without handling all failed ack package
+        Cache, // failed ack package will be cached and dapp can send new syn package without handling all failed ack package
+        Skip // failed ack package will be skipped
     }
 
     struct RetryPackage {
         address appAddress;
         bytes msgBytes;
-        bytes callBackData;
+        bytes callbackData;
         bool isFailAck;
         bytes failReason;
     }
+
+    event AppHandleAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
+    event AppHandleFailAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
 
     modifier onlyPackageNotDeleted(bytes32 pkgHash) {
         require(packageMap[pkgHash].appAddress != address(0), "package already deleted");
@@ -58,11 +58,11 @@ contract PackageQueue {
     function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
         address appAddress = msg.sender;
         bytes memory _msgBytes = packageMap[pkgHash].msgBytes;
-        bytes memory _callBackData = packageMap[pkgHash].callBackData;
+        bytes memory _callbackData = packageMap[pkgHash].callbackData;
         if (packageMap[pkgHash].isFailAck) {
-            IApplication(appAddress).handleFailAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _msgBytes, _callBackData);
+            IApplication(appAddress).handleFailAckPackage(channelId, _msgBytes, _callbackData);
         } else {
-            IApplication(appAddress).handleAckPackage{gas: CALLBACK_GAS_LIMIT}(channelId, _msgBytes, _callBackData);
+            IApplication(appAddress).handleAckPackage(channelId, _msgBytes, _callbackData);
         }
         delete packageMap[pkgHash];
         _cleanQueue(appAddress);

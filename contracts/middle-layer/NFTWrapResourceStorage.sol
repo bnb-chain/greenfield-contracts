@@ -39,7 +39,7 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
         address appAddress;
         address refundAddress;
         FailureHandleStrategy failureHandleStrategy;
-        bytes callBackData;
+        bytes callbackData;
     }
 
     // struct CreateSynPackage should be defined in child contract
@@ -79,18 +79,22 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
     }
 
     // PlaceHolder reserve for future use
-    uint256[50] public slots;
+    uint256[50] public NFTWrapResourceStorageSlots;
 
-    event MirrorSuccess(uint256 id, address owner);
-    event MirrorFailed(uint256 id, address owner, bytes failReason);
-    event CreateSubmitted(address owner, address operator, string name, uint256 relayFee, uint256 ackRelayFee);
-    event CreateSuccess(address creator, uint256 id);
-    event CreateFailed(address creator, uint256 id);
-    event DeleteSubmitted(address owner, address operator, uint256 id, uint256 relayFee, uint256 ackRelayFee);
-    event DeleteSuccess(uint256 id);
-    event DeleteFailed(uint256 id);
-    event FailAckPkgReceived(uint8 channelId, bytes msgBytes);
-    event UnexpectedPackage(uint8 channelId, bytes msgBytes);
+    event MirrorSuccess(uint256 indexed id, address indexed owner);
+    event MirrorFailed(uint256 indexed id, address indexed owner, bytes failReason);
+    event CreateSubmitted(
+        address indexed owner, address indexed operator, string name, uint256 relayFee, uint256 ackRelayFee
+    );
+    event CreateSuccess(address indexed creator, uint256 indexed id);
+    event CreateFailed(address indexed creator, uint256 indexed id);
+    event DeleteSubmitted(
+        address indexed owner, address indexed operator, uint256 indexed id, uint256 relayFee, uint256 ackRelayFee
+    );
+    event DeleteSuccess(uint256 indexed id);
+    event DeleteFailed(uint256 indexed id);
+    event FailAckPkgReceived(uint8 indexed channelId, bytes msgBytes);
+    event UnexpectedPackage(uint8 indexed channelId, bytes msgBytes);
     event ParamChange(string key, bytes value);
 
     function _extraDataToBytes(ExtraData memory _extraData) internal pure returns (bytes memory) {
@@ -98,7 +102,7 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
         elements[0] = _extraData.appAddress.encodeAddress();
         elements[1] = _extraData.refundAddress.encodeAddress();
         elements[2] = uint256(_extraData.failureHandleStrategy).encodeUint();
-        elements[3] = _extraData.callBackData.encodeBytes();
+        elements[3] = _extraData.callbackData.encodeBytes();
         return elements.encodeList();
     }
 

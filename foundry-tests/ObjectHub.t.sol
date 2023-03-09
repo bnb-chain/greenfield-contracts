@@ -22,8 +22,8 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-    event ReceivedAckPkg(uint8 channelId, bytes msgData, bytes callBackData);
-    event ReceivedFailAckPkg(uint8 channelId, bytes msgData, bytes callBackData);
+    event ReceivedAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
+    event ReceivedFailAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
 
     ERC721NonTransferable public objectToken;
     ObjectHub public objectHub;
@@ -45,7 +45,7 @@ contract ObjectHubTest is Test, ObjectHub {
         vm.label(CROSS_CHAIN, "crossChain");
         vm.label(address(objectToken), "objectToken");
 
-        objectHub.setFailureHandleStrategy(FailureHandleStrategy.NoCallBack);
+        objectHub.setFailureHandleStrategy(FailureHandleStrategy.NoCallback);
     }
 
     function testBasicInfo() public {
@@ -86,7 +86,7 @@ contract ObjectHubTest is Test, ObjectHub {
         emit DeleteSubmitted(address(this), address(this), id, 2e15, 2e15);
         objectHub.deleteObject{value: 41e14}(id, address(this), "");
 
-        bytes memory msgBytes = _encodeDeleteAckPackage(0, id, address(this), FailureHandleStrategy.NoCallBack);
+        bytes memory msgBytes = _encodeDeleteAckPackage(0, id, address(this), FailureHandleStrategy.NoCallback);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
         vm.startPrank(CROSS_CHAIN);
@@ -148,7 +148,7 @@ contract ObjectHubTest is Test, ObjectHub {
         objectHub.deleteObject{value: 41e14}(id, address(this), "");
     }
 
-    function testCallBack() public {
+    function testCallback() public {
         vm.prank(OBJECT_HUB);
         objectToken.mint(address(this), 0);
 
@@ -187,12 +187,12 @@ contract ObjectHubTest is Test, ObjectHub {
 
     /*----------------- middle-layer app function -----------------*/
     // override the function in GroupHub
-    function handleAckPackage(uint8 channelId, bytes calldata ackPkg, bytes calldata callBackData) external {
-        emit ReceivedAckPkg(channelId, ackPkg, callBackData);
+    function handleAckPackage(uint8 channelId, bytes calldata ackPkg, bytes calldata callbackData) external {
+        emit ReceivedAckPkg(channelId, ackPkg, callbackData);
     }
 
-    function handleFailAckPackage(uint8 channelId, bytes calldata failPkg, bytes calldata callBackData) external {
-        emit ReceivedFailAckPkg(channelId, failPkg, callBackData);
+    function handleFailAckPackage(uint8 channelId, bytes calldata failPkg, bytes calldata callbackData) external {
+        emit ReceivedFailAckPkg(channelId, failPkg, callbackData);
     }
 
     /*----------------- Internal function -----------------*/
@@ -220,7 +220,7 @@ contract ObjectHubTest is Test, ObjectHub {
             appAddress: address(this),
             refundAddress: refundAddr,
             failureHandleStrategy: failStrategy,
-            callBackData: ""
+            callbackData: ""
         });
 
         bytes[] memory elements = new bytes[](3);
