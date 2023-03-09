@@ -7,8 +7,8 @@ import "./interface/ILightClient.sol";
 abstract contract Config {
     uint8 public constant TRANSFER_IN_CHANNELID = 0x01;
     uint8 public constant TRANSFER_OUT_CHANNELID = 0x02;
-    uint8 public constant APP_CHANNELID = 0x03;
-    uint8 public constant GOV_CHANNELID = 0x05;
+    uint8 public constant GOV_CHANNELID = 0x03;
+    uint8 public constant APP_CHANNELID = 0x04;
 
     uint32 public constant CODE_OK = 0;
     uint32 public constant ERROR_FAIL_DECODE = 100;
@@ -21,4 +21,10 @@ abstract contract Config {
     address public constant TOKEN_HUB = 0x455A048290bDCFf3EE88E8E2A0923b5F49b711b2;
     address public constant LIGHT_CLIENT = 0xCf5189a6F94349b76734323a2728ec1DEe1D301b;
     address public constant RELAYER_HUB = 0xcc2B9Def872E748E6b397c2A0d38c67D1b7cCA9e;
+
+
+    modifier onlyCrossChain() {
+        require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
+        _;
+    }
 }

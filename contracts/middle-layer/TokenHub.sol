@@ -61,21 +61,16 @@ contract TokenHub is ReentrancyGuardUpgradeable, Config {
         uint32 status;
     }
 
-    event TransferInSuccess(address refundAddr, uint256 amount);
-    event TransferOutSuccess(address senderAddr, uint256 amount, uint256 relayFee, uint256 ackRelayFee);
-    event RefundSuccess(address refundAddr, uint256 amount, uint32 status);
-    event RefundFailure(address refundAddr, uint256 amount, uint32 status);
+    event TransferInSuccess(address refundAddress, uint256 amount);
+    event TransferOutSuccess(address senderAddress, uint256 amount, uint256 relayFee, uint256 ackRelayFee);
+    event RefundSuccess(address refundAddress, uint256 amount, uint32 status);
+    event RefundFailure(address refundAddress, uint256 amount, uint32 status);
     event RewardTo(address to, uint256 amount);
     event ReceiveDeposit(address from, uint256 amount);
-    event UnexpectedPackage(uint8 channelId, bytes msgBytes);
+    event UnexpectedPackage(uint8 channelId, uint64 sequence, bytes msgBytes);
     event ParamChange(string key, bytes value);
     event RefundCallbackFeeAdded(address refundAddress, uint256 amount);
     event RefundCallbackFeeClaimed(address refundAddress, uint256 amount);
-
-    modifier onlyCrossChainContract() {
-        require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
-        _;
-    }
 
     modifier onlyRelayerHub() {
         require(msg.sender == RELAYER_HUB, "only RelayerHub contract");
@@ -104,7 +99,7 @@ contract TokenHub is ReentrancyGuardUpgradeable, Config {
      */
     function handleSynPackage(uint8 channelId, bytes calldata msgBytes)
         external
-        onlyCrossChainContract
+        onlyCrossChain
         returns (bytes memory)
     {
         if (channelId == TRANSFER_IN_CHANNELID) {
@@ -123,11 +118,11 @@ contract TokenHub is ReentrancyGuardUpgradeable, Config {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleAckPackage(uint8 channelId, bytes calldata msgBytes, uint256) external onlyCrossChainContract returns (uint256 remainingGas, address refundAddress) {
+    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNELID) {
             _handleTransferOutAckPackage(msgBytes);
         } else {
-            emit UnexpectedPackage(channelId, msgBytes);
+            emit UnexpectedPackage(channelId, sequence, msgBytes);
         }
 
         return (0, address(0));
@@ -139,17 +134,17 @@ contract TokenHub is ReentrancyGuardUpgradeable, Config {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes, uint256) external onlyCrossChainContract returns (uint256 remainingGas, address refundAddress) {
+    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNELID) {
             _handleTransferOutFailAckPackage(msgBytes);
         } else {
-            emit UnexpectedPackage(channelId, msgBytes);
+            emit UnexpectedPackage(channelId, sequence, msgBytes);
         }
 
         return (0, address(0));
     }
 
-    function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external onlyCrossChainContract {
+    function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external onlyCrossChain {
         refundMap[_refundAddress] += _refundFee;
 
         emit RefundCallbackFeeAdded(_refundAddress, _refundFee);

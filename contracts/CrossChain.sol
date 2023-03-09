@@ -200,6 +200,8 @@ contract CrossChain is Initializable, Config {
 
         // 4. handle package
         address _handler = channelHandlerMap[channelId];
+
+        // _maxRelayFee is the _ackRelayFee from its corresponding BSC => GNFD sync package
         uint256 _maxRelayFee = values[0];
         if (packageType == SYN_PACKAGE) {
             uint256 _ackRelayFee = values[1];
@@ -231,7 +233,9 @@ contract CrossChain is Initializable, Config {
             }
             IRelayerHub(RELAYER_HUB).addReward(msg.sender, _maxRelayFee);
         } else {
+            // _callbackGasPrice is the _callbackGasPrice from its corresponding BSC => GNFD sync package
             uint256 _callbackGasPrice = values[2];
+            // _minAckRelayFee is the minimum relay fee for this callback in any case
             uint256 _minAckRelayFee = IMiddleLayer(_handler).minAckRelayFee();
             uint256 _maxCallbackFee = _maxRelayFee > _minAckRelayFee ? _maxRelayFee - _minAckRelayFee : 0;
             uint256 _callbackGasLimit = _maxCallbackFee / _callbackGasPrice;
@@ -239,7 +243,7 @@ contract CrossChain is Initializable, Config {
             uint256 _refundFee;
             address _refundAddress;
             if (packageType == ACK_PACKAGE) {
-                try IMiddleLayer(_handler).handleAckPackage(channelId, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
+                try IMiddleLayer(_handler).handleAckPackage(channelId, sequence, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
                     _refundFee = remainingGas * _callbackGasPrice;
                     if (_refundFee > _maxCallbackFee) {
                         _refundFee = _maxCallbackFee;
@@ -252,7 +256,7 @@ contract CrossChain is Initializable, Config {
                     emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
                 }
             } else if (packageType == FAIL_ACK_PACKAGE) {
-                try IMiddleLayer(_handler).handleFailAckPackage(channelId, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
+                try IMiddleLayer(_handler).handleFailAckPackage(channelId, sequence, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
                     _refundFee = remainingGas * _callbackGasPrice;
                     if (_refundFee > _maxCallbackFee) {
                         _refundFee = _maxCallbackFee;
@@ -265,7 +269,7 @@ contract CrossChain is Initializable, Config {
                     emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
                 }
             } else {
-                // should not happen, still protoct
+                // should not happen, still protect
                 revert('Unknown Package Type');
             }
 

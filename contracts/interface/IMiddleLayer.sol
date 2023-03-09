@@ -11,12 +11,12 @@ interface IMiddleLayer {
     /**
      * @dev Handle ack package
      */
-    function handleAckPackage(uint8 channelId, bytes calldata msgBytes, uint256 _callbackGasLimit) external returns (uint256 remainingGas, address refundAddress);
+    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256 _callbackGasLimit) external returns (uint256 remainingGas, address refundAddress);
 
     /**
      * @dev Handle fail ack package
      */
-    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes, uint256 _callbackGasLimit) external returns (uint256 remainingGas, address refundAddress);
+    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256 _callbackGasLimit) external returns (uint256 remainingGas, address refundAddress);
 
     function minAckRelayFee() external returns (uint256);
 }

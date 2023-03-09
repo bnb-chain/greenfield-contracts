@@ -40,11 +40,6 @@ contract GovHub is Config, Initializable {
         bytes targets;
     }
 
-    modifier onlyCrossChainContract() {
-        require(msg.sender == CROSS_CHAIN, "only cross chain contract");
-        _;
-    }
-
     /*----------------- external function -----------------*/
     function initialize() public initializer {
         minAckRelayFee = 2e15;
@@ -52,7 +47,7 @@ contract GovHub is Config, Initializable {
 
     function handleSynPackage(uint8, bytes calldata msgBytes)
         external
-        onlyCrossChainContract
+        onlyCrossChain
         returns (bytes memory responsePayload)
     {
         (ParamChangePackage memory proposal, bool success) = _decodeSynPackage(msgBytes);
@@ -68,12 +63,12 @@ contract GovHub is Config, Initializable {
     }
 
     // should not happen
-    function handleAckPackage(uint8, bytes calldata, uint256) external view onlyCrossChainContract returns (uint256, address) {
+    function handleAckPackage(uint8, uint64, bytes calldata, uint256) external view onlyCrossChain returns (uint256, address) {
         revert("receive unexpected ack package");
     }
 
     // should not happen
-    function handleFailAckPackage(uint8, bytes calldata, uint256) external view onlyCrossChainContract returns (uint256, address) {
+    function handleFailAckPackage(uint8, uint64, bytes calldata, uint256) external view onlyCrossChain returns (uint256, address) {
         revert("receive unexpected fail ack package");
     }
 
