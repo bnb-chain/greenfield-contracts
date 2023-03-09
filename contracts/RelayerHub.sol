@@ -7,7 +7,7 @@ import "./Config.sol";
 import "./interface/ITokenHub.sol";
 import "./interface/ILightClient.sol";
 
-contract RelayerHub is ReentrancyGuardUpgradeable, Config {
+contract RelayerHub is Config, ReentrancyGuardUpgradeable {
     uint256 public constant REWARD_RATIO_SCALE = 100;
 
     /*----------------- storage layer -----------------*/
@@ -37,5 +37,9 @@ contract RelayerHub is ReentrancyGuardUpgradeable, Config {
         _relayer.transfer(_reward);
 
         emit RewardToRelayer(_relayer, _reward);
+    }
+
+    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
+        return (500_001, "init version");
     }
 }

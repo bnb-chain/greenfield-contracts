@@ -226,4 +226,8 @@ contract GnfdLightClient is Initializable, Config {
         val.relayerBlsKey = Memory.toBytes(ptr, RELAYER_BLS_KEY_LENGTH);
         return val;
     }
+
+    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
+        return (400_001, "init version");
+    }
 }

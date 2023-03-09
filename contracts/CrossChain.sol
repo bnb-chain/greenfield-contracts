@@ -11,7 +11,7 @@ import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./Config.sol";
 
-contract CrossChain is Initializable, Config {
+contract CrossChain is Config, Initializable {
     /*----------------- constants -----------------*/
     uint8 public constant SYN_PACKAGE = 0x00;
     uint8 public constant ACK_PACKAGE = 0x01;
@@ -465,5 +465,9 @@ contract CrossChain is Initializable, Config {
         }
 
         return false;
+    }
+
+    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
+        return (200_001, "init version");
     }
 }

@@ -27,4 +27,8 @@ abstract contract Config {
         require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
         _;
     }
+
+    function upgradeInfo() external pure virtual returns (uint256 version, string memory description) {
+        return (0, "");
+    }
 }

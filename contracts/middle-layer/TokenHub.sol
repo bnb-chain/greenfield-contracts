@@ -11,7 +11,7 @@ interface ICrossChain {
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee) external;
 }
 
-contract TokenHub is ReentrancyGuardUpgradeable, Config {
+contract TokenHub is Config, ReentrancyGuardUpgradeable {
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -358,5 +358,9 @@ contract TokenHub is ReentrancyGuardUpgradeable, Config {
         elements[1] = transOutSynPkg.recipient.encodeAddress();
         elements[2] = transOutSynPkg.refundAddr.encodeAddress();
         return elements.encodeList();
+    }
+
+    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
+        return (300_001, "init version");
     }
 }

@@ -82,13 +82,19 @@ contract GovHub is Config, Initializable {
 
             address target;
             address newImpl;
+            uint256 lastVersion;
+            uint256 newVersion;
             for (uint256 i; i < totalTargets; ++i) {
                 target = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.targets);
                 newImpl = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.values);
                 require(_isContract(target), "invalid target");
                 require(_isContract(newImpl), "invalid implementation value");
 
+                (lastVersion, ) = Config(target).upgradeInfo();
                 IProxyAdmin(PROXY_ADMIN).upgrade(target, newImpl);
+                (newVersion, ) = Config(target).upgradeInfo();
+                require(newVersion == lastVersion + 1, "invalid upgrade version");
+
                 emit SuccessUpgrade(target, newImpl);
             }
             return CODE_OK;
@@ -133,5 +139,9 @@ contract GovHub is Config, Initializable {
         // for contracts in construction, since the code is only stored at the end
         // of the constructor execution.
         return account.code.length > 0;
+    }
+
+    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
+        return (100_001, "init version");
     }
 }
