@@ -22,16 +22,13 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
     uint8 public constant TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT = 2;
     uint8 public constant TRANSFER_IN_FAILURE_UNKNOWN = 3;
 
-    uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 10000;
+    uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 5000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
     uint256 public constant REFUND_FEE_UPPER_LIMIT = 1e18;
 
     /*----------------- storage layer -----------------*/
     uint256 public relayFee;
     uint256 public minAckRelayFee;
-
-    // refundAddress => refundFee
-    mapping (address => uint256) public refundMap;
 
     /*----------------- struct / event / modifier -----------------*/
     struct TransferOutSynPackage {
@@ -69,8 +66,8 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
     event ReceiveDeposit(address from, uint256 amount);
     event UnexpectedPackage(uint8 channelId, uint64 sequence, bytes msgBytes);
     event ParamChange(string key, bytes value);
-    event RefundCallbackFeeAdded(address refundAddress, uint256 amount);
-    event RefundCallbackFeeClaimed(address refundAddress, uint256 amount);
+    event SuccessRefundCallbackFee(address refundAddress, uint256 amount);
+    event FailRefundCallbackFee(address refundAddress, uint256 amount);
 
     modifier onlyRelayerHub() {
         require(msg.sender == RELAYER_HUB, "only RelayerHub contract");
@@ -145,22 +142,13 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
     }
 
     function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external onlyCrossChain {
-        refundMap[_refundAddress] += _refundFee;
-
-        emit RefundCallbackFeeAdded(_refundAddress, _refundFee);
-    }
-
-    function claimRefundFee(address _refundAddress, uint256 _refundFee) external nonReentrant {
-        require(_refundFee > 0, "zero _refundFee");
-        require(_refundFee <= refundMap[_refundAddress], "claimable refundFee not enough");
-        require(_refundFee <=  REFUND_FEE_UPPER_LIMIT, "_refundFee exceeds REFUND_FEE_UPPER_LIMIT");
-
-        refundMap[_refundAddress] -= _refundFee;
-
         (bool success, ) = _refundAddress.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: _refundFee}("");
-        require(success, "transfer bnb error");
 
-        emit RefundCallbackFeeClaimed(_refundAddress, _refundFee);
+        if (success) {
+            emit SuccessRefundCallbackFee(_refundAddress, _refundFee);
+        } else {
+            emit FailRefundCallbackFee(_refundAddress, _refundFee);
+        }
     }
 
     /**
