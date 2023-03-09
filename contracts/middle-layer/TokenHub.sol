@@ -59,7 +59,7 @@ contract TokenHub is Initializable, Config {
     event UnexpectedPackage(uint8 channelId, bytes msgBytes);
     event ParamChange(string key, bytes value);
 
-    modifier onlyCrossChainContract() {
+    modifier onlyCrossChain() {
         require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
         _;
     }
@@ -89,7 +89,7 @@ contract TokenHub is Initializable, Config {
      */
     function handleSynPackage(uint8 channelId, bytes calldata msgBytes)
         external
-        onlyCrossChainContract
+        onlyCrossChain
         returns (bytes memory)
     {
         if (channelId == TRANSFER_IN_CHANNEL_ID) {
@@ -107,7 +107,7 @@ contract TokenHub is Initializable, Config {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
+    function handleAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChain {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutAckPackage(msgBytes);
         } else {
@@ -121,7 +121,7 @@ contract TokenHub is Initializable, Config {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
+    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChain {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutFailAckPackage(msgBytes);
         } else {

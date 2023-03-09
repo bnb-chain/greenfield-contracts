@@ -19,11 +19,6 @@ contract EndPoint is Config, PackageQueue {
 
     uint8 public constant EVENT_SEND = 0x01;
 
-    modifier onlyCrossChain() {
-        require(msg.sender == CROSS_CHAIN, "only cross chain contract");
-        _;
-    }
-
     constructor() {
         channelId = APP_CHANNEL_ID;
 

@@ -94,7 +94,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     function handleSynPackage(uint8, bytes calldata msgBytes)
         external
         override
-        onlyCrossChainContract
+        onlyCrossChain
         returns (bytes memory)
     {
         return _handleMirrorSynPackage(msgBytes);
@@ -110,7 +110,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     function handleAckPackage(uint8, uint64 sequence, bytes calldata msgBytes, uint256 callbackGasLimit)
         external
         override
-        onlyCrossChainContract
+        onlyCrossChain
         returns (uint256 remainingGas, address refundAddress)
     {
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
@@ -171,7 +171,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256 callbackGasLimit)
         external
         override
-        onlyCrossChainContract
+        onlyCrossChain
         returns (uint256 remainingGas, address refundAddress)
     {
         (ExtraData memory extraData, bool success) = _decodeFailAckPackage(msgBytes);
@@ -207,6 +207,10 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
+    function upgradeInfo() external pure virtual returns (uint256 version, string memory description) {
+        return (1, "GroupHub");
+    }
+
     function createGroup(address, string memory) external payable returns (bool) {
         delegateAdditional();
     }

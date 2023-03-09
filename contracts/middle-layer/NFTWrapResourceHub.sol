@@ -18,11 +18,6 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
     using RLPDecode for *;
 
     /*----------------- modifier -----------------*/
-    modifier onlyCrossChainContract() {
-        require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
-        _;
-    }
-
     modifier onlyGovHub() {
         require(msg.sender == GOV_HUB, "only GovHub contract");
         _;

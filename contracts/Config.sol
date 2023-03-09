@@ -35,4 +35,13 @@ abstract contract Config {
 
     // PlaceHolder reserve for future use
     uint256[50] public ConfigSlots;
+
+    modifier onlyCrossChain() {
+        require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
+        _;
+    }
+
+    function upgradeInfo() external pure virtual returns (uint256 version, string memory description) {
+        return (0, "");
+    }
 }
