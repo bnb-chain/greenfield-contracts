@@ -264,6 +264,9 @@ contract CrossChain is Initializable, Config {
                 } catch (bytes memory lowLevelData) {
                     emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
                 }
+            } else {
+                // should not happen, still protoct
+                revert('Unknown Package Type');
             }
 
             if (_refundFee > 0 && _refundAddress != address(0)) {
