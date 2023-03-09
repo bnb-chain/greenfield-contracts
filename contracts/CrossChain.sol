@@ -232,7 +232,7 @@ contract CrossChain is Initializable, Config {
             IRelayerHub(RELAYER_HUB).addReward(msg.sender, _maxRelayFee);
         } else {
             uint256 _callbackGasPrice = values[2];
-            uint256 _minAckRelayFee = ITokenHub(TOKEN_HUB).minAckRelayFee();
+            uint256 _minAckRelayFee = IMiddleLayer(_handler).minAckRelayFee();
             uint256 _maxCallbackFee = _maxRelayFee > _minAckRelayFee ? _maxRelayFee - _minAckRelayFee : 0;
             uint256 _callbackGasLimit = _maxCallbackFee / _callbackGasPrice;
 

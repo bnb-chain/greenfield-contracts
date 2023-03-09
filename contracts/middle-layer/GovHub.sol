@@ -16,6 +16,7 @@ import "../Config.sol";
 contract GovHub is Config, Initializable {
     using RLPDecode for *;
 
+    /*----------------- constants -----------------*/
     uint8 public constant PARAM_UPDATE_MESSAGE_TYPE = 0;
 
     uint32 public constant ERROR_TARGET_NOT_CONTRACT = 101;
@@ -24,6 +25,9 @@ contract GovHub is Config, Initializable {
     uint32 public constant ERROR_UPGRADE_FAIL = 104;
 
     bytes32 public constant UPGRADE_KEY_HASH = keccak256(abi.encodePacked("upgrade"));
+
+    /*----------------- storage layer -----------------*/
+    uint256 public minAckRelayFee;
 
     event SuccessUpgrade(address target, address newImplementation);
     event FailUpgrade(address newImplementation, bytes message);
@@ -39,6 +43,11 @@ contract GovHub is Config, Initializable {
     modifier onlyCrossChainContract() {
         require(msg.sender == CROSS_CHAIN, "only cross chain contract");
         _;
+    }
+
+    /*----------------- external function -----------------*/
+    function initialize() public initializer {
+        minAckRelayFee = 2e15;
     }
 
     function handleSynPackage(uint8, bytes calldata msgBytes)
