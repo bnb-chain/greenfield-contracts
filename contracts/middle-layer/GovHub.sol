@@ -59,12 +59,12 @@ contract GovHub is Config, Initializable {
     }
 
     // should not happen
-    function handleAckPackage(uint8, bytes calldata) external view onlyCrossChainContract {
+    function handleAckPackage(uint8, bytes calldata, uint256) external view onlyCrossChainContract returns (uint256, address) {
         revert("receive unexpected ack package");
     }
 
     // should not happen
-    function handleFailAckPackage(uint8, bytes calldata) external view onlyCrossChainContract {
+    function handleFailAckPackage(uint8, bytes calldata, uint256) external view onlyCrossChainContract returns (uint256, address) {
         revert("receive unexpected fail ack package");
     }
 

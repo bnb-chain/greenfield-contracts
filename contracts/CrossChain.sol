@@ -158,7 +158,7 @@ contract CrossChain is Initializable, Config {
         returns (bytes memory)
     {
         return packageType == SYN_PACKAGE
-            ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, msgBytes)
+            ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, tx.gasprice, msgBytes)
             : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
     }
 
@@ -174,8 +174,7 @@ contract CrossChain is Initializable, Config {
             uint64 sequence,
             uint8 packageType,
             uint64 eventTime,
-            uint256 relayFee,
-            uint256 ackRelayFee,
+            uint256[3] memory values, // 0-uint256 relayFee, 1-uint256 ackRelayFee, 2-uint256 callbackGasPrice
             bytes memory packageLoad
         ) = _checkPayload(_payload);
         if (!success) {
@@ -201,13 +200,15 @@ contract CrossChain is Initializable, Config {
 
         // 4. handle package
         address _handler = channelHandlerMap[channelId];
+        uint256 _maxRelayFee = values[0];
         if (packageType == SYN_PACKAGE) {
+            uint256 _ackRelayFee = values[1];
             try IMiddleLayer(_handler).handleSynPackage(channelId, packageLoad) returns (bytes memory responsePayload) {
                 if (responsePayload.length != 0) {
                     _sendPackage(
                         channelSendSequenceMap[channelId],
                         channelId,
-                        encodePayload(ACK_PACKAGE, ackRelayFee, 0, responsePayload)
+                        encodePayload(ACK_PACKAGE, _ackRelayFee, 0, responsePayload)
                     );
                     channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 }
@@ -215,7 +216,7 @@ contract CrossChain is Initializable, Config {
                 _sendPackage(
                     channelSendSequenceMap[channelId],
                     channelId,
-                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    encodePayload(FAIL_ACK_PACKAGE, _ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
@@ -223,28 +224,55 @@ contract CrossChain is Initializable, Config {
                 _sendPackage(
                     channelSendSequenceMap[channelId],
                     channelId,
-                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    encodePayload(FAIL_ACK_PACKAGE, _ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
-        } else if (packageType == ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleAckPackage(channelId, packageLoad) {}
-            catch Error(string memory reason) {
-                emit UnexpectedRevertInPackageHandler(_handler, reason);
-            } catch (bytes memory lowLevelData) {
-                emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
-            }
-        } else if (packageType == FAIL_ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleFailAckPackage(channelId, packageLoad) {}
-            catch Error(string memory reason) {
-                emit UnexpectedRevertInPackageHandler(_handler, reason);
-            } catch (bytes memory lowLevelData) {
-                emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
-            }
-        }
+            IRelayerHub(RELAYER_HUB).addReward(msg.sender, _maxRelayFee);
+        } else {
+            uint256 _callbackGasPrice = values[2];
+            uint256 _minAckRelayFee = ITokenHub(TOKEN_HUB).minAckRelayFee();
+            uint256 _maxCallbackFee = _maxRelayFee > _minAckRelayFee ? _maxRelayFee - _minAckRelayFee : 0;
+            uint256 _callbackGasLimit = _maxCallbackFee / _callbackGasPrice;
 
-        IRelayerHub(RELAYER_HUB).addReward(msg.sender, relayFee);
+            uint256 _refundFee;
+            address _refundAddress;
+            if (packageType == ACK_PACKAGE) {
+                try IMiddleLayer(_handler).handleAckPackage(channelId, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
+                    _refundFee = remainingGas * _callbackGasPrice;
+                    if (_refundFee > _maxCallbackFee) {
+                        _refundFee = _maxCallbackFee;
+                    }
+                    _refundAddress = refundAddress;
+                }
+                catch Error(string memory reason) {
+                    emit UnexpectedRevertInPackageHandler(_handler, reason);
+                } catch (bytes memory lowLevelData) {
+                    emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
+                }
+            } else if (packageType == FAIL_ACK_PACKAGE) {
+                try IMiddleLayer(_handler).handleFailAckPackage(channelId, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
+                    _refundFee = remainingGas * _callbackGasPrice;
+                    if (_refundFee > _maxCallbackFee) {
+                        _refundFee = _maxCallbackFee;
+                    }
+                    _refundAddress = refundAddress;
+                }
+                catch Error(string memory reason) {
+                    emit UnexpectedRevertInPackageHandler(_handler, reason);
+                } catch (bytes memory lowLevelData) {
+                    emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
+                }
+            }
+
+            if (_refundFee > 0 && _refundAddress != address(0)) {
+                ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
+            } else {
+                _refundFee = 0;
+            }
+            IRelayerHub(RELAYER_HUB).addReward(msg.sender, _maxRelayFee - _refundFee);
+        }
     }
 
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)
@@ -295,13 +323,15 @@ contract CrossChain is Initializable, Config {
             uint64 sequence,
             uint8 packageType,
             uint64 time,
-            uint256 relayFee,
-            uint256 ackRelayFee, // optional
+
+            // to avoid stack too deep error, using `uint64[3] memory values`
+            // instead of  `uint256 relayFee, uint256 ackRelayFee, uint256 callbackGasPrice`
+            uint256[3] memory values, // 0-uint256 relayFee, 1-uint256 ackRelayFee, 2-uint256 callbackGasPrice
             bytes memory packageLoad
         )
     {
         if (payload.length < 54) {
-            return (false, 0, 0, 0, 0, 0, 0, "");
+            return (false, 0, 0, 0, 0, values, "");
         }
 
         bytes memory _payload = payload;
@@ -319,6 +349,9 @@ contract CrossChain is Initializable, Config {
             require(dstChainId == chainId, "invalid destination chainId");
         }
 
+        uint256 relayFee;
+        uint256 ackRelayFee;
+        uint256 callbackGasPrice;
         assembly {
             channelId := mload(add(ptr, 5))
             sequence := mload(add(ptr, 13))
@@ -328,19 +361,25 @@ contract CrossChain is Initializable, Config {
         }
 
         if (packageType == SYN_PACKAGE) {
-            if (payload.length < 86) {
-                return (false, 0, 0, 0, 0, 0, 0, "");
+            if (payload.length < 118) {
+                return (false, 0, 0, 0, 0, values, "");
             }
 
             assembly {
                 ackRelayFee := mload(add(ptr, 86))
+                callbackGasPrice := mload(add(ptr, 118))
             }
-            packageLoad = payload[86:];
+            packageLoad = payload[118:];
+            require(callbackGasPrice > 0, "zero callbackGasPrice");
         } else {
             ackRelayFee = 0;
+            callbackGasPrice = 0;
             packageLoad = payload[54:];
         }
 
+        values[0] = relayFee;
+        values[1] = ackRelayFee;
+        values[2] = callbackGasPrice;
         success = true;
     }
 

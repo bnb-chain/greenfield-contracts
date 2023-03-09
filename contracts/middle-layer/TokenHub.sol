@@ -24,11 +24,14 @@ contract TokenHub is Initializable, Config {
 
     uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 10000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
+    uint256 public constant REFUND_FEE_UPPER_LIMIT = 1e18;
 
     /*----------------- storage layer -----------------*/
-    address public govHub;
     uint256 public relayFee;
-    uint256 public ackRelayFee;
+    uint256 public minAckRelayFee;
+
+    // refundAddress => refundFee
+    mapping (address => uint256) public refundMap;
 
     /*----------------- struct / event / modifier -----------------*/
     struct TransferOutSynPackage {
@@ -66,6 +69,8 @@ contract TokenHub is Initializable, Config {
     event ReceiveDeposit(address from, uint256 amount);
     event UnexpectedPackage(uint8 channelId, bytes msgBytes);
     event ParamChange(string key, bytes value);
+    event RefundCallbackFeeAdded(address refundAddress, uint256 amount);
+    event RefundCallbackFeeClaimed(address refundAddress, uint256 amount);
 
     modifier onlyCrossChainContract() {
         require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
@@ -80,7 +85,7 @@ contract TokenHub is Initializable, Config {
     /*----------------- external function -----------------*/
     function initialize() public initializer {
         relayFee = 2e15;
-        ackRelayFee = 2e15;
+        minAckRelayFee = 2e15;
     }
 
     receive() external payable {
@@ -116,12 +121,14 @@ contract TokenHub is Initializable, Config {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
+    function handleAckPackage(uint8 channelId, bytes calldata msgBytes, uint256) external onlyCrossChainContract returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNELID) {
             _handleTransferOutAckPackage(msgBytes);
         } else {
             emit UnexpectedPackage(channelId, msgBytes);
         }
+
+        return (0, address(0));
     }
 
     /**
@@ -130,12 +137,33 @@ contract TokenHub is Initializable, Config {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChainContract {
+    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes, uint256) external onlyCrossChainContract returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNELID) {
             _handleTransferOutFailAckPackage(msgBytes);
         } else {
             emit UnexpectedPackage(channelId, msgBytes);
         }
+
+        return (0, address(0));
+    }
+
+    function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external onlyCrossChainContract {
+        refundMap[_refundAddress] += _refundFee;
+
+        emit RefundCallbackFeeAdded(_refundAddress, _refundFee);
+    }
+
+    function claimRefundFee(address _refundAddress, uint256 _refundFee) external {
+        require(_refundFee > 0, "zero _refundFee");
+        require(_refundFee <= refundMap[_refundAddress], "claimable refundFee not enough");
+        require(_refundFee <=  REFUND_FEE_UPPER_LIMIT, "_refundFee exceeds REFUND_FEE_UPPER_LIMIT");
+
+        refundMap[_refundAddress] -= _refundFee;
+
+        (bool success, ) = _refundAddress.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: _refundFee}("");
+        require(success, "transfer bnb error");
+
+        emit RefundCallbackFeeClaimed(_refundAddress, _refundFee);
     }
 
     /**
@@ -146,7 +174,7 @@ contract TokenHub is Initializable, Config {
      */
     function transferOut(address recipient, uint256 amount) external payable returns (bool) {
         require(
-            msg.value >= amount + relayFee + ackRelayFee,
+            msg.value >= amount + relayFee + minAckRelayFee,
             "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee"
         );
         uint256 _ackRelayFee = msg.value - amount - relayFee;

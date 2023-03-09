@@ -7,4 +7,6 @@ interface ITokenHub {
         returns (bool);
     function cancelTransferIn(address attacker) external;
     function claimRelayFee(uint256 amount) external returns (uint256);
+    function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external;
+    function minAckRelayFee() external returns (uint256);
 }

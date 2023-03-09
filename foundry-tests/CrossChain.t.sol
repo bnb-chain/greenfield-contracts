@@ -75,7 +75,7 @@ contract CrossChainTest is TestDeployer {
         )
     {
         if (payload.length < 54) {
-            return (false, 0, 0, 0, 0, 0, 0, "");
+            return (false, 0, 0, 0, 0, 0, 0, 0, "");
         }
 
         bytes memory _payload = payload;
@@ -104,7 +104,7 @@ contract CrossChainTest is TestDeployer {
 
         if (packageType == 0) {
             if (payload.length < 86) {
-                return (false, 0, 0, 0, 0, 0, 0, "");
+                return (false, 0, 0, 0, 0, 0, 0, 0, "");
             }
 
             assembly {

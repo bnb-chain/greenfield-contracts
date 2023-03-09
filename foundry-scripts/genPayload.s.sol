@@ -57,7 +57,7 @@ contract genPayloadScript is Script {
         bytes memory _payload = payload;
 
         if (_payload.length < 54) {
-            return (false, 0, 0, 0, 0, 0, 0, "");
+            return (false, 0, 0, 0, 0, 0, 0, 0, "");
         }
 
         uint256 ptr;
@@ -85,7 +85,7 @@ contract genPayloadScript is Script {
 
         if (packageType == SYN_PACKAGE) {
             if (payload.length < 54 + 32) {
-                return (false, 0, 0, 0, 0, 0, 0, "");
+                return (false, 0, 0, 0, 0, 0, 0, 0, "");
             }
 
             assembly {
