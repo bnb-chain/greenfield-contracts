@@ -99,7 +99,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         onlyCrossChain
         returns (bytes memory)
     {
-        if (channelId == TRANSFER_IN_CHANNELID) {
+        if (channelId == TRANSFER_IN_CHANNEL_ID) {
             return _handleTransferInSynPackage(msgBytes);
         } else {
             // should not happen
@@ -116,7 +116,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
     function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        if (channelId == TRANSFER_OUT_CHANNELID) {
+        if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutAckPackage(msgBytes);
         } else {
             emit UnexpectedPackage(channelId, sequence, msgBytes);
@@ -132,7 +132,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
     function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        if (channelId == TRANSFER_OUT_CHANNELID) {
+        if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutFailAckPackage(msgBytes);
         } else {
             emit UnexpectedPackage(channelId, sequence, msgBytes);
@@ -169,7 +169,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
 
         address _crosschain = CROSS_CHAIN;
         ICrossChain(_crosschain).sendSynPackage(
-            TRANSFER_OUT_CHANNELID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee
+            TRANSFER_OUT_CHANNEL_ID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee
         );
         emit TransferOutSuccess(msg.sender, amount, relayFee, _ackRelayFee);
         return true;
