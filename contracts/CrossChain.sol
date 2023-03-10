@@ -17,8 +17,7 @@ contract CrossChain is Config, Initializable {
     uint8 public constant ACK_PACKAGE = 0x01;
     uint8 public constant FAIL_ACK_PACKAGE = 0x02;
 
-    uint256 public constant IN_TURN_RELAYER_VALIDITY_PERIOD = 15 seconds;
-    uint256 public constant OUT_TURN_RELAYER_BACKOFF_PERIOD = 3 seconds;
+    uint256 public constant IN_TURN_RELAYER_VALIDITY_PERIOD = 30 seconds;
 
     // 0xebbda044f67428d7e9b472f9124983082bcda4f84f5148ca0a9ccbe06350f196
     bytes32 public constant SUSPEND_PROPOSAL = keccak256("SUSPEND_PROPOSAL");
@@ -469,30 +468,18 @@ contract CrossChain is Config, Initializable {
     function _checkValidRelayer(uint64 eventTime) internal view {
         address[] memory relayers = ILightClient(LIGHT_CLIENT).getRelayers();
 
-        // TODO we will optimize the check in the future.
-        // check if it is the valid relayer
-        uint256 _totalRelayers = relayers.length;
-        uint256 _currentIndex = uint256(eventTime) % _totalRelayers;
-        if (msg.sender != relayers[_currentIndex]) {
-            uint256 diffSeconds = block.timestamp - uint256(eventTime);
-            require(diffSeconds >= IN_TURN_RELAYER_VALIDITY_PERIOD, "not in turn relayer");
-            diffSeconds -= IN_TURN_RELAYER_VALIDITY_PERIOD;
-
-            bool isValidRelayer;
-            for (uint256 i; i < _totalRelayers; ++i) {
-                _currentIndex = (_currentIndex + 1) % _totalRelayers;
-                if (msg.sender == relayers[_currentIndex]) {
-                    isValidRelayer = true;
-                    break;
-                }
-
-                if (diffSeconds < OUT_TURN_RELAYER_BACKOFF_PERIOD) {
-                    break;
-                }
-                diffSeconds -= OUT_TURN_RELAYER_BACKOFF_PERIOD;
+        bool found;
+        for (uint256 i; i < relayers.length; i++) {
+            if (relayers[i] == msg.sender) {
+                found = true;
             }
+        }
+        require(found, "sender is not a relayer");
 
-            require(isValidRelayer, "invalid candidate relayer");
+        address inturnRelayerAddr = ILightClient(LIGHT_CLIENT).getInturnRelayerAddress();
+        if (msg.sender != inturnRelayerAddr) {
+            uint256 curTs = block.timestamp;
+            require(curTs - eventTime > IN_TURN_RELAYER_VALIDITY_PERIOD, "invalid candidate relayer");
         }
     }
 

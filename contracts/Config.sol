@@ -14,12 +14,12 @@ abstract contract Config {
 
     // contract address
     // will calculate their deployed addresses from deploy script
-    address public constant PROXY_ADMIN = 0xE2879e482F608a0442D8875cC512Aa74137C7321;
-    address public constant GOV_HUB = 0xCcaf9014B607dA3800E82FcD2bc26698dd9936Ba;
-    address public constant CROSS_CHAIN = 0x4e3f5142D26b530d86d2Ed47dD4F4F9bCA3A80AE;
-    address public constant TOKEN_HUB = 0x455A048290bDCFf3EE88E8E2A0923b5F49b711b2;
-    address public constant LIGHT_CLIENT = 0xCf5189a6F94349b76734323a2728ec1DEe1D301b;
-    address public constant RELAYER_HUB = 0xcc2B9Def872E748E6b397c2A0d38c67D1b7cCA9e;
+    address public constant PROXY_ADMIN = 0x8e95fFcCC4d38C8c85C27C1c830F926beeC8e7af;
+    address public constant GOV_HUB = 0xe2f6fc717bf51b2520fFf75DF9d9eb66a8c12259;
+    address public constant CROSS_CHAIN = 0xd2253A26e6d5b729dDBf4bCce5A78F93C725b455;
+    address public constant TOKEN_HUB = 0x205C28DE83D33ED7CA634A449b6eFfB6B84F88fA;
+    address public constant LIGHT_CLIENT = 0x349a42f907c7562B3aaD4431780E4596bC2a053f;
+    address public constant RELAYER_HUB = 0x5fa079400E0A2e264E5d072594F7f8E117223101;
 
 
     modifier onlyCrossChain() {

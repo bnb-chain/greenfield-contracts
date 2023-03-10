@@ -7,6 +7,7 @@ import "./Config.sol";
 import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./lib/BytesLib.sol";
+import "./interface/ILightClient.sol";
 
 contract GnfdLightClient is Initializable, Config {
     struct Validator {
@@ -35,6 +36,8 @@ contract GnfdLightClient is Initializable, Config {
         VALIDATOR_PUB_KEY_LENGTH + VALIDATOR_VOTING_POWER_LENGTH + RELAYER_ADDRESS_LENGTH + RELAYER_BLS_KEY_LENGTH;
     uint256 public constant MESSAGE_HASH_LENGTH = 32;
     uint256 public constant BLS_SIGNATURE_LENGTH = 96;
+
+    uint256 public constant IN_TURN_RELAYER_RELAY_INTERVAL = 600 seconds;
 
     /* --------------------- 2. storage --------------------- */
     bytes32 public chainID;
@@ -150,6 +153,31 @@ contract GnfdLightClient is Initializable, Config {
         for (uint256 i = 0; i < validatorSet.length; i++) {
             _blsPubKeys = abi.encodePacked(_blsPubKeys, validatorSet[i].relayerBlsKey);
         }
+    }
+
+    function getInturnRelayer() public view returns (ILightClient.InturnRelayer memory relayer) {
+        uint256 relayerSize = validatorSet.length;
+        uint256 totalInterval = IN_TURN_RELAYER_RELAY_INTERVAL * relayerSize;
+        uint256 curTs = block.timestamp;
+        uint256 remainder = curTs % totalInterval;
+        uint256 inTurnRelayerIndex  = remainder/IN_TURN_RELAYER_RELAY_INTERVAL;
+        uint256 start = curTs - (remainder - inTurnRelayerIndex*IN_TURN_RELAYER_RELAY_INTERVAL);
+
+        relayer.start = start;
+        relayer.end = start + IN_TURN_RELAYER_RELAY_INTERVAL;
+        relayer.blsKey = validatorSet[inTurnRelayerIndex].relayerBlsKey;
+        relayer.addr = validatorSet[inTurnRelayerIndex].relayerAddress;
+        return relayer;
+    }
+
+    function getInturnRelayerBlsPubKey() external view returns (bytes memory) {
+        ILightClient.InturnRelayer memory relayer = getInturnRelayer();
+        return relayer.blsKey;
+    }
+
+    function getInturnRelayerAddress() external view returns (address) {
+        ILightClient.InturnRelayer memory relayer = getInturnRelayer();
+        return relayer.addr;
     }
 
     // TODO we will optimize the gas consumption here.
