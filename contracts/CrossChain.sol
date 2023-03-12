@@ -244,6 +244,7 @@ contract CrossChain is Config, Initializable {
 
             uint256 _refundFee;
             address _refundAddress;
+            // TODO: The _refundAddress will be placed on the communication layer after
             if (packageType == ACK_PACKAGE) {
                 try IMiddleLayer(_handler).handleAckPackage(channelId, sequence, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
                     _refundFee = remainingGas * _callbackGasPrice;
