@@ -176,7 +176,8 @@ contract CrossChain is Config, Initializable {
             uint64 sequence,
             uint8 packageType,
             uint64 eventTime,
-            uint256[2] memory values, // 0-uint256 relayFee, 1-uint256 ackRelayFee
+            uint256 maxRelayFee,
+            uint256 ackRelayFee,
             bytes memory packageLoad
         ) = _checkPayload(_payload);
         if (!success) {
@@ -204,15 +205,13 @@ contract CrossChain is Config, Initializable {
         address _handler = channelHandlerMap[channelId];
 
         // _maxRelayFee is the _ackRelayFee from its corresponding BSC => GNFD sync package
-        uint256 _maxRelayFee = values[0];
         if (packageType == SYN_PACKAGE) {
-            uint256 _ackRelayFee = values[1];
             try IMiddleLayer(_handler).handleSynPackage(channelId, packageLoad) returns (bytes memory responsePayload) {
                 if (responsePayload.length != 0) {
                     _sendPackage(
                         channelSendSequenceMap[channelId],
                         channelId,
-                        encodePayload(ACK_PACKAGE, _ackRelayFee, 0, responsePayload)
+                        encodePayload(ACK_PACKAGE, ackRelayFee, 0, responsePayload)
                     );
                     channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 }
@@ -220,7 +219,7 @@ contract CrossChain is Config, Initializable {
                 _sendPackage(
                     channelSendSequenceMap[channelId],
                     channelId,
-                    encodePayload(FAIL_ACK_PACKAGE, _ackRelayFee, 0, packageLoad)
+                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
@@ -228,16 +227,16 @@ contract CrossChain is Config, Initializable {
                 _sendPackage(
                     channelSendSequenceMap[channelId],
                     channelId,
-                    encodePayload(FAIL_ACK_PACKAGE, _ackRelayFee, 0, packageLoad)
+                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
-            IRelayerHub(RELAYER_HUB).addReward(msg.sender, _maxRelayFee);
+            IRelayerHub(RELAYER_HUB).addReward(msg.sender, maxRelayFee);
         } else {
             // _minAckRelayFee is the minimum relay fee for this callback in any case
             uint256 _minAckRelayFee = IMiddleLayer(TOKEN_HUB).minAckRelayFee();
-            uint256 _maxCallbackFee = _maxRelayFee > _minAckRelayFee ? _maxRelayFee - _minAckRelayFee : 0;
+            uint256 _maxCallbackFee = maxRelayFee > _minAckRelayFee ? maxRelayFee - _minAckRelayFee : 0;
             uint256 _callbackGasLimit = _maxCallbackFee / callbackGasPrice;
 
             uint256 _refundFee;
@@ -279,7 +278,7 @@ contract CrossChain is Config, Initializable {
             } else {
                 _refundFee = 0;
             }
-            IRelayerHub(RELAYER_HUB).addReward(msg.sender, _maxRelayFee - _refundFee);
+            IRelayerHub(RELAYER_HUB).addReward(msg.sender, maxRelayFee - _refundFee);
         }
     }
 
@@ -404,15 +403,13 @@ contract CrossChain is Config, Initializable {
             uint64 sequence,
             uint8 packageType,
             uint64 time,
-
-            // to avoid stack too deep error, using `uint64[2] memory values`
-            // instead of  `uint256 relayFee, uint256 ackRelayFee`
-            uint256[2] memory values, // 0-uint256 relayFee, 1-uint256 ackRelayFee
+            uint256 relayFee,
+            uint256 ackRelayFee,
             bytes memory packageLoad
         )
     {
         if (payload.length < 54) {
-            return (false, 0, 0, 0, 0, values, "");
+            return (false, 0, 0, 0, 0, 0, 0, "");
         }
 
         bytes memory _payload = payload;
@@ -442,7 +439,7 @@ contract CrossChain is Config, Initializable {
 
         if (packageType == SYN_PACKAGE) {
             if (payload.length < 86) {
-                return (false, 0, 0, 0, 0, values, "");
+                return (false, 0, 0, 0, 0, 0, 0, "");
             }
 
             assembly {
@@ -451,14 +448,11 @@ contract CrossChain is Config, Initializable {
             packageLoad = payload[86:];
         } else {
             if (payload.length < 54) {
-                return (false, 0, 0, 0, 0, values, "");
+                return (false, 0, 0, 0, 0, 0, 0, "");
             }
             ackRelayFee = 0;
             packageLoad = payload[54:];
         }
-
-        values[0] = relayFee;
-        values[1] = ackRelayFee;
         success = true;
     }
 
