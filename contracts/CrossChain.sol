@@ -41,7 +41,7 @@ contract CrossChain is Config, Initializable {
     uint16 public chainId;
     uint16 public gnfdChainId;
     uint256 public batchSizeForOracle;
-    uint256 public callbackGasprice;
+    uint256 public callbackGasPrice;
 
     //state variables
     uint256 public previousTxHeight;
@@ -142,7 +142,7 @@ contract CrossChain is Config, Initializable {
         channelHandlerMap[GOV_CHANNELID] = GOV_HUB;
         registeredContractChannelMap[GOV_HUB][GOV_CHANNELID] = true;
 
-        callbackGasprice = 6 * 1e9; // 6 gwei
+        callbackGasPrice = 6 * 1e9; // 6 gwei
         batchSizeForOracle = 50;
 
         oracleSequence = -1;
@@ -160,8 +160,8 @@ contract CrossChain is Config, Initializable {
         returns (bytes memory)
     {
         return packageType == SYN_PACKAGE
-            ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, callbackGasprice, msgBytes)
-            : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, callbackGasprice, msgBytes);
+            ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, msgBytes)
+            : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
     }
 
     function handlePackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorsBitSet)
@@ -176,7 +176,7 @@ contract CrossChain is Config, Initializable {
             uint64 sequence,
             uint8 packageType,
             uint64 eventTime,
-            uint256[3] memory values, // 0-uint256 relayFee, 1-uint256 ackRelayFee, 2-uint256 callbackGasPrice
+            uint256[2] memory values, // 0-uint256 relayFee, 1-uint256 ackRelayFee
             bytes memory packageLoad
         ) = _checkPayload(_payload);
         if (!success) {
@@ -235,19 +235,17 @@ contract CrossChain is Config, Initializable {
             }
             IRelayerHub(RELAYER_HUB).addReward(msg.sender, _maxRelayFee);
         } else {
-            // _callbackGasPrice is the _callbackGasPrice from its corresponding BSC => GNFD sync package
-            uint256 _callbackGasPrice = values[2];
             // _minAckRelayFee is the minimum relay fee for this callback in any case
-            uint256 _minAckRelayFee = IMiddleLayer(_handler).minAckRelayFee();
+            uint256 _minAckRelayFee = IMiddleLayer(TOKEN_HUB).minAckRelayFee();
             uint256 _maxCallbackFee = _maxRelayFee > _minAckRelayFee ? _maxRelayFee - _minAckRelayFee : 0;
-            uint256 _callbackGasLimit = _maxCallbackFee / _callbackGasPrice;
+            uint256 _callbackGasLimit = _maxCallbackFee / callbackGasPrice;
 
             uint256 _refundFee;
             address _refundAddress;
             // TODO: The _refundAddress will be placed on the communication layer after
             if (packageType == ACK_PACKAGE) {
                 try IMiddleLayer(_handler).handleAckPackage(channelId, sequence, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
-                    _refundFee = remainingGas * _callbackGasPrice;
+                    _refundFee = remainingGas * callbackGasPrice;
                     if (_refundFee > _maxCallbackFee) {
                         _refundFee = _maxCallbackFee;
                     }
@@ -260,7 +258,7 @@ contract CrossChain is Config, Initializable {
                 }
             } else if (packageType == FAIL_ACK_PACKAGE) {
                 try IMiddleLayer(_handler).handleFailAckPackage(channelId, sequence, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
-                    _refundFee = remainingGas * _callbackGasPrice;
+                    _refundFee = remainingGas * callbackGasPrice;
                     if (_refundFee > _maxCallbackFee) {
                         _refundFee = _maxCallbackFee;
                     }
@@ -334,9 +332,9 @@ contract CrossChain is Config, Initializable {
             uint8 packageType,
             uint64 time,
 
-            // to avoid stack too deep error, using `uint64[3] memory values`
-            // instead of  `uint256 relayFee, uint256 ackRelayFee, uint256 callbackGasPrice`
-            uint256[3] memory values, // 0-uint256 relayFee, 1-uint256 ackRelayFee, 2-uint256 callbackGasPrice
+            // to avoid stack too deep error, using `uint64[2] memory values`
+            // instead of  `uint256 relayFee, uint256 ackRelayFee`
+            uint256[2] memory values, // 0-uint256 relayFee, 1-uint256 ackRelayFee
             bytes memory packageLoad
         )
     {
@@ -361,7 +359,6 @@ contract CrossChain is Config, Initializable {
 
         uint256 relayFee;
         uint256 ackRelayFee;
-        uint256 callbackGasPrice;
         assembly {
             channelId := mload(add(ptr, 5))
             sequence := mload(add(ptr, 13))
@@ -371,30 +368,24 @@ contract CrossChain is Config, Initializable {
         }
 
         if (packageType == SYN_PACKAGE) {
-            if (payload.length < 118) {
+            if (payload.length < 86) {
                 return (false, 0, 0, 0, 0, values, "");
             }
 
             assembly {
                 ackRelayFee := mload(add(ptr, 86))
             }
-            callbackGasPrice = 0;
-            packageLoad = payload[118:];
+            packageLoad = payload[86:];
         } else {
-            if (payload.length < 86) {
+            if (payload.length < 54) {
                 return (false, 0, 0, 0, 0, values, "");
             }
             ackRelayFee = 0;
-            assembly {
-                callbackGasPrice := mload(add(ptr, 86))
-            }
-            require(callbackGasPrice > 0, "zero callbackGasPrice");
-            packageLoad = payload[86:];
+            packageLoad = payload[54:];
         }
 
         values[0] = relayFee;
         values[1] = ackRelayFee;
-        values[2] = callbackGasPrice;
         success = true;
     }
 
