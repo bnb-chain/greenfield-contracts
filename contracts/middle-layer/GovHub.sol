@@ -74,6 +74,7 @@ contract GovHub is Config, Initializable {
         uint256 totalTargets = proposal.targets.length / 20;
 
         // upgrade contracts
+        // TODO: The rollback mechanism will be added to the GovHub to prevent an upgrade error in extreme cases
         if (keccak256(abi.encodePacked(proposal.key)) == UPGRADE_KEY_HASH) {
             require(proposal.values.length == proposal.targets.length, "invalid values length");
 
@@ -81,16 +82,19 @@ contract GovHub is Config, Initializable {
             address newImpl;
             uint256 lastVersion;
             uint256 newVersion;
+            string memory lastName;
+            string memory newName;
             for (uint256 i; i < totalTargets; ++i) {
                 target = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.targets);
                 newImpl = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.values);
                 require(_isContract(target), "invalid target");
                 require(_isContract(newImpl), "invalid implementation value");
 
-                (lastVersion, ) = Config(target).upgradeInfo();
+                (lastVersion, lastName, ) = Config(target).upgradeInfo();
                 IProxyAdmin(PROXY_ADMIN).upgrade(target, newImpl);
-                (newVersion, ) = Config(target).upgradeInfo();
+                (newVersion, newName, ) = Config(target).upgradeInfo();
                 require(newVersion == lastVersion + 1, "invalid upgrade version");
+                require(lastName == newName, "invalid upgrade name");
 
                 emit SuccessUpgrade(target, newImpl);
             }
@@ -138,7 +142,7 @@ contract GovHub is Config, Initializable {
         return account.code.length > 0;
     }
 
-    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
-        return (100_001, "init version");
+    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+        return (100_001, "GovHub", "init version");
     }
 }

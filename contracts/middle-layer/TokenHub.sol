@@ -347,7 +347,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         return elements.encodeList();
     }
 
-    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
-        return (300_001, "init version");
+    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+        return (300_001, "TokenHub", "init version");
     }
 }

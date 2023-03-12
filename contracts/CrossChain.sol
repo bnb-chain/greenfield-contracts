@@ -474,7 +474,7 @@ contract CrossChain is Config, Initializable {
         return false;
     }
 
-    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
-        return (200_001, "init version");
+    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+        return (200_001, "CrossChain", "init version");
     }
 }

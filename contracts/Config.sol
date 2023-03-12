@@ -27,7 +27,7 @@ abstract contract Config {
         _;
     }
 
-    function upgradeInfo() external pure virtual returns (uint256 version, string memory description) {
-        return (0, "");
+    function upgradeInfo() external pure virtual returns (uint256 version, string memory name, string memory description) {
+        return (0, "Config", "");
     }
 }
