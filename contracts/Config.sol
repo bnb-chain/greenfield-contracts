@@ -27,6 +27,15 @@ abstract contract Config {
         _;
     }
 
+    modifier onlyGov() {
+        require(msg.sender == GOV_HUB, "only GovHub contract");
+        _;
+    }
+
+    function _isContract(address account) internal view returns (bool) {
+        return account.code.length > 0;
+    }
+
     function upgradeInfo() external pure virtual returns (uint256 version, string memory name, string memory description) {
         return (0, "Config", "");
     }

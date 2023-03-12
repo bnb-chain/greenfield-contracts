@@ -94,7 +94,7 @@ contract GovHub is Config, Initializable {
                 IProxyAdmin(PROXY_ADMIN).upgrade(target, newImpl);
                 (newVersion, newName, ) = Config(target).upgradeInfo();
                 require(newVersion == lastVersion + 1, "invalid upgrade version");
-                require(lastName == newName, "invalid upgrade name");
+                require(keccak256(abi.encodePacked(lastName)) == keccak256(abi.encodePacked(newName)), "invalid upgrade name");
 
                 emit SuccessUpgrade(target, newImpl);
             }
@@ -133,13 +133,6 @@ contract GovHub is Config, Initializable {
             idx++;
         }
         return (pkg, success);
-    }
-
-    function _isContract(address account) internal view returns (bool) {
-        // This method relies on extcodesize/address.code.length, which returns 0
-        // for contracts in construction, since the code is only stored at the end
-        // of the constructor execution.
-        return account.code.length > 0;
     }
 
     function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
