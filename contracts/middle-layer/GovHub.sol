@@ -26,9 +26,7 @@ contract GovHub is Config, Initializable {
 
     bytes32 public constant UPGRADE_KEY_HASH = keccak256(abi.encodePacked("upgrade"));
 
-    /*----------------- storage layer -----------------*/
-    uint256 public minAckRelayFee;
-
+    /*----------------- events -----------------*/
     event SuccessUpgrade(address target, address newImplementation);
     event FailUpgrade(address newImplementation, bytes message);
     event FailUpdateParam(bytes message);
@@ -42,7 +40,6 @@ contract GovHub is Config, Initializable {
 
     /*----------------- external function -----------------*/
     function initialize() public initializer {
-        minAckRelayFee = 2e15;
     }
 
     function handleSynPackage(uint8, bytes calldata msgBytes)

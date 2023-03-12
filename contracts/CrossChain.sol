@@ -41,6 +41,7 @@ contract CrossChain is Config, Initializable {
     uint16 public chainId;
     uint16 public gnfdChainId;
     uint256 public batchSizeForOracle;
+    uint256 public callbackGasprice;
 
     //state variables
     uint256 public previousTxHeight;
@@ -139,8 +140,9 @@ contract CrossChain is Config, Initializable {
         registeredContractChannelMap[TOKEN_HUB][TRANSFER_OUT_CHANNEL_ID] = true;
 
         channelHandlerMap[GOV_CHANNELID] = GOV_HUB;
-        registeredContractChannelMap[TOKEN_HUB][GOV_CHANNELID] = true;
+        registeredContractChannelMap[GOV_HUB][GOV_CHANNELID] = true;
 
+        callbackGasprice = 6 * 1e9; // 6 gwei
         batchSizeForOracle = 50;
 
         oracleSequence = -1;
@@ -158,8 +160,8 @@ contract CrossChain is Config, Initializable {
         returns (bytes memory)
     {
         return packageType == SYN_PACKAGE
-            ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, tx.gasprice, msgBytes)
-            : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
+            ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, callbackGasprice, msgBytes)
+            : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, callbackGasprice, msgBytes);
     }
 
     function handlePackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorsBitSet)
@@ -374,14 +376,19 @@ contract CrossChain is Config, Initializable {
 
             assembly {
                 ackRelayFee := mload(add(ptr, 86))
-                callbackGasPrice := mload(add(ptr, 118))
             }
-            packageLoad = payload[118:];
-            require(callbackGasPrice > 0, "zero callbackGasPrice");
-        } else {
-            ackRelayFee = 0;
             callbackGasPrice = 0;
-            packageLoad = payload[54:];
+            packageLoad = payload[118:];
+        } else {
+            if (payload.length < 86) {
+                return (false, 0, 0, 0, 0, values, "");
+            }
+            ackRelayFee = 0;
+            assembly {
+                callbackGasPrice := mload(add(ptr, 86))
+            }
+            require(callbackGasPrice > 0, "zero callbackGasPrice");
+            packageLoad = payload[86:];
         }
 
         values[0] = relayFee;

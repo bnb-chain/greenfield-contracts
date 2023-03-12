@@ -50,7 +50,7 @@ contract genPayloadScript is Script {
             uint8 packageType,
             uint64 time,
             uint256 relayFee,
-            uint256 ackRelayFee, // optional
+            uint256 ackRelayFee,
             bytes memory packageLoad
         )
     {
