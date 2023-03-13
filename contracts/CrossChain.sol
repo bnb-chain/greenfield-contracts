@@ -37,13 +37,12 @@ contract CrossChain is Config, Initializable {
     // proposal type hash => the threshold of proposal approved
     mapping(bytes32 => uint16) public quorumMap;
 
-    // governable parameters
+    uint256 public relayFee;
+    uint256 public minAckRelayFee;
     uint16 public chainId;
     uint16 public gnfdChainId;
     uint256 public batchSizeForOracle;
     uint256 public callbackGasPrice;
-
-    //state variables
     uint256 public previousTxHeight;
     uint256 public txCounter;
     int64 public oracleSequence;
@@ -128,6 +127,9 @@ contract CrossChain is Config, Initializable {
         require(TOKEN_HUB != address(0), "zero TOKEN_HUB");
         require(LIGHT_CLIENT != address(0), "zero LIGHT_CLIENT");
         require(RELAYER_HUB != address(0), "zero RELAYER_HUB");
+
+        relayFee = 2e15;
+        minAckRelayFee = 2e15;
 
         chainId = uint16(block.chainid);
         gnfdChainId = _gnfdChainId;
@@ -235,7 +237,7 @@ contract CrossChain is Config, Initializable {
             IRelayerHub(RELAYER_HUB).addReward(msg.sender, maxRelayFee);
         } else {
             // _minAckRelayFee is the minimum relay fee for this callback in any case
-            uint256 _minAckRelayFee = IMiddleLayer(TOKEN_HUB).minAckRelayFee();
+            uint256 _minAckRelayFee = minAckRelayFee;
             uint256 _maxCallbackFee = maxRelayFee > _minAckRelayFee ? maxRelayFee - _minAckRelayFee : 0;
             uint256 _callbackGasLimit = _maxCallbackFee / callbackGasPrice;
 
@@ -321,7 +323,17 @@ contract CrossChain is Config, Initializable {
     whenNotSuspended
     external {
         uint256 valueLength = value.length;
-        if (Memory.compareStrings(key, "batchSizeForOracle")) {
+        if (Memory.compareStrings(key, "relayFee")) {
+            require(valueLength == 32, "invalid relayFee value length");
+            uint256 newRelayFee = BytesToTypes.bytesToUint256(valueLength, value);
+            require(newRelayFee <= 1 ether && newRelayFee > 0, "the newRelayFee should be in (0, 1 ether]");
+            relayFee = newRelayFee;
+        } else if (Memory.compareStrings(key, "minAckRelayFee")) {
+            require(valueLength == 32, "invalid minAckRelayFee value length");
+            uint256 newMinAckRelayFee = BytesToTypes.bytesToUint256(valueLength, value);
+            require(newMinAckRelayFee <= 1 ether && newMinAckRelayFee > 0, "the newMinAckRelayFee should be in (0, 1 ether]");
+            minAckRelayFee = newMinAckRelayFee;
+        } else if (Memory.compareStrings(key, "batchSizeForOracle")) {
             require(valueLength == 32, "invalid batchSizeForOracle value length");
             uint256 newBatchSizeForOracle = BytesToTypes.bytesToUint256(valueLength, value);
             require(newBatchSizeForOracle <= 10000 && newBatchSizeForOracle >= 10, "the newBatchSizeForOracle should be in [10, 10000]");
@@ -531,6 +543,10 @@ contract CrossChain is Config, Initializable {
         }
 
         return false;
+    }
+
+    function getRelayFees() external returns (uint256 relayFee, uint256 minAckRelayFee) {
+        return (relayFee, minAckRelayFee);
     }
 
     function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {

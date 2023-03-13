@@ -9,6 +9,7 @@ import "../lib/RLPDecode.sol";
 
 interface ICrossChain {
     function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee) external;
+    function getRelayFees() external returns (uint256 relayFee, uint256 minAckRelayFee);
 }
 
 contract TokenHub is Config, ReentrancyGuardUpgradeable {
@@ -24,10 +25,6 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
 
     uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 5000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
-
-    /*----------------- storage layer -----------------*/
-    uint256 public relayFee;
-    uint256 public minAckRelayFee;
 
     /*----------------- struct / event / modifier -----------------*/
     struct TransferOutSynPackage {
@@ -76,9 +73,6 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
     /*----------------- external function -----------------*/
     function initialize() public initializer {
         __ReentrancyGuard_init();
-
-        relayFee = 2e15;
-        minAckRelayFee = 2e15;
     }
 
     receive() external payable {
@@ -157,6 +151,8 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
      * @param amount The amount to transfer
      */
     function transferOut(address recipient, uint256 amount) external payable returns (bool) {
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+
         require(
             msg.value >= amount + relayFee + minAckRelayFee,
             "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee"
