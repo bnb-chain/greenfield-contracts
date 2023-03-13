@@ -91,12 +91,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
      *
      * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
      */
-    function handleSynPackage(uint8, bytes calldata msgBytes)
-        external
-        override
-        onlyCrossChain
-        returns (bytes memory)
-    {
+    function handleSynPackage(uint8, bytes calldata msgBytes) external override onlyCrossChain returns (bytes memory) {
         return _handleMirrorSynPackage(msgBytes);
     }
 
@@ -149,7 +144,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
 
             if (reason.length > 0) {
                 emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipAckPackage) {
                     packageMap[pkgHash] =
                         RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
@@ -192,7 +187,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
 
             if (reason.length > 0) {
                 emit AppHandleFailAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipAckPackage) {
                     packageMap[pkgHash] =
                         RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
@@ -207,7 +202,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
-    function upgradeInfo() external pure virtual returns (uint256 version, string memory description) {
+    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
         return (1, "GroupHub");
     }
 

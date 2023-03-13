@@ -153,6 +153,8 @@ const main = async () => {
     const memberToken = await deployContract('ERC1155NonTransferable', 'member', proxyGroupHub);
     log('deploy member token success', groupToken.address);
 
+    await sleep(10);
+
     await deployer1.init(
         implGovHub.address,
         implCrossChain.address,
@@ -176,13 +178,13 @@ const main = async () => {
     );
     log('deployer2 init success');
 
-    const tx = await deployer1.deploy(initConsensusStateBytes);
+    await sleep(10);
+
+    await deployer1.deploy(initConsensusStateBytes);
     log('deployer1.deploy() success');
 
     await deployer2.deploy();
     log('deployer2.deploy() success');
-
-    await tx.wait(1);
 
     const deployment: any = {
         Deployer1: deployer1.address,

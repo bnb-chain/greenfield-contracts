@@ -121,20 +121,9 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * @param name The group's name
      */
     function createGroup(address owner, string memory name) external payable returns (bool) {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         // check fee
         require(msg.value >= relayFee + ackRelayFee, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
-        }
 
         // check authorization
         if (msg.sender != owner) {
@@ -166,15 +155,12 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         payable
         returns (bool)
     {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         // check relay fee and callback fee
         require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
 
         // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -188,7 +174,6 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        extraData.failureHandleStrategy = failStrategy;
         CreateSynPackage memory synPkg =
             CreateSynPackage({creator: owner, name: name, extraData: _extraDataToBytes(extraData)});
 
@@ -210,20 +195,9 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * @param id The group's id
      */
     function deleteGroup(uint256 id) external payable returns (bool) {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         // check fee
         require(msg.value >= relayFee + ackRelayFee, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
-        }
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
@@ -260,15 +234,12 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         payable
         returns (bool)
     {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         // check relay fee and callback fee
         require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
 
         // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -288,7 +259,6 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        extraData.failureHandleStrategy = failStrategy;
         CmnDeleteSynPackage memory synPkg =
             CmnDeleteSynPackage({operator: owner, id: id, extraData: _extraDataToBytes(extraData)});
 
@@ -310,19 +280,8 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * @param synPkg Package containing information of the group to be updated
      */
     function updateGroup(UpdateSynPackage memory synPkg) external payable returns (bool) {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         require(msg.value >= relayFee + ackRelayFee, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
-        }
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
@@ -359,15 +318,12 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         payable
         returns (bool)
     {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         // check relay fee and callback fee
         require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
 
         // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -387,7 +343,6 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        extraData.failureHandleStrategy = failStrategy;
         synPkg.extraData = _extraDataToBytes(extraData);
 
         // check refund address

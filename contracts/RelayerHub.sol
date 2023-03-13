@@ -14,13 +14,8 @@ contract RelayerHub is ReentrancyGuardUpgradeable, Config {
     /*----------------- storage layer -----------------*/
     mapping(address => uint256) public rewardMap;
 
-    /*----------------- event / modifier -----------------*/
+    /*----------------- event -----------------*/
     event RewardToRelayer(address relayer, uint256 amount);
-
-    modifier onlyCrossChain() {
-        require(msg.sender == CROSS_CHAIN, "only cross chain contract");
-        _;
-    }
 
     /*----------------- external function -----------------*/
     receive() external payable {}

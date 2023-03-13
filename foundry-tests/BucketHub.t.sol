@@ -193,7 +193,7 @@ contract BucketHubTest is Test, BucketHub {
         bucketHub.deleteBucket{value: 41e14}(0, address(this), "");
 
         // hand in order
-        bucketHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInOrder);
+        bucketHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInSequence);
 
         CreateSynPackage memory synPkg = CreateSynPackage({
             creator: address(this),
@@ -209,7 +209,7 @@ contract BucketHubTest is Test, BucketHub {
 
         bucketHub.createBucket{value: 41e14}(synPkg, address(this), "");
         bytes memory msgBytes =
-            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInOrder);
+            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInSequence);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(BUCKET_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(this));
@@ -219,7 +219,7 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     function testFailAck() public {
-        bucketHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInOrder);
+        bucketHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInSequence);
 
         CreateSynPackage memory synPkg = CreateSynPackage({
             creator: address(this),
@@ -235,7 +235,7 @@ contract BucketHubTest is Test, BucketHub {
 
         bucketHub.createBucket{value: 41e14}(synPkg, address(this), "");
         bytes memory msgBytes =
-            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInOrder);
+            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInSequence);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(BUCKET_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(this));

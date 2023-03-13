@@ -11,18 +11,18 @@ contract PackageQueue {
 
     uint8 public channelId;
 
-    // app address => FailureHandleStrategy
-    mapping(address => FailureHandleStrategy) public failureHandleMap;
     // app address => retry queue of package hash
     mapping(address => DoubleEndedQueueUpgradeable.Bytes32Deque) public retryQueue;
     // app retry package hash => retry package
     mapping(bytes32 => RetryPackage) public packageMap;
 
+    /**
+     * An enum representing the strategies for handling failed ACK packages.
+     */
     enum FailureHandleStrategy {
-        Closed, // any dapp must register its failure strategy first or the status will be closed
-        HandleInOrder, // ack package must be handled in order and dapp cannot send new syn package without handling all failed ack package
-        Cache, // failed ack package will be cached and dapp can send new syn package without handling all failed ack package
-        Skip // failed ack package will be skipped
+        HandleInSequence, // Handle failed ACK packages in the order they were received. Noted that new syn packages will be blocked until all failed ACK packages are handled.
+        CacheUntilReady, // Cache failed ACK packages until the dapp is ready to handle them. New syn packages will be handled normally.
+        SkipAckPackage // Simply ignore the failed ACK package
     }
 
     struct RetryPackage {
@@ -43,16 +43,9 @@ contract PackageQueue {
 
     modifier checkFailureStrategy(bytes32 pkgHash) {
         address appAddress = msg.sender;
-        require(failureHandleMap[appAddress] != FailureHandleStrategy.Closed, "strategy not allowed");
         require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
-        if (failureHandleMap[appAddress] == FailureHandleStrategy.HandleInOrder) {
-            require(retryQueue[appAddress].popFront() == pkgHash, "package not on front");
-        }
+        require(retryQueue[appAddress].popFront() == pkgHash, "package not on front");
         _;
-    }
-
-    function setFailureHandleStrategy(FailureHandleStrategy _strategy) external {
-        failureHandleMap[msg.sender] = _strategy;
     }
 
     function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
@@ -65,22 +58,22 @@ contract PackageQueue {
             IApplication(appAddress).handleAckPackage(channelId, _msgBytes, _callbackData);
         }
         delete packageMap[pkgHash];
-        _cleanQueue(appAddress);
+        _popFront(appAddress);
     }
 
     function skipPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
         delete packageMap[pkgHash];
-        _cleanQueue(msg.sender);
+        _popFront(msg.sender);
     }
 
     /*----------------- Internal functions -----------------*/
-    function _cleanQueue(address appAddress) internal {
+    function _popFront(address appAddress) internal {
         DoubleEndedQueueUpgradeable.Bytes32Deque storage _queue = retryQueue[appAddress];
         bytes32 _front;
-        while (!_queue.empty()) {
+        if (!_queue.empty()) {
             _front = _queue.front();
             if (packageMap[_front].appAddress != address(0)) {
-                break;
+                return;
             }
             _queue.popFront();
         }

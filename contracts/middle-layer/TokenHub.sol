@@ -59,11 +59,6 @@ contract TokenHub is Initializable, Config {
     event UnexpectedPackage(uint8 channelId, bytes msgBytes);
     event ParamChange(string key, bytes value);
 
-    modifier onlyCrossChain() {
-        require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
-        _;
-    }
-
     modifier onlyRelayerHub() {
         require(msg.sender == RELAYER_HUB, "only RelayerHub contract");
         _;

@@ -71,20 +71,9 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      * @param synPkg Package containing information of the bucket to be created
      */
     function createBucket(CreateSynPackage memory synPkg) external payable returns (bool) {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         // check fee
         require(msg.value >= relayFee + ackRelayFee, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
-        }
 
         // check authorization
         address owner = synPkg.creator;
@@ -116,15 +105,12 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         payable
         returns (bool)
     {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         // check relay fee and callback fee
         require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
 
         // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -139,7 +125,6 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        extraData.failureHandleStrategy = failStrategy;
         synPkg.extraData = _extraDataToBytes(extraData);
 
         // check refund address
@@ -160,20 +145,9 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      * @param id The bucket's id
      */
     function deleteBucket(uint256 id) external payable returns (bool) {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         // check fee
         require(msg.value >= relayFee + ackRelayFee, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
-        }
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
@@ -209,15 +183,12 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         payable
         returns (bool)
     {
-        FailureHandleStrategy failStrategy = failureHandleMap[msg.sender];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
-
         // check relay fee and callback fee
         require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
 
         // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -237,7 +208,6 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        extraData.failureHandleStrategy = failStrategy;
         CmnDeleteSynPackage memory synPkg =
             CmnDeleteSynPackage({operator: owner, id: id, extraData: _extraDataToBytes(extraData)});
 

@@ -216,11 +216,11 @@ contract GroupHubTest is Test, GroupHub {
         groupHub.createGroup{value: 41e14}(address(this), "test", address(this), "");
 
         // hand in order
-        groupHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInOrder);
+        groupHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInSequence);
 
         groupHub.createGroup{value: 41e14}(address(this), "test", address(this), "");
         bytes memory msgBytes =
-            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInOrder);
+            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInSequence);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(this));
@@ -230,11 +230,11 @@ contract GroupHubTest is Test, GroupHub {
     }
 
     function testFailAck() public {
-        groupHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInOrder);
+        groupHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInSequence);
 
         groupHub.createGroup{value: 41e14}(address(this), "test", address(this), "");
         bytes memory msgBytes =
-            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInOrder);
+            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInSequence);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(this));

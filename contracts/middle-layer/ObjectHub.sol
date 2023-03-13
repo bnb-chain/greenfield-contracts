@@ -34,12 +34,7 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
      *
      * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
      */
-    function handleSynPackage(uint8, bytes calldata msgBytes)
-        external
-        override
-        onlyCrossChain
-        returns (bytes memory)
-    {
+    function handleSynPackage(uint8, bytes calldata msgBytes) external override onlyCrossChain returns (bytes memory) {
         return _handleMirrorSynPackage(msgBytes);
     }
 
@@ -89,7 +84,7 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
 
             if (reason.length > 0) {
                 emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipAckPackage) {
                     packageMap[pkgHash] =
                         RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
@@ -132,7 +127,7 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
 
             if (reason.length > 0) {
                 emit AppHandleFailAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.Skip) {
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipAckPackage) {
                     packageMap[pkgHash] =
                         RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
@@ -147,7 +142,7 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
-    function upgradeInfo() external pure virtual returns (uint256 version, string memory description) {
+    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
         return (1, "ObjectHub");
     }
 

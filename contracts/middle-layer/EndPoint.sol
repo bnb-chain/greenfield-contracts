@@ -31,16 +31,19 @@ contract EndPoint is Config, PackageQueue {
     // @param _appPayload - a custom bytes payload to send to the destination contract
     // @param _refundAddress - if the source transaction is cheaper than the amount of value passed, refund the additional amount to this address
     // @param _callbackGasLimit - the gas limit for callback
-    function send(bytes calldata _appMsg, address payable _refundAddress, uint256 _callbackGasLimit) external payable {
+    function send(
+        bytes calldata _appMsg,
+        address payable _refundAddress,
+        uint256 _callbackGasLimit,
+        FailureHandleStrategy failStrategy
+    ) external payable {
         address _appAddress = msg.sender;
-        FailureHandleStrategy failStrategy = failureHandleMap[_appAddress];
-        require(failStrategy != FailureHandleStrategy.Closed, "application closed");
 
         require(msg.value >= relayFee + ackRelayFee + _callbackGasLimit * tx.gasprice, "not enough relay fee");
         uint256 _ackRelayFee = msg.value - relayFee - _callbackGasLimit * tx.gasprice;
 
         // check package queue
-        if (failStrategy == FailureHandleStrategy.HandleInOrder) {
+        if (failStrategy == FailureHandleStrategy.HandleInSequence) {
             require(
                 retryQueue[_appAddress].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -54,7 +57,7 @@ contract EndPoint is Config, PackageQueue {
         bytes[] memory elements = new bytes[](5);
         elements[0] = _appAddress.encodeAddress();
         elements[1] = _refundAddress.encodeAddress();
-        elements[4] = uint8(failureHandleMap[_appAddress]).encodeUint();
+        elements[4] = uint8(failStrategy).encodeUint();
         elements[5] = _appMsg.encodeBytes();
 
         bytes memory msgBytes = _RLPEncode(EVENT_SEND, elements.encodeList());
@@ -175,7 +178,7 @@ contract EndPoint is Config, PackageQueue {
 
         if (reason.length > 0) {
             emit AppHandleFailAckPkgFailed(_appAddress, pkgHash, reason);
-            if (_strategy != FailureHandleStrategy.Skip) {
+            if (_strategy != FailureHandleStrategy.SkipAckPackage) {
                 packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, "", false, reason);
                 retryQueue[_appAddress].pushBack(pkgHash);
             }
@@ -226,7 +229,7 @@ contract EndPoint is Config, PackageQueue {
 
         if (reason.length > 0) {
             emit AppHandleFailAckPkgFailed(_appAddress, pkgHash, reason);
-            if (_strategy != FailureHandleStrategy.Skip) {
+            if (_strategy != FailureHandleStrategy.SkipAckPackage) {
                 packageMap[pkgHash] = RetryPackage(_appAddress, _appMsg, "", false, reason);
                 retryQueue[_appAddress].pushBack(pkgHash);
             }
