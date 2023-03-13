@@ -156,14 +156,14 @@ contract CrossChain is Config, Initializable {
         quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
     }
 
-    function encodePayload(uint8 packageType, uint256 relayFee, uint256 ackRelayFee, bytes memory msgBytes)
+    function encodePayload(uint8 packageType, uint256 _relayFee, uint256 _ackRelayFee, bytes memory msgBytes)
         public
         view
         returns (bytes memory)
     {
         return packageType == SYN_PACKAGE
-            ? abi.encodePacked(packageType, uint64(block.timestamp), relayFee, ackRelayFee, msgBytes)
-            : abi.encodePacked(packageType, uint64(block.timestamp), relayFee, msgBytes);
+            ? abi.encodePacked(packageType, uint64(block.timestamp), _relayFee, _ackRelayFee, msgBytes)
+            : abi.encodePacked(packageType, uint64(block.timestamp), _relayFee, msgBytes);
     }
 
     function handlePackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorsBitSet)
@@ -178,8 +178,8 @@ contract CrossChain is Config, Initializable {
             uint64 sequence,
             uint8 packageType,
             uint64 eventTime,
-            uint256 maxRelayFee,
-            uint256 ackRelayFee,
+            uint256 _maxRelayFee,
+            uint256 _ackRelayFee,
             bytes memory packageLoad
         ) = _checkPayload(_payload);
         if (!success) {
@@ -213,7 +213,7 @@ contract CrossChain is Config, Initializable {
                     _sendPackage(
                         channelSendSequenceMap[channelId],
                         channelId,
-                        encodePayload(ACK_PACKAGE, ackRelayFee, 0, responsePayload)
+                        encodePayload(ACK_PACKAGE, _ackRelayFee, 0, responsePayload)
                     );
                     channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 }
@@ -221,7 +221,7 @@ contract CrossChain is Config, Initializable {
                 _sendPackage(
                     channelSendSequenceMap[channelId],
                     channelId,
-                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    encodePayload(FAIL_ACK_PACKAGE, _ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedRevertInPackageHandler(_handler, reason);
@@ -229,16 +229,16 @@ contract CrossChain is Config, Initializable {
                 _sendPackage(
                     channelSendSequenceMap[channelId],
                     channelId,
-                    encodePayload(FAIL_ACK_PACKAGE, ackRelayFee, 0, packageLoad)
+                    encodePayload(FAIL_ACK_PACKAGE, _ackRelayFee, 0, packageLoad)
                 );
                 channelSendSequenceMap[channelId] = channelSendSequenceMap[channelId] + 1;
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
-            IRelayerHub(RELAYER_HUB).addReward(msg.sender, maxRelayFee);
+            IRelayerHub(RELAYER_HUB).addReward(msg.sender, _maxRelayFee);
         } else {
             // _minAckRelayFee is the minimum relay fee for this callback in any case
             uint256 _minAckRelayFee = minAckRelayFee;
-            uint256 _maxCallbackFee = maxRelayFee > _minAckRelayFee ? maxRelayFee - _minAckRelayFee : 0;
+            uint256 _maxCallbackFee = _maxRelayFee > _minAckRelayFee ? _maxRelayFee - _minAckRelayFee : 0;
             uint256 _callbackGasLimit = _maxCallbackFee / callbackGasPrice;
 
             uint256 _refundFee;
@@ -280,16 +280,16 @@ contract CrossChain is Config, Initializable {
             } else {
                 _refundFee = 0;
             }
-            IRelayerHub(RELAYER_HUB).addReward(msg.sender, maxRelayFee - _refundFee);
+            IRelayerHub(RELAYER_HUB).addReward(msg.sender, _maxRelayFee - _refundFee);
         }
     }
 
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee)
+    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 _relayFee, uint256 _ackRelayFee)
         external
         onlyRegisteredContractChannel(channelId)
     {
         uint64 sendSequence = channelSendSequenceMap[channelId];
-        _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, relayFee, ackRelayFee, msgBytes));
+        _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, _relayFee, _ackRelayFee, msgBytes));
         sendSequence++;
         channelSendSequenceMap[channelId] = sendSequence;
     }
@@ -415,8 +415,8 @@ contract CrossChain is Config, Initializable {
             uint64 sequence,
             uint8 packageType,
             uint64 time,
-            uint256 relayFee,
-            uint256 ackRelayFee,
+            uint256 _relayFee,
+            uint256 _ackRelayFee,
             bytes memory packageLoad
         )
     {
@@ -439,14 +439,12 @@ contract CrossChain is Config, Initializable {
             require(dstChainId == chainId, "invalid destination chainId");
         }
 
-        uint256 relayFee;
-        uint256 ackRelayFee;
         assembly {
             channelId := mload(add(ptr, 5))
             sequence := mload(add(ptr, 13))
             packageType := mload(add(ptr, 14))
             time := mload(add(ptr, 22))
-            relayFee := mload(add(ptr, 54))
+            _relayFee := mload(add(ptr, 54))
         }
 
         if (packageType == SYN_PACKAGE) {
@@ -455,14 +453,14 @@ contract CrossChain is Config, Initializable {
             }
 
             assembly {
-                ackRelayFee := mload(add(ptr, 86))
+                _ackRelayFee := mload(add(ptr, 86))
             }
             packageLoad = payload[86:];
         } else {
             if (payload.length < 54) {
                 return (false, 0, 0, 0, 0, 0, 0, "");
             }
-            ackRelayFee = 0;
+            _ackRelayFee = 0;
             packageLoad = payload[54:];
         }
         success = true;
@@ -545,7 +543,7 @@ contract CrossChain is Config, Initializable {
         return false;
     }
 
-    function getRelayFees() external returns (uint256 relayFee, uint256 minAckRelayFee) {
+    function getRelayFees() external view returns (uint256 _relayFee, uint256 _minAckRelayFee) {
         return (relayFee, minAckRelayFee);
     }
 

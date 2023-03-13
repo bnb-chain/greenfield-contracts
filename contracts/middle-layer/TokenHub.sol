@@ -6,11 +6,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "../Config.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
-
-interface ICrossChain {
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 relayFee, uint256 ackRelayFee) external;
-    function getRelayFees() external returns (uint256 relayFee, uint256 minAckRelayFee);
-}
+import "../interface/ICrossChain.sol";
 
 contract TokenHub is Config, ReentrancyGuardUpgradeable {
     using RLPEncode for *;

@@ -4,9 +4,21 @@ import 'dotenv/config';
 
 
 const config: HardhatUserConfig = {
-    solidity: "0.8.17",
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.17",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          }
+        }
+      }
+    ]
+  },
 
-    networks: {
+  networks: {
         'test': {
             url: process.env.RPC_TEST || "http://127.0.0.1:8545",
             accounts: [
