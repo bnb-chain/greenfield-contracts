@@ -13,7 +13,7 @@ const initConsensusState: any = {
     chainID: 'greenfield_7971-1',
     height: 1,
     nextValidatorSetHash: '0x38e0755cf22d1b461042267e1becf974aa95499c6dd01fe657ab7cba056576ee',
-    vals: [
+    validators: [
         {
             pubKey: '0x9656f518c3169bb921e49dde966d43cc0aebca5232d6cf85385f8ffad270d54b',
             votingPower: 1000,
@@ -68,8 +68,8 @@ const main = async () => {
             value: unit.mul(50_000),
         });
         await tx.wait(2);
+        log('after got bnb, operator.address: ', operator.address, toHuman(balance));
     }
-    log('after got bnb, operator.address: ', operator.address, toHuman(balance));
 
     const deployer = (await deployContract('Deployer', gnfdChainId)) as Deployer;
 
@@ -81,6 +81,9 @@ const main = async () => {
     const proxyTokenHub = await deployer.proxyTokenHub();
     const proxyLightClient = await deployer.proxyLightClient();
     const proxyRelayerHub = await deployer.proxyRelayerHub();
+    const proxyBucketHub = await deployer.proxyBucketHub();
+    const proxyObjectHub = await deployer.proxyObjectHub();
+    const proxyGroupHub = await deployer.proxyGroupHub();
 
     const config: string = fs
         .readFileSync(__dirname + '/../contracts/Config.sol', 'utf8')
@@ -91,7 +94,10 @@ const main = async () => {
         .replace(/CROSS_CHAIN = .*/g, `CROSS_CHAIN = ${proxyCrossChain};`)
         .replace(/TOKEN_HUB = .*/g, `TOKEN_HUB = ${proxyTokenHub};`)
         .replace(/LIGHT_CLIENT = .*/g, `LIGHT_CLIENT = ${proxyLightClient};`)
-        .replace(/RELAYER_HUB = .*/g, `RELAYER_HUB = ${proxyRelayerHub};`);
+        .replace(/RELAYER_HUB = .*/g, `RELAYER_HUB = ${proxyRelayerHub};`)
+        .replace(/BUCKET_HUB = .*/g, `BUCKET_HUB = ${proxyBucketHub};`)
+        .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
+        .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`);
 
     log('Set all generated contracts to Config contracts');
 
@@ -115,18 +121,77 @@ const main = async () => {
     const implRelayerHub = await deployContract('RelayerHub');
     log('deploy implRelayerHub success', implRelayerHub.address);
 
-    await implRelayerHub.deployTransaction.wait(5);
+    const implBucketHub = await deployContract('BucketHub');
+    log('deploy implBucketHub success', implBucketHub.address);
 
-    let tx = await deployer.deploy(
-        initConsensusStateBytes,
+    const implObjectHub = await deployContract('ObjectHub');
+    log('deploy implObjectHub success', implObjectHub.address);
+
+    const implGroupHub = await deployContract('GroupHub');
+    log('deploy implGroupHub success', implGroupHub.address);
+
+    const addBucketHub = await deployContract('AdditionalBucketHub');
+    log('deploy addBucketHub success', addBucketHub.address);
+
+    const addObjectHub = await deployContract('AdditionalObjectHub');
+    log('deploy addObjectHub success', addObjectHub.address);
+
+    const addGroupHub = await deployContract('AdditionalGroupHub');
+    log('deploy addGroupHub success', addGroupHub.address);
+
+    const bucketToken = await deployContract(
+        'ERC721NonTransferable',
+        'GreenField-Bucket',
+        'BUCKET',
+        'bucket',
+        proxyBucketHub
+    );
+    log('deploy bucket token success', bucketToken.address);
+
+    const objectToken = await deployContract(
+        'ERC721NonTransferable',
+        'GreenField-Object',
+        'OBJECT',
+        'object',
+        proxyObjectHub
+    );
+    log('deploy object token success', objectToken.address);
+
+    const groupToken = await deployContract(
+        'ERC721NonTransferable',
+        'GreenField-Group',
+        'GROUP',
+        'group',
+        proxyGroupHub
+    );
+    log('deploy group token success', groupToken.address);
+
+    const memberToken = await deployContract('ERC1155NonTransferable', 'member', proxyGroupHub);
+    log('deploy member token success', memberToken.address);
+
+    await memberToken.deployTransaction.wait(5);
+
+    await deployer.init([
         implGovHub.address,
         implCrossChain.address,
         implTokenHub.address,
         implLightClient.address,
-        implRelayerHub.address
-    );
+        implRelayerHub.address,
+        implBucketHub.address,
+        implObjectHub.address,
+        implGroupHub.address,
+        addBucketHub.address,
+        addObjectHub.address,
+        addGroupHub.address,
+        bucketToken.address,
+        objectToken.address,
+        groupToken.address,
+        memberToken.address,
+    ]);
+    log('deployer init success');
 
-    log('deployer.deploy() success', deployer.address);
+    let tx = await deployer.deploy(initConsensusStateBytes);
+    log('deploy success');
 
     await tx.wait(5);
 
@@ -139,11 +204,17 @@ const main = async () => {
         TokenHub: proxyTokenHub,
         LightClient: proxyLightClient,
         RelayerHub: proxyRelayerHub,
+        BucketHub: proxyBucketHub,
+        ObjectHub: proxyObjectHub,
+        GroupHub: proxyGroupHub,
+        AdditionalBucketHub: addBucketHub.address,
+        AdditionalObjectHub: addObjectHub.address,
+        AdditionalGroupHub: addGroupHub.address,
 
         initConsensusState,
         gnfdChainId,
     };
-    log('all contracts', deployment);
+    log('all contracts', JSON.stringify(deployment, null, 2));
 
     const deploymentDir = __dirname + `/../deployment`;
     if (!fs.existsSync(deploymentDir)) {
@@ -161,7 +232,7 @@ const main = async () => {
     await tx.wait(1);
     log('balance of TokenHub', await ethers.provider.getBalance(proxyTokenHub));
 
-    const validators = initConsensusState.vals;
+    const validators = initConsensusState.validators;
     for (let i = 0; i < validators.length; i++) {
         const relayer = validators[i].relayerAddress;
         tx = await operator.sendTransaction({

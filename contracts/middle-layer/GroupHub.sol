@@ -77,10 +77,6 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         ERC1155Token = _ERC1155_token;
         additional = _additional;
 
-        relayFee = 2e15;
-        ackRelayFee = 2e15;
-        transferGas = 2300;
-
         channelId = GROUP_CHANNEL_ID;
     }
 
@@ -202,8 +198,8 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
-    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
-        return (1, "GroupHub");
+    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+        return (600_001, "GroupHub", "init version");
     }
 
     function createGroup(address, string memory) external payable returns (bool) {

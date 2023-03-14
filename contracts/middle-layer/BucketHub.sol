@@ -33,10 +33,6 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         ERC721Token = _ERC721_token;
         additional = _additional;
 
-        relayFee = 2e15;
-        ackRelayFee = 2e15;
-        transferGas = 2300;
-
         channelId = BUCKET_CHANNEL_ID;
     }
 
@@ -156,8 +152,8 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
-    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
-        return (1, "BucketHub");
+    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+        return (400_001, "BucketHub", "init version");
     }
 
     function createBucket(CreateSynPackage memory) external payable returns (bool) {

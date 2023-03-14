@@ -20,10 +20,6 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
         ERC721Token = _ERC721_token;
         additional = _additional;
 
-        relayFee = 2e15;
-        ackRelayFee = 2e15;
-        transferGas = 2300;
-
         channelId = OBJECT_CHANNEL_ID;
     }
 
@@ -142,8 +138,8 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
-    function upgradeInfo() external pure override returns (uint256 version, string memory description) {
-        return (1, "ObjectHub");
+    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+        return (500_001, "ObjectHub", "init version");
     }
 
     function deleteObject(uint256) external payable returns (bool) {

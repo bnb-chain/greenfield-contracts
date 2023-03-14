@@ -49,8 +49,9 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
      * @param id The bucket's id
      */
     function deleteObject(uint256 id) external payable returns (bool) {
-        // check fee
-        require(msg.value >= relayFee + ackRelayFee, "not enough fee");
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
         // check authorization
@@ -88,7 +89,8 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
         returns (bool)
     {
         // check relay fee and callback fee
-        require(msg.value >= relayFee + ackRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
 
         // check package queue
@@ -116,7 +118,7 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
             CmnDeleteSynPackage({operator: owner, id: id, extraData: _extraDataToBytes(extraData)});
 
         // check refund address
-        (bool success,) = extraData.refundAddress.call{gas: transferGas}("");
+        (bool success,) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         address _crossChain = CROSS_CHAIN;

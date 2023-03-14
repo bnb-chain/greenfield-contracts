@@ -12,9 +12,6 @@ abstract contract Config {
     uint8 public constant OBJECT_CHANNEL_ID = 0x05;
     uint8 public constant GROUP_CHANNEL_ID = 0x06;
 
-    uint32 public constant CODE_OK = 0;
-    uint32 public constant ERROR_FAIL_DECODE = 100;
-
     // contract address
     // will calculate their deployed addresses from deploy script
     address public constant PROXY_ADMIN = address(0);
@@ -27,12 +24,6 @@ abstract contract Config {
     address public constant OBJECT_HUB = address(0);
     address public constant GROUP_HUB = address(0);
 
-    // relayer
-    uint256 public relayFee;
-    uint256 public ackRelayFee;
-
-    uint256 public transferGas;
-
     // PlaceHolder reserve for future use
     uint256[50] public ConfigSlots;
 
@@ -44,6 +35,10 @@ abstract contract Config {
     modifier onlyGov() {
         require(msg.sender == GOV_HUB, "only GovHub contract");
         _;
+    }
+
+    function _isContract(address account) internal view returns (bool) {
+        return account.code.length > 0;
     }
 
     function upgradeInfo() external pure virtual returns (uint256 version, string memory name, string memory description) {
