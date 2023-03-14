@@ -7,13 +7,13 @@ import "./interface/ILightClient.sol";
 abstract contract Config {
     uint8 public constant TRANSFER_IN_CHANNEL_ID = 0x01;
     uint8 public constant TRANSFER_OUT_CHANNEL_ID = 0x02;
-    uint8 public constant GOV_CHANNEL_ID = 0x03;
-    uint8 public constant APP_CHANNEL_ID = 0x04;
+    uint8 public constant GOV_CHANNELID = 0x03;
+    uint8 public constant BUCKET_CHANNEL_ID = 0x04;
+    uint8 public constant OBJECT_CHANNEL_ID = 0x05;
+    uint8 public constant GROUP_CHANNEL_ID = 0x06;
 
-    // TODO channel ID
-    uint8 public constant BUCKET_CHANNEL_ID = 0x05;
-    uint8 public constant OBJECT_CHANNEL_ID = 0x06;
-    uint8 public constant GROUP_CHANNEL_ID = 0x07;
+    uint32 public constant CODE_OK = 0;
+    uint32 public constant ERROR_FAIL_DECODE = 100;
 
     // contract address
     // will calculate their deployed addresses from deploy script
@@ -41,7 +41,12 @@ abstract contract Config {
         _;
     }
 
-    function upgradeInfo() external pure virtual returns (uint256 version, string memory description) {
-        return (0, "");
+    modifier onlyGov() {
+        require(msg.sender == GOV_HUB, "only GovHub contract");
+        _;
+    }
+
+    function upgradeInfo() external pure virtual returns (uint256 version, string memory name, string memory description) {
+        return (0, "Config", "");
     }
 }

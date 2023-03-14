@@ -1,7 +1,6 @@
-import { BigNumber } from 'ethers';
+import { toHuman, unit } from './helper';
 const { ethers } = require('hardhat');
 const log = console.log;
-const unit = ethers.constants.WeiPerEther;
 
 const main = async () => {
     const { chainId } = await ethers.provider.getNetwork();
@@ -15,11 +14,11 @@ const main = async () => {
 
     let tx = await operator.sendTransaction({
         to: tokenHub,
-        value: unit.mul(100),
+        value: unit.mul(10000),
     });
     await tx.wait(1);
 
-    const validators = contracts.initConsensusState.validators;
+    const validators = contracts.initConsensusState.vals;
     for (let i = 0; i < validators.length; i++) {
         const relayer = validators[i].relayerAddress;
         tx = await operator.sendTransaction({
@@ -28,11 +27,6 @@ const main = async () => {
         });
         await tx.wait(1);
     }
-};
-
-export const toHuman = (x: BigNumber, decimals?: number) => {
-    if (!decimals) decimals = 18;
-    return ethers.utils.formatUnits(x, decimals);
 };
 
 main()

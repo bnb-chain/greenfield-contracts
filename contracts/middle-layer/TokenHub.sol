@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../Config.sol";
-import "../lib/RLPDecode.sol";
 import "../lib/RLPEncode.sol";
+import "../lib/RLPDecode.sol";
 import "../interface/ICrossChain.sol";
 
-contract TokenHub is Initializable, Config {
+contract TokenHub is Config, ReentrancyGuardUpgradeable {
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -19,7 +19,7 @@ contract TokenHub is Initializable, Config {
     uint8 public constant TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT = 2;
     uint8 public constant TRANSFER_IN_FAILURE_UNKNOWN = 3;
 
-    uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 10000;
+    uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 5000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
 
     /*----------------- struct / event / modifier -----------------*/
@@ -50,14 +50,16 @@ contract TokenHub is Initializable, Config {
         uint32 status;
     }
 
-    event TransferInSuccess(address refundAddr, uint256 amount);
-    event TransferOutSuccess(address senderAddr, uint256 amount, uint256 relayFee, uint256 ackRelayFee);
-    event RefundSuccess(address refundAddr, uint256 amount, uint32 status);
-    event RefundFailure(address refundAddr, uint256 amount, uint32 status);
+    event TransferInSuccess(address refundAddress, uint256 amount);
+    event TransferOutSuccess(address senderAddress, uint256 amount, uint256 relayFee, uint256 ackRelayFee);
+    event RefundSuccess(address refundAddress, uint256 amount, uint32 status);
+    event RefundFailure(address refundAddress, uint256 amount, uint32 status);
     event RewardTo(address to, uint256 amount);
     event ReceiveDeposit(address from, uint256 amount);
-    event UnexpectedPackage(uint8 channelId, bytes msgBytes);
+    event UnexpectedPackage(uint8 channelId, uint64 sequence, bytes msgBytes);
     event ParamChange(string key, bytes value);
+    event SuccessRefundCallbackFee(address refundAddress, uint256 amount);
+    event FailRefundCallbackFee(address refundAddress, uint256 amount);
 
     modifier onlyRelayerHub() {
         require(msg.sender == RELAYER_HUB, "only RelayerHub contract");
@@ -66,8 +68,7 @@ contract TokenHub is Initializable, Config {
 
     /*----------------- external function -----------------*/
     function initialize() public initializer {
-        relayFee = 2e15;
-        ackRelayFee = 2e15;
+        __ReentrancyGuard_init();
     }
 
     receive() external payable {
@@ -91,7 +92,8 @@ contract TokenHub is Initializable, Config {
             return _handleTransferInSynPackage(msgBytes);
         } else {
             // should not happen
-            revert("unrecognized syn package");
+            require(false, "unrecognized syn package");
+            return new bytes(0);
         }
     }
 
@@ -102,12 +104,14 @@ contract TokenHub is Initializable, Config {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChain {
+    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutAckPackage(msgBytes);
         } else {
-            emit UnexpectedPackage(channelId, msgBytes);
+            emit UnexpectedPackage(channelId, sequence, msgBytes);
         }
+
+        return (0, address(0));
     }
 
     /**
@@ -116,11 +120,23 @@ contract TokenHub is Initializable, Config {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChain {
+    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutFailAckPackage(msgBytes);
         } else {
-            emit UnexpectedPackage(channelId, msgBytes);
+            emit UnexpectedPackage(channelId, sequence, msgBytes);
+        }
+
+        return (0, address(0));
+    }
+
+    function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external onlyCrossChain {
+        (bool success, ) = _refundAddress.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: _refundFee}("");
+
+        if (success) {
+            emit SuccessRefundCallbackFee(_refundAddress, _refundFee);
+        } else {
+            emit FailRefundCallbackFee(_refundAddress, _refundFee);
         }
     }
 
@@ -131,8 +147,10 @@ contract TokenHub is Initializable, Config {
      * @param amount The amount to transfer
      */
     function transferOut(address recipient, uint256 amount) external payable returns (bool) {
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+
         require(
-            msg.value >= amount + relayFee + ackRelayFee,
+            msg.value >= amount + relayFee + minAckRelayFee,
             "received BNB amount should be no less than the sum of transferOut BNB amount and minimum relayFee"
         );
         uint256 _ackRelayFee = msg.value - amount - relayFee;
@@ -173,8 +191,8 @@ contract TokenHub is Initializable, Config {
         TransferInSynPackage memory transInSynPkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success;
-        uint256 idx;
+        bool success = false;
+        uint256 idx = 0;
         while (iter.hasNext()) {
             if (idx == 0) {
                 transInSynPkg.amount = iter.next().toUint();
@@ -239,8 +257,8 @@ contract TokenHub is Initializable, Config {
         TransferOutAckPackage memory transOutAckPkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success;
-        uint256 idx;
+        bool success = false;
+        uint256 idx = 0;
         while (iter.hasNext()) {
             if (idx == 0) {
                 transOutAckPkg.refundAmount = iter.next().toUint();
@@ -281,8 +299,8 @@ contract TokenHub is Initializable, Config {
         TransferOutSynPackage memory transOutSynPkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success;
-        uint256 idx;
+        bool success = false;
+        uint256 idx = 0;
         while (iter.hasNext()) {
             if (idx == 0) {
                 transOutSynPkg.amount = iter.next().toUint();
@@ -319,5 +337,9 @@ contract TokenHub is Initializable, Config {
         elements[1] = transOutSynPkg.recipient.encodeAddress();
         elements[2] = transOutSynPkg.refundAddr.encodeAddress();
         return elements.encodeList();
+    }
+
+    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+        return (300_001, "TokenHub", "init version");
     }
 }

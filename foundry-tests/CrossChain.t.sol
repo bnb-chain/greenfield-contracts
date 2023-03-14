@@ -57,8 +57,14 @@ contract CrossChainTest is TestDeployer {
     }
 
     /*
-    | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | SynRelayerFee | AckRelayerFee(optional) | PackageLoad |
-    | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes      | 32 bytes / 0 bytes      |   len bytes |*/
+    1. sync package of GNFD -> BSC
+    | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | RelayerFee | AckRelayerFee |  CallbackGasPrice |PackageLoad |
+    | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes   | 32 bytes      |  32 bytes         |  len bytes |
+
+    2. ack / failAck package of GNFD -> BSC
+    | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | RelayerFee |  CallbackGasPrice |PackageLoad |
+    | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes   |  32 bytes         |  len bytes |
+    */
     function _checkPayload(bytes calldata payload)
         public
         view
@@ -69,7 +75,7 @@ contract CrossChainTest is TestDeployer {
             uint8 packageType,
             uint64 time,
             uint256 relayFee,
-            uint256 ackRelayFee, // optional
+            uint256 ackRelayFee,
             bytes memory packageLoad
         )
     {

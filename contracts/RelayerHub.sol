@@ -2,13 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./Config.sol";
 import "./interface/ITokenHub.sol";
 import "./interface/ILightClient.sol";
 
-contract RelayerHub is ReentrancyGuardUpgradeable, Config {
+contract RelayerHub is Config, ReentrancyGuardUpgradeable {
     uint256 public constant REWARD_RATIO_SCALE = 100;
 
     /*----------------- storage layer -----------------*/
@@ -38,5 +37,9 @@ contract RelayerHub is ReentrancyGuardUpgradeable, Config {
         _relayer.transfer(_reward);
 
         emit RewardToRelayer(_relayer, _reward);
+    }
+
+    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+        return (500_001, "RelayerHub", "init version");
     }
 }

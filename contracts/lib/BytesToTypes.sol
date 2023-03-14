@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0.
 
-pragma solidity ^0.8.0;
-
 /**
  * @title BytesToTypes
  * Copyright (c) 2016-2020 zpouladzade/Seriality
  * @dev The BytesToTypes contract converts the memory byte arrays to the standard solidity types
  * @author pouladzade@gmail.com
  */
+
+pragma solidity ^0.8.0;
 
 library BytesToTypes {
     function bytesToAddress(uint256 _offst, bytes memory _input) internal pure returns (address _output) {
