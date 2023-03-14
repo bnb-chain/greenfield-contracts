@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0.
+
 pragma solidity ^0.8.0;
 
 interface ITokenHub {
@@ -7,4 +9,5 @@ interface ITokenHub {
         returns (bool);
     function cancelTransferIn(address attacker) external;
     function claimRelayFee(uint256 amount) external returns (uint256);
+    function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external;
 }

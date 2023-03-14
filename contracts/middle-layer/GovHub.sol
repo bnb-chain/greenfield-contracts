@@ -16,6 +16,7 @@ import "../Config.sol";
 contract GovHub is Config, Initializable {
     using RLPDecode for *;
 
+    /*----------------- constants -----------------*/
     uint8 public constant PARAM_UPDATE_MESSAGE_TYPE = 0;
 
     uint32 public constant ERROR_TARGET_NOT_CONTRACT = 101;
@@ -25,6 +26,7 @@ contract GovHub is Config, Initializable {
 
     bytes32 public constant UPGRADE_KEY_HASH = keccak256(abi.encodePacked("upgrade"));
 
+    /*----------------- events -----------------*/
     event SuccessUpgrade(address target, address newImplementation);
     event FailUpgrade(address newImplementation, bytes message);
     event FailUpdateParam(bytes message);
@@ -36,14 +38,13 @@ contract GovHub is Config, Initializable {
         bytes targets;
     }
 
-    modifier onlyCrossChainContract() {
-        require(msg.sender == CROSS_CHAIN, "only cross chain contract");
-        _;
+    /*----------------- external function -----------------*/
+    function initialize() public initializer {
     }
 
     function handleSynPackage(uint8, bytes calldata msgBytes)
         external
-        onlyCrossChainContract
+        onlyCrossChain
         returns (bytes memory responsePayload)
     {
         (ParamChangePackage memory proposal, bool success) = _decodeSynPackage(msgBytes);
@@ -59,12 +60,12 @@ contract GovHub is Config, Initializable {
     }
 
     // should not happen
-    function handleAckPackage(uint8, bytes calldata) external view onlyCrossChainContract {
+    function handleAckPackage(uint8, uint64, bytes calldata, uint256) external view onlyCrossChain returns (uint256, address) {
         revert("receive unexpected ack package");
     }
 
     // should not happen
-    function handleFailAckPackage(uint8, bytes calldata) external view onlyCrossChainContract {
+    function handleFailAckPackage(uint8, uint64, bytes calldata, uint256) external view onlyCrossChain returns (uint256, address) {
         revert("receive unexpected fail ack package");
     }
 
@@ -73,18 +74,28 @@ contract GovHub is Config, Initializable {
         uint256 totalTargets = proposal.targets.length / 20;
 
         // upgrade contracts
+        // TODO: The rollback mechanism will be added to the GovHub to prevent an upgrade error in extreme cases
         if (keccak256(abi.encodePacked(proposal.key)) == UPGRADE_KEY_HASH) {
             require(proposal.values.length == proposal.targets.length, "invalid values length");
 
             address target;
             address newImpl;
+            uint256 lastVersion;
+            uint256 newVersion;
+            string memory lastName;
+            string memory newName;
             for (uint256 i; i < totalTargets; ++i) {
                 target = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.targets);
                 newImpl = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.values);
                 require(_isContract(target), "invalid target");
                 require(_isContract(newImpl), "invalid implementation value");
 
+                (lastVersion, lastName, ) = Config(target).upgradeInfo();
                 IProxyAdmin(PROXY_ADMIN).upgrade(target, newImpl);
+                (newVersion, newName, ) = Config(target).upgradeInfo();
+                require(newVersion == lastVersion + 1, "invalid upgrade version");
+                require(keccak256(abi.encodePacked(lastName)) == keccak256(abi.encodePacked(newName)), "invalid upgrade name");
+
                 emit SuccessUpgrade(target, newImpl);
             }
             return CODE_OK;
@@ -124,10 +135,7 @@ contract GovHub is Config, Initializable {
         return (pkg, success);
     }
 
-    function _isContract(address account) internal view returns (bool) {
-        // This method relies on extcodesize/address.code.length, which returns 0
-        // for contracts in construction, since the code is only stored at the end
-        // of the constructor execution.
-        return account.code.length > 0;
+    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+        return (100_001, "GovHub", "init version");
     }
 }
