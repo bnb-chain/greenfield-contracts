@@ -128,7 +128,7 @@ const main = async () => {
 
     log('deployer.deploy() success', deployer.address);
 
-    await tx.wait(1);
+    await tx.wait(5);
 
     const deployment: any = {
         Deployer: deployer.address,
