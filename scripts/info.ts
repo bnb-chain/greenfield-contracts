@@ -1,5 +1,5 @@
 import { BigNumber } from 'ethers';
-import { TokenHub } from '../typechain-types';
+import { GnfdLightClient, TokenHub } from '../typechain-types';
 import { toHuman } from './helper';
 const { ethers } = require('hardhat');
 const log = console.log;
@@ -14,14 +14,13 @@ const main = async () => {
     log('operator.address: ', operator.address, toHuman(balance));
 
     const tokenHub = (await ethers.getContractAt('TokenHub', contracts.TokenHub)) as TokenHub;
+    log('upgradeInfo', await tokenHub.upgradeInfo());
 
-    const receiver = '0x0000000000000000000000000000000000001001';
-    const amount = BigNumber.from(1234567);
-    const relayFee = BigNumber.from(4e15);
-    const tx = await tokenHub.transferOut(receiver, amount, { value: amount.add(relayFee) });
-    const receipt = await tx.wait(5);
-    log('txHash', tx.hash);
-    log('blockNumber', receipt.blockNumber);
+    const lightClient = (await ethers.getContractAt(
+        'GnfdLightClient',
+        contracts.LightClient
+    )) as GnfdLightClient;
+    log(await lightClient.upgradeInfo());
 };
 
 main()

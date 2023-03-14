@@ -1,51 +1,75 @@
-import { BigNumber } from 'ethers';
 import { Deployer } from '../typechain-types';
+import { sleep, toHuman } from './helper';
 
 const fs = require('fs');
 const { execSync } = require('child_process');
 const { ethers } = require('hardhat');
 
 const log = console.log;
+const unit = ethers.constants.WeiPerEther;
 
-const gnfdChainId = 18;
+const gnfdChainId = 7971;
 const initConsensusState: any = {
-    chainID: 'greenfield_9000-121',
+    chainID: 'greenfield_7971-1',
     height: 1,
-    nextValidatorSetHash: '0xa08cee315201a7feb401ba9f312ec3027857b3580f15045f425f44b77bbfc81c',
-    validators: [
+    nextValidatorSetHash: '0x38e0755cf22d1b461042267e1becf974aa95499c6dd01fe657ab7cba056576ee',
+    vals: [
         {
-            pubKey: '0xb26884f23fb9b226f5f06f8d01018402b3798555359997fcbb9c08b062dcce98',
-            votingPower: 10000,
-            relayerAddress: '0x6e7eaeb9d235d5a0f38d6e3da558bd500f1dff34',
+            pubKey: '0x9656f518c3169bb921e49dde966d43cc0aebca5232d6cf85385f8ffad270d54b',
+            votingPower: 1000,
+            relayerAddress: '0x2edd53b48726a887c98adab97e0a8600f855570d',
             relayerBlsKey:
-                '0x92789ccca38e43af7040d367f0af050899bbff1114727593759082cc5ff0984089171077f714371877b16d28d56ffe9d',
+                '0xa22249e548ef1829660521d3ab4496ebee89781f2b91cc237b36caef014f6779ba82e5c784515a9e3702ad356f5bbee1',
         },
         {
-            pubKey: '0x42963ecb1e1e4b3e6e2085fcf0d44eedad9c40c5f9b725b115c659cbf0e36d41',
-            votingPower: 10000,
-            relayerAddress: '0xb5ee9c977f4a1679af2025fd6a1fac7240c9d50d',
+            pubKey: '0xb3b66156ff2463eb82b74f60f6b2c7396dffa8727552af39b5ee5c32440b7963',
+            votingPower: 1000,
+            relayerAddress: '0x115e247d2771f08fdd94c16ac01381082ebc73d1',
             relayerBlsKey:
-                '0x8ea2f08235b9cf8b24a030401a1abd3d8df2d53b844acfd0f360de844fce39ccef6899c438f03abf053eca45fde7111b',
+                '0x84ed5dc9551e8e44fce09dc30272156fd70a094cc5e9f1d69fabd04630d8961036b9497a563d1de9f7b98a7d2a178419',
         },
         {
-            pubKey: '0x53eadb1084705ef2c90f2a52e46819e8a22937f1cc80f12d7163c8b47c11271f',
-            votingPower: 10000,
-            relayerAddress: '0xe732055240643ae92a3668295d398c7ddd2da810',
+            pubKey: '0x97328a8ace9a8722ec6f9232075425672bb5590b8a1a68a104fe072e30e52ff3',
+            votingPower: 1000,
+            relayerAddress: '0xa4a2957e858529ffabbbb483d1d704378a9fca6b',
             relayerBlsKey:
-                '0x98a287cb5d67437db9e7559541142e01cc03d5a1866d7d504e522b2fbdcb29d755c1d18c55949b309f2584f0c49c0dcc',
+                '0xa5e140ee80a0ff1552a954701f599622adf029916f55b3157a649e16086a0669900f784d03bff79e69eb8eb7ccfd77d8',
+        },
+        {
+            pubKey: '0x4629ce60903edab13f06cfadad4c6646e3a2435c85ad7cbdd1966805400174a0',
+            votingPower: 1000,
+            relayerAddress: '0x4038993e087832d84e2ac855d27f6b0b2eec1907',
+            relayerBlsKey:
+                '0xad10ab912fcf510dfca1d27ab8a3d2a8b197e09bd69cd0e80e960d653e656073e89d417cf6f22de627710ccab352e6c2',
+        },
+        {
+            pubKey: '0xeba438da90262e1a66869d394498eaf79b9a3c8a2ed1fe902e63ae2ca9c32b54',
+            votingPower: 1000,
+            relayerAddress: '0x2bbe5c8e5c3eb2b35063b330749f1958206d2ec2',
+            relayerBlsKey:
+                '0x9762663048cd982ae30da530ed6d0262e8adaafe6da99c9133f8ae2182c5776f35cd8e6a722a3306aa43b543907fca68',
         },
     ],
     consensusStateBytes:
-        '0x677265656e6669656c645f393030302d3132310000000000000000000000000000000000000000010b57a425ca57932586438c78abd68b5239f1a96f9fcf1f19b07071f70df5df35792f80b491e93afb3b22ec443269fe756fce66f6cd41ba57f3a1c6a6816adb6f0000000000989680cf343afd1e924ebde9fbd1bca91d0fa685789e02a391f21d194db72fd6aa54c32a5d095f443e3499b4bec10a911344074669fff5bd56280d59062595e6dd85b5d86cc65452e15a978b10d60ce3d3adb4c63ee226df9e21c87d0c80f947af2279741f43c80000000000989680eca8b8b5329979910a58caa3aef322900b7e78a8b67f7fbb747b51678995201b9fea956048b2d7413c4ea299f6d9d39be6acd431de340bf238cdf47a78664a6aafc26e86af416e0aeaa3145ba64fbc54e8ab304c535f1912cea622b7299c9a40dcb102d700000000009896808b366d785228f2d7aab8c358ee6cc57a38686503aef7a4150c220f02de641f869cc61026818fbc4c1bfaabe6b4ba965694cf8eeaac48ed728958e0bf64e2d663fd68796e',
+        '0x677265656e6669656c645f373937312d31000000000000000000000000000000000000000000000138e0755cf22d1b461042267e1becf974aa95499c6dd01fe657ab7cba056576ee9656f518c3169bb921e49dde966d43cc0aebca5232d6cf85385f8ffad270d54b00000000000003e82edd53b48726a887c98adab97e0a8600f855570da22249e548ef1829660521d3ab4496ebee89781f2b91cc237b36caef014f6779ba82e5c784515a9e3702ad356f5bbee1b3b66156ff2463eb82b74f60f6b2c7396dffa8727552af39b5ee5c32440b796300000000000003e8115e247d2771f08fdd94c16ac01381082ebc73d184ed5dc9551e8e44fce09dc30272156fd70a094cc5e9f1d69fabd04630d8961036b9497a563d1de9f7b98a7d2a17841997328a8ace9a8722ec6f9232075425672bb5590b8a1a68a104fe072e30e52ff300000000000003e8a4a2957e858529ffabbbb483d1d704378a9fca6ba5e140ee80a0ff1552a954701f599622adf029916f55b3157a649e16086a0669900f784d03bff79e69eb8eb7ccfd77d84629ce60903edab13f06cfadad4c6646e3a2435c85ad7cbdd1966805400174a000000000000003e84038993e087832d84e2ac855d27f6b0b2eec1907ad10ab912fcf510dfca1d27ab8a3d2a8b197e09bd69cd0e80e960d653e656073e89d417cf6f22de627710ccab352e6c2eba438da90262e1a66869d394498eaf79b9a3c8a2ed1fe902e63ae2ca9c32b5400000000000003e82bbe5c8e5c3eb2b35063b330749f1958206d2ec29762663048cd982ae30da530ed6d0262e8adaafe6da99c9133f8ae2182c5776f35cd8e6a722a3306aa43b543907fca68',
 };
 
 const initConsensusStateBytes = initConsensusState.consensusStateBytes;
 const main = async () => {
-    const [operator] = await ethers.getSigners();
+    const [operator, operator2, faucet] = await ethers.getSigners();
     const balance = await ethers.provider.getBalance(operator.address);
     const network = await ethers.provider.getNetwork();
     log('network', network);
     log('operator.address: ', operator.address, toHuman(balance));
+
+    if (balance.lt(unit)) {
+        const tx = await faucet.sendTransaction({
+            to: operator.address,
+            value: unit.mul(50_000),
+        });
+        await tx.wait(2);
+    }
+
     const deployer = (await deployContract('Deployer', gnfdChainId)) as Deployer;
 
     log('Deployer deployed', deployer.address);
@@ -90,9 +114,9 @@ const main = async () => {
     const implRelayerHub = await deployContract('RelayerHub');
     log('deploy implRelayerHub success', implRelayerHub.address);
 
-    await implRelayerHub.deployTransaction.wait(5)
+    await implRelayerHub.deployTransaction.wait(5);
 
-    const tx = await deployer.deploy(
+    let tx = await deployer.deploy(
         initConsensusStateBytes,
         implGovHub.address,
         implCrossChain.address,
@@ -128,15 +152,22 @@ const main = async () => {
         `${deploymentDir}/${network.chainId}-deployment.json`,
         JSON.stringify(deployment, null, 2)
     );
-};
 
-async function sleep(seconds: number) {
-    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-}
+    tx = await operator.sendTransaction({
+        to: proxyTokenHub,
+        value: unit.mul(10000),
+    });
+    await tx.wait(1);
 
-export const toHuman = (x: BigNumber, decimals?: number) => {
-    if (!decimals) decimals = 18;
-    return ethers.utils.formatUnits(x, decimals);
+    const validators = initConsensusState.vals;
+    for (let i = 0; i < validators.length; i++) {
+        const relayer = validators[i].relayerAddress;
+        tx = await operator.sendTransaction({
+            to: ethers.utils.getAddress(relayer),
+            value: unit.mul(100),
+        });
+        await tx.wait(1);
+    }
 };
 
 const deployContract = async (factoryPath: string, ...args: any) => {
