@@ -69,6 +69,7 @@ const main = async () => {
         });
         await tx.wait(2);
     }
+    log('after got bnb, operator.address: ', operator.address, toHuman(balance));
 
     const deployer = (await deployContract('Deployer', gnfdChainId)) as Deployer;
 
@@ -158,6 +159,7 @@ const main = async () => {
         value: unit.mul(10000),
     });
     await tx.wait(1);
+    log('balance of TokenHub', await ethers.provider.getBalance(proxyTokenHub));
 
     const validators = initConsensusState.vals;
     for (let i = 0; i < validators.length; i++) {
@@ -168,6 +170,7 @@ const main = async () => {
         });
         await tx.wait(1);
     }
+    log('transfer bnb to validators');
 };
 
 const deployContract = async (factoryPath: string, ...args: any) => {
