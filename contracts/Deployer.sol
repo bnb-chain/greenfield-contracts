@@ -16,7 +16,7 @@ import "./middle-layer/BucketHub.sol";
 import "./middle-layer/ObjectHub.sol";
 import "./middle-layer/GroupHub.sol";
 
-contract Deployer1 {
+contract Deployer {
     uint16 public immutable gnfdChainId;
 
     address public immutable proxyAdmin;
@@ -25,6 +25,9 @@ contract Deployer1 {
     address public immutable proxyTokenHub;
     address public immutable proxyLightClient;
     address public immutable proxyRelayerHub;
+    address public immutable proxyBucketHub;
+    address public immutable proxyObjectHub;
+    address public immutable proxyGroupHub;
 
     bytes public initConsensusStateBytes;
     address public implGovHub;
@@ -32,6 +35,16 @@ contract Deployer1 {
     address public implTokenHub;
     address public implLightClient;
     address public implRelayerHub;
+    address public implBucketHub;
+    address public implObjectHub;
+    address public implGroupHub;
+    address public addBucketHub;
+    address public addObjectHub;
+    address public addGroupHub;
+    address public bucketToken;
+    address public objectToken;
+    address public groupToken;
+    address public memberToken;
 
     bool public initialized;
     bool public deployed;
@@ -51,33 +64,53 @@ contract Deployer1 {
         proxyTokenHub = calcCreateAddress(address(this), uint8(4));
         proxyLightClient = calcCreateAddress(address(this), uint8(5));
         proxyRelayerHub = calcCreateAddress(address(this), uint8(6));
+        proxyBucketHub = calcCreateAddress(address(this), uint8(7));
+        proxyObjectHub = calcCreateAddress(address(this), uint8(8));
+        proxyGroupHub = calcCreateAddress(address(this), uint8(9));
 
         // 1. proxyAdmin
         address deployedProxyAdmin = address(new GnfdProxyAdmin());
         require(deployedProxyAdmin == proxyAdmin, "invalid proxyAdmin address");
     }
 
-    function init(
-        address _implGovHub,
-        address _implCrossChain,
-        address _implTokenHub,
-        address _implLightClient,
-        address _implRelayerHub
-    ) public {
+    function init(address[] memory addrs) public {
         require(!initialized, "only not initialized");
         initialized = true;
 
-        require(_isContract(_implGovHub), "invalid _implCrossChain");
-        require(_isContract(_implCrossChain), "invalid _implCrossChain");
-        require(_isContract(_implTokenHub), "invalid _implTokenHub");
-        require(_isContract(_implLightClient), "invalid _implLightClient");
-        require(_isContract(_implRelayerHub), "invalid _implRelayerHub");
+        // use address list to avoid stack too deep
+        require(addrs.length == 15, "invalid addrs length");
 
-        implGovHub = _implGovHub;
-        implCrossChain = _implCrossChain;
-        implTokenHub = _implTokenHub;
-        implLightClient = _implLightClient;
-        implRelayerHub = _implRelayerHub;
+        require(_isContract(addrs[0]), "invalid _implGovHub");
+        require(_isContract(addrs[1]), "invalid _implCrossChain");
+        require(_isContract(addrs[2]), "invalid _implTokenHub");
+        require(_isContract(addrs[3]), "invalid _implLightClient");
+        require(_isContract(addrs[4]), "invalid _implRelayerHub");
+        require(_isContract(addrs[5]), "invalid _implBucketHub");
+        require(_isContract(addrs[6]), "invalid _implObjectHub");
+        require(_isContract(addrs[7]), "invalid _implGroupHub");
+        require(_isContract(addrs[8]), "invalid _addBucketHub");
+        require(_isContract(addrs[9]), "invalid _addObjectHub");
+        require(_isContract(addrs[10]), "invalid _addGroupHub");
+        require(_isContract(addrs[11]), "invalid _bucketToken");
+        require(_isContract(addrs[12]), "invalid _objectToken");
+        require(_isContract(addrs[13]), "invalid _groupToken");
+        require(_isContract(addrs[14]), "invalid _memberToken");
+
+        implGovHub = addrs[0];
+        implCrossChain = addrs[1];
+        implTokenHub = addrs[2];
+        implLightClient = addrs[3];
+        implRelayerHub = addrs[4];
+        implBucketHub = addrs[5];
+        implObjectHub = addrs[6];
+        implGroupHub = addrs[7];
+        addBucketHub = addrs[8];
+        addObjectHub = addrs[9];
+        addGroupHub = addrs[10];
+        bucketToken = addrs[11];
+        objectToken = addrs[12];
+        groupToken = addrs[13];
+        memberToken = addrs[14];
     }
 
     function deploy(bytes calldata _initConsensusStateBytes) public {
@@ -110,11 +143,26 @@ contract Deployer1 {
         address deployedProxyRelayerHub = address(new GnfdProxy(implRelayerHub, proxyAdmin, ""));
         require(deployedProxyRelayerHub == proxyRelayerHub, "invalid proxyRelayerHub address");
 
-        // 7. init GovHub, set contracts addresses to GovHub
+        // 7. BucketHub
+        address deployedProxyBucketHub = address(new GnfdProxy(implBucketHub, proxyAdmin, ""));
+        require(deployedProxyBucketHub == proxyBucketHub, "invalid proxyBucketHub address");
+
+        // 8. ObjectHub
+        address deployedProxyObjectHub = address(new GnfdProxy(implObjectHub, proxyAdmin, ""));
+        require(deployedProxyObjectHub == proxyObjectHub, "invalid proxyObjectHub address");
+
+        // 9. GroupHub
+        address deployedProxyGroupHub = address(new GnfdProxy(implGroupHub, proxyAdmin, ""));
+        require(deployedProxyGroupHub == proxyGroupHub, "invalid proxyGroupHub address");
+
+        // 10. init contracts, set contracts addresses to GovHub
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId);
         TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
         RelayerHub(payable(proxyRelayerHub)).initialize();
+        BucketHub(payable(proxyBucketHub)).initialize(bucketToken, addBucketHub);
+        ObjectHub(payable(proxyObjectHub)).initialize(objectToken, addObjectHub);
+        GroupHub(payable(proxyGroupHub)).initialize(groupToken, memberToken, addGroupHub);
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");

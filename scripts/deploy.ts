@@ -1,6 +1,5 @@
 import { BigNumber } from 'ethers';
-import { Deployer1 } from '../typechain-types';
-import { Deployer2 } from '../typechain-types';
+import { Deployer } from '../typechain-types';
 
 const fs = require('fs');
 const { execSync } = require('child_process');
@@ -47,26 +46,19 @@ const main = async () => {
     const network = await ethers.provider.getNetwork();
     log('network', network);
     log('operator.address:', operator.address, toHuman(balance));
-    const deployer1 = (await deployContract('Deployer1', gnfdChainId)) as Deployer1;
-    const deployer2 = (await deployContract(
-        'Deployer2',
-        gnfdChainId,
-        deployer1.address
-    )) as Deployer2;
+    const deployer = (await deployContract('Deployer', gnfdChainId)) as Deployer;
 
-    log('Deployer1 deployed', deployer1.address);
-    log('Deployer2 deployed', deployer2.address);
+    log('Deployer deployed', deployer.address);
 
-    const proxyAdmin = await deployer1.proxyAdmin();
-    const proxyGovHub = await deployer1.proxyGovHub();
-    const proxyCrossChain = await deployer1.proxyCrossChain();
-    const proxyTokenHub = await deployer1.proxyTokenHub();
-    const proxyLightClient = await deployer1.proxyLightClient();
-    const proxyRelayerHub = await deployer1.proxyRelayerHub();
-
-    const proxyBucketHub = await deployer2.proxyBucketHub();
-    const proxyObjectHub = await deployer2.proxyObjectHub();
-    const proxyGroupHub = await deployer2.proxyGroupHub();
+    const proxyAdmin = await deployer.proxyAdmin();
+    const proxyGovHub = await deployer.proxyGovHub();
+    const proxyCrossChain = await deployer.proxyCrossChain();
+    const proxyTokenHub = await deployer.proxyTokenHub();
+    const proxyLightClient = await deployer.proxyLightClient();
+    const proxyRelayerHub = await deployer.proxyRelayerHub();
+    const proxyBucketHub = await deployer.proxyBucketHub();
+    const proxyObjectHub = await deployer.proxyObjectHub();
+    const proxyGroupHub = await deployer.proxyGroupHub();
 
     const config: string = fs
         .readFileSync(__dirname + '/../contracts/Config.sol', 'utf8')
@@ -151,20 +143,16 @@ const main = async () => {
     log('deploy group token success', groupToken.address);
 
     const memberToken = await deployContract('ERC1155NonTransferable', 'member', proxyGroupHub);
-    log('deploy member token success', groupToken.address);
+    log('deploy member token success', memberToken.address);
 
-    await sleep(10);
+    await memberToken.deployTransaction.wait(5);
 
-    await deployer1.init(
+    await deployer.init([
         implGovHub.address,
         implCrossChain.address,
         implTokenHub.address,
         implLightClient.address,
-        implRelayerHub.address
-    );
-    log('deployer1 init success');
-
-    await deployer2.init(
+        implRelayerHub.address,
         implBucketHub.address,
         implObjectHub.address,
         implGroupHub.address,
@@ -174,21 +162,15 @@ const main = async () => {
         bucketToken.address,
         objectToken.address,
         groupToken.address,
-        memberToken.address
-    );
-    log('deployer2 init success');
+        memberToken.address,
+    ]);
+    log('deployer init success');
 
-    await sleep(10);
-
-    await deployer1.deploy(initConsensusStateBytes);
-    log('deployer1.deploy() success');
-
-    await deployer2.deploy();
-    log('deployer2.deploy() success');
+    await deployer.deploy(initConsensusStateBytes);
+    log('deploy success');
 
     const deployment: any = {
-        Deployer1: deployer1.address,
-        Deployer2: deployer2.address,
+        Deployer: deployer.address,
 
         ProxyAdmin: proxyAdmin,
         GovHub: proxyGovHub,
@@ -207,7 +189,6 @@ const main = async () => {
         gnfdChainId,
     };
     log('all contracts', JSON.stringify(deployment, null, 2));
-    log('deploy success');
 
     const deploymentDir = __dirname + `/../deployment`;
     if (!fs.existsSync(deploymentDir)) {
