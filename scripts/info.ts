@@ -1,4 +1,3 @@
-import { BigNumber } from 'ethers';
 import { GnfdLightClient, TokenHub } from '../typechain-types';
 import { toHuman } from './helper';
 const { ethers } = require('hardhat');
