@@ -14,18 +14,18 @@ contract PackageQueue {
     // app address => retry queue of package hash
     mapping(address => DoubleEndedQueueUpgradeable.Bytes32Deque) public retryQueue;
     // app retry package hash => retry package
-    mapping(bytes32 => RetryPackage) public packageMap;
+    mapping(bytes32 => CallbackPackage) public packageMap;
 
-    /**
-     * An enum representing the strategies for handling failed ACK packages.
+    /*
+     * This enum provides different strategies for handling a failed ACK package.
      */
     enum FailureHandleStrategy {
-        HandleInSequence, // Handle failed ACK packages in the order they were received. Noted that new syn packages will be blocked until all failed ACK packages are handled.
-        CacheUntilReady, // Cache failed ACK packages until the dapp is ready to handle them. New syn packages will be handled normally.
-        SkipAckPackage // Simply ignore the failed ACK package
+        BlockOnFail, // If a package fails, the subsequent SYN packages will be blocked until the failed ACK packages are handled in the order they were received.
+        CacheOnFail, // When a package fails, it is cached for later handling. New SYN packages will continue to be handled normally.
+        SkipOnFail // Failed ACK packages are ignored and will not affect subsequent SYN packages.
     }
 
-    struct RetryPackage {
+    struct CallbackPackage {
         address appAddress;
         bytes msgBytes;
         bytes callbackData;
@@ -36,20 +36,19 @@ contract PackageQueue {
     event AppHandleAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
     event AppHandleFailAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
 
-    modifier onlyPackageNotDeleted(bytes32 pkgHash) {
-        require(packageMap[pkgHash].appAddress != address(0), "package already deleted");
-        _;
-    }
+    // PlaceHolder reserve for future usage
+    uint256[50] public PkgQueueSlots;
 
-    modifier checkFailureStrategy(bytes32 pkgHash) {
+    modifier checkCaller() {
         address appAddress = msg.sender;
+        bytes32 pkgHash = retryQueue[appAddress].popFront();
         require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
-        require(retryQueue[appAddress].popFront() == pkgHash, "package not on front");
         _;
     }
 
-    function retryPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
+    function retryPackage() external checkCaller {
         address appAddress = msg.sender;
+        bytes32 pkgHash = retryQueue[appAddress].popFront();
         bytes memory _msgBytes = packageMap[pkgHash].msgBytes;
         bytes memory _callbackData = packageMap[pkgHash].callbackData;
         if (packageMap[pkgHash].isFailAck) {
@@ -61,7 +60,9 @@ contract PackageQueue {
         _popFront(appAddress);
     }
 
-    function skipPackage(bytes32 pkgHash) external onlyPackageNotDeleted(pkgHash) checkFailureStrategy(pkgHash) {
+    function skipPackage() external checkCaller {
+        address appAddress = msg.sender;
+        bytes32 pkgHash = retryQueue[appAddress].popFront();
         delete packageMap[pkgHash];
         _popFront(msg.sender);
     }
@@ -69,12 +70,7 @@ contract PackageQueue {
     /*----------------- Internal functions -----------------*/
     function _popFront(address appAddress) internal {
         DoubleEndedQueueUpgradeable.Bytes32Deque storage _queue = retryQueue[appAddress];
-        bytes32 _front;
         if (!_queue.empty()) {
-            _front = _queue.front();
-            if (packageMap[_front].appAddress != address(0)) {
-                return;
-            }
             _queue.popFront();
         }
     }

@@ -64,15 +64,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         bytes extraData; // rlp encode of ExtraData
     }
 
-    event UpdateSubmitted(
-        address owner,
-        address operator,
-        uint256 id,
-        uint8 opType,
-        address[] members,
-        uint256 relayFee,
-        uint256 ackRelayFee
-    );
+    event UpdateSubmitted(address owner, address operator, uint256 id, uint8 opType, address[] members);
     event UpdateSuccess(address indexed operator, uint256 indexed id, uint8 opType);
     event UpdateFailed(address indexed operator, uint256 indexed id, uint8 opType);
 
@@ -138,7 +130,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit CreateSubmitted(owner, msg.sender, name, relayFee, _ackRelayFee);
+        emit CreateSubmitted(owner, msg.sender, name);
         return true;
     }
 
@@ -149,7 +141,8 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * @param owner The group's owner
      * @param name The group's name
      * @param callbackGasLimit Gas limit for callback function
-     * @param extraData Extra data for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset as the `msg.sender` all the time.
      */
     function createGroup(address owner, string memory name, uint256 callbackGasLimit, ExtraData memory extraData)
         external
@@ -158,11 +151,12 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
     {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -187,7 +181,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit CreateSubmitted(owner, msg.sender, name, relayFee, _ackRelayFee);
+        emit CreateSubmitted(owner, msg.sender, name);
         return true;
     }
 
@@ -220,7 +214,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
+        emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
 
@@ -230,7 +224,8 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      *
      * @param id The group's id
      * @param callbackGasLimit Gas limit for callback function
-     * @param extraData Extra data for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset as the `msg.sender` all the time.
      */
     function deleteGroup(uint256 id, uint256 callbackGasLimit, ExtraData memory extraData)
         external
@@ -239,11 +234,12 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
     {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -274,7 +270,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
+        emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
 
@@ -307,7 +303,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members, relayFee, _ackRelayFee);
+        emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
         return true;
     }
 
@@ -317,7 +313,8 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      *
      * @param synPkg Package containing information of the group to be updated
      * @param callbackGasLimit Gas limit for callback function
-     * @param extraData Extra data for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset as the `msg.sender` all the time.
      */
     function updateGroup(UpdateSynPackage memory synPkg, uint256 callbackGasLimit, ExtraData memory extraData)
         external
@@ -326,11 +323,12 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
     {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -360,7 +358,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
         ICrossChain(_crossChain).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members, relayFee, _ackRelayFee);
+        emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
         return true;
     }
 

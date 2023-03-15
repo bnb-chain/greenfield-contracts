@@ -158,10 +158,10 @@ contract ObjectHubTest is Test, ObjectHub {
         objectHub.deleteObject{value: 41e14}(0, address(this), "");
 
         // hand in order
-        objectHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInSequence);
+        objectHub.setFailureHandleStrategy(FailureHandleStrategy.BlockOnFail);
 
         objectHub.deleteObject{value: 41e14}(0, address(this), "");
-        bytes memory msgBytes = _encodeDeleteAckPackage(0, 0, address(this), FailureHandleStrategy.HandleInSequence);
+        bytes memory msgBytes = _encodeDeleteAckPackage(0, 0, address(this), FailureHandleStrategy.BlockOnFail);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(this));
@@ -173,10 +173,10 @@ contract ObjectHubTest is Test, ObjectHub {
     function testFailAck() public {
         vm.prank(OBJECT_HUB);
         objectToken.mint(address(this), 0);
-        objectHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInSequence);
+        objectHub.setFailureHandleStrategy(FailureHandleStrategy.BlockOnFail);
 
         objectHub.deleteObject{value: 41e14}(0, address(this), "");
-        bytes memory msgBytes = _encodeDeleteAckPackage(0, 0, address(this), FailureHandleStrategy.HandleInSequence);
+        bytes memory msgBytes = _encodeDeleteAckPackage(0, 0, address(this), FailureHandleStrategy.BlockOnFail);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(this));

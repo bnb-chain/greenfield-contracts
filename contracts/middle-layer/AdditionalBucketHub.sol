@@ -89,7 +89,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         ICrossChain(_crossChain).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit CreateSubmitted(owner, msg.sender, synPkg.name, relayFee, _ackRelayFee);
+        emit CreateSubmitted(owner, msg.sender, synPkg.name);
         return true;
     }
 
@@ -99,7 +99,8 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      *
      * @param synPkg Package containing information of the bucket to be created
      * @param callbackGasLimit Gas limit for callback function
-     * @param extraData Extra data for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset as the `msg.sender` all the time.
      */
     function createBucket(CreateSynPackage memory synPkg, uint256 callbackGasLimit, ExtraData memory extraData)
         external
@@ -108,15 +109,13 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
     {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -137,7 +136,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         ICrossChain(_crossChain).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit CreateSubmitted(owner, msg.sender, synPkg.name, relayFee, _ackRelayFee);
+        emit CreateSubmitted(owner, msg.sender, synPkg.name);
         return true;
     }
 
@@ -169,7 +168,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         ICrossChain(_crossChain).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
+        emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
 
@@ -179,7 +178,8 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      *
      * @param id The bucket's id
      * @param callbackGasLimit Gas limit for callback function
-     * @param extraData Extra data for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset as the `msg.sender` all the time.
      */
     function deleteBucket(uint256 id, uint256 callbackGasLimit, ExtraData memory extraData)
         external
@@ -188,11 +188,12 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
     {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -223,7 +224,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         ICrossChain(_crossChain).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
+        emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
 

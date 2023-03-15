@@ -39,7 +39,12 @@ contract RelayerHub is Config, ReentrancyGuardUpgradeable {
         emit RewardToRelayer(_relayer, _reward);
     }
 
-    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+    function versionInfo()
+        external
+        pure
+        override
+        returns (uint256 version, string memory name, string memory description)
+    {
         return (500_001, "RelayerHub", "init version");
     }
 }

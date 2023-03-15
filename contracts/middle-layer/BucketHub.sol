@@ -79,24 +79,27 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
             revert("unexpected operation type");
         }
 
-        if (extraData.appAddress != address(0)) {
+        if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
             uint256 gasBefore = gasleft();
-            bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
 
             bytes memory reason;
+            bool failed;
             try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch Error(string memory error) {
                 reason = bytes(error);
+                failed = true;
             } catch (bytes memory lowLevelData) {
                 reason = lowLevelData;
+                failed = true;
             }
 
-            if (reason.length > 0) {
+            if (failed) {
+                bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                 emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipAckPackage) {
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                     packageMap[pkgHash] =
-                        RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
+                        CallbackPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
@@ -122,24 +125,27 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         (ExtraData memory extraData, bool success) = _decodeFailAckPackage(msgBytes);
         require(success, "decode fail ack package failed");
 
-        if (extraData.appAddress != address(0)) {
+        if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
             uint256 gasBefore = gasleft();
             bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
 
             bytes memory reason;
+            bool failed;
             try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch Error(string memory error) {
                 reason = bytes(error);
+                failed = true;
             } catch (bytes memory lowLevelData) {
                 reason = lowLevelData;
+                failed = true;
             }
 
-            if (reason.length > 0) {
+            if (failed) {
                 emit AppHandleFailAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipAckPackage) {
+                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                     packageMap[pkgHash] =
-                        RetryPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
+                        CallbackPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
@@ -152,7 +158,12 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- external function -----------------*/
-    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+    function versionInfo()
+        external
+        pure
+        override
+        returns (uint256 version, string memory name, string memory description)
+    {
         return (400_001, "BucketHub", "init version");
     }
 

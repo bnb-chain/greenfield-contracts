@@ -72,7 +72,7 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
         ICrossChain(_crossChain).sendSynPackage(
             OBJECT_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
+        emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
 
@@ -81,7 +81,8 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
      * Callback function will be called when the request is processed
      *
      * @param id The bucket's id
-     * @param extraData The extra data for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset as the `msg.sender` all the time.
      */
     function deleteObject(uint256 id, uint256 callbackGasLimit, ExtraData memory extraData)
         external
@@ -90,11 +91,12 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
     {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * tx.gasprice, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee - callbackGasLimit * tx.gasprice;
+        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
 
         // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.HandleInSequence) {
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
             require(
                 retryQueue[msg.sender].length() == 0,
                 "retry queue is not empty, please process the previous package first"
@@ -125,7 +127,7 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
         ICrossChain(_crossChain).sendSynPackage(
             OBJECT_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
-        emit DeleteSubmitted(owner, msg.sender, id, relayFee, _ackRelayFee);
+        emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
 

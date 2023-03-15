@@ -83,14 +83,10 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
 
     event MirrorSuccess(uint256 indexed id, address indexed owner);
     event MirrorFailed(uint256 indexed id, address indexed owner, bytes failReason);
-    event CreateSubmitted(
-        address indexed owner, address indexed operator, string name, uint256 relayFee, uint256 ackRelayFee
-    );
+    event CreateSubmitted(address indexed owner, address indexed operator, string name);
     event CreateSuccess(address indexed creator, uint256 indexed id);
     event CreateFailed(address indexed creator, uint256 indexed id);
-    event DeleteSubmitted(
-        address indexed owner, address indexed operator, uint256 indexed id, uint256 relayFee, uint256 ackRelayFee
-    );
+    event DeleteSubmitted(address indexed owner, address indexed operator, uint256 indexed id);
     event DeleteSuccess(uint256 indexed id);
     event DeleteFailed(uint256 indexed id);
     event FailAckPkgReceived(uint8 indexed channelId, bytes msgBytes);

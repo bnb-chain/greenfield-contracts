@@ -135,7 +135,7 @@ contract GroupHubTest is Test, GroupHub {
             UpdateSynPackage({operator: address(this), id: id, opType: UPDATE_ADD, members: newMembers, extraData: ""});
 
         vm.expectEmit(true, true, true, true, address(groupHub));
-        emit UpdateSubmitted(address(this), address(this), id, UPDATE_ADD, newMembers, 2e15, 2e15);
+        emit UpdateSubmitted(address(this), address(this), id, UPDATE_ADD, newMembers);
         groupHub.updateGroup{value: 41e14}(synPkg, address(this), "");
 
         UpdateAckPackage memory updateAckPkg = UpdateAckPackage({
@@ -216,11 +216,11 @@ contract GroupHubTest is Test, GroupHub {
         groupHub.createGroup{value: 41e14}(address(this), "test", address(this), "");
 
         // hand in order
-        groupHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInSequence);
+        groupHub.setFailureHandleStrategy(FailureHandleStrategy.BlockOnFail);
 
         groupHub.createGroup{value: 41e14}(address(this), "test", address(this), "");
         bytes memory msgBytes =
-            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInSequence);
+            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.BlockOnFail);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(this));
@@ -230,11 +230,11 @@ contract GroupHubTest is Test, GroupHub {
     }
 
     function testFailAck() public {
-        groupHub.setFailureHandleStrategy(FailureHandleStrategy.HandleInSequence);
+        groupHub.setFailureHandleStrategy(FailureHandleStrategy.BlockOnFail);
 
         groupHub.createGroup{value: 41e14}(address(this), "test", address(this), "");
         bytes memory msgBytes =
-            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.HandleInSequence);
+            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.BlockOnFail);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(this));
