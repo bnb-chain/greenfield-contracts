@@ -25,7 +25,7 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         address primarySpAddress;
         uint256 primarySpApprovalExpiredHeight;
         bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
-        uint8 readQuota;
+        uint256 readQuota;
         bytes extraData; // rlp encode of ExtraData
     }
 
@@ -80,10 +80,9 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         }
 
         if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
-            uint256 gasBefore = gasleft();
-
             bytes memory reason;
             bool failed;
+            uint256 gasBefore = gasleft();
             try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch Error(string memory error) {
@@ -94,6 +93,9 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
                 failed = true;
             }
 
+            remainingGas = callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+            refundAddress = extraData.refundAddress;
+
             if (failed) {
                 bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                 emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
@@ -103,9 +105,6 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
-
-            remainingGas = callbackGasLimit - (gasBefore - gasleft()); // gas limit - gas used
-            refundAddress = extraData.refundAddress;
         }
     }
 
@@ -126,11 +125,9 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         require(success, "decode fail ack package failed");
 
         if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
-            uint256 gasBefore = gasleft();
-            bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
-
             bytes memory reason;
             bool failed;
+            uint256 gasBefore = gasleft();
             try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch Error(string memory error) {
@@ -141,7 +138,11 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
                 failed = true;
             }
 
+            remainingGas = callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+            refundAddress = extraData.refundAddress;
+
             if (failed) {
+                bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                 emit AppHandleFailAckPkgFailed(extraData.appAddress, pkgHash, reason);
                 if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                     packageMap[pkgHash] =
@@ -149,9 +150,6 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
-
-            remainingGas = callbackGasLimit - (gasBefore - gasleft()); // gas limit - gas used
-            refundAddress = extraData.refundAddress;
         }
 
         emit FailAckPkgReceived(channelId, msgBytes);
@@ -171,7 +169,7 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         delegateAdditional();
     }
 
-    function createBucket(CreateSynPackage memory, ExtraData memory) external payable returns (bool) {
+    function createBucket(CreateSynPackage memory, uint256, ExtraData memory) external payable returns (bool) {
         delegateAdditional();
     }
 
@@ -179,7 +177,7 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         delegateAdditional();
     }
 
-    function deleteBucket(uint256, ExtraData memory) external payable returns (bool) {
+    function deleteBucket(uint256, uint256, ExtraData memory) external payable returns (bool) {
         delegateAdditional();
     }
 
@@ -208,7 +206,7 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
             return (extraData, false);
         }
 
-        for (uint256 i = 0; i < elementsNum - 1; i++) {
+        for (uint256 i; i < elementsNum - 1; ++i) {
             if (pkgIter.hasNext()) {
                 pkgIter.next();
             } else {
@@ -217,10 +215,15 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         }
 
         if (pkgIter.hasNext()) {
-            (extraData, success) = _bytesToExtraData(pkgIter.next().toBytes());
+            bytes memory extraBytes = pkgIter.next().toBytes();
+            if (extraBytes.length > 0) {
+                (extraData, success) = _bytesToExtraData(extraBytes);
+            } else {
+                // empty extra data
+                success = true;
+            }
         } else {
-            // empty extra data
-            return (extraData, true);
+            return (extraData, false);
         }
     }
 }

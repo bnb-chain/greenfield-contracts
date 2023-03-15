@@ -41,7 +41,7 @@ contract PackageQueue {
 
     modifier checkCaller() {
         address appAddress = msg.sender;
-        bytes32 pkgHash = retryQueue[appAddress].popFront();
+        bytes32 pkgHash = retryQueue[appAddress].front();
         require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
         _;
     }
@@ -57,21 +57,11 @@ contract PackageQueue {
             IApplication(appAddress).handleAckPackage(channelId, _msgBytes, _callbackData);
         }
         delete packageMap[pkgHash];
-        _popFront(appAddress);
     }
 
     function skipPackage() external checkCaller {
         address appAddress = msg.sender;
         bytes32 pkgHash = retryQueue[appAddress].popFront();
         delete packageMap[pkgHash];
-        _popFront(msg.sender);
-    }
-
-    /*----------------- Internal functions -----------------*/
-    function _popFront(address appAddress) internal {
-        DoubleEndedQueueUpgradeable.Bytes32Deque storage _queue = retryQueue[appAddress];
-        if (!_queue.empty()) {
-            _queue.popFront();
-        }
     }
 }

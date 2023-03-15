@@ -118,10 +118,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         }
 
         if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
-            uint256 gasBefore = gasleft();
-
             bytes memory reason;
             bool failed;
+            uint256 gasBefore = gasleft();
             try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch Error(string memory error) {
@@ -132,6 +131,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                 failed = true;
             }
 
+            remainingGas = callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+            refundAddress = extraData.refundAddress;
+
             if (failed) {
                 bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                 emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
@@ -141,9 +143,6 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
-
-            remainingGas = callbackGasLimit - (gasBefore - gasleft()); // gas limit - gas used
-            refundAddress = extraData.refundAddress;
         }
     }
 
@@ -164,11 +163,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         require(success, "decode fail ack package failed");
 
         if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
-            uint256 gasBefore = gasleft();
-            bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
-
             bytes memory reason;
             bool failed;
+            uint256 gasBefore = gasleft();
             try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
                 channelId, msgBytes, extraData.callbackData
             ) {} catch Error(string memory error) {
@@ -179,7 +176,11 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                 failed = true;
             }
 
+            remainingGas = callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+            refundAddress = extraData.refundAddress;
+
             if (failed) {
+                bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                 emit AppHandleFailAckPkgFailed(extraData.appAddress, pkgHash, reason);
                 if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                     packageMap[pkgHash] =
@@ -187,9 +188,6 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
-
-            remainingGas = callbackGasLimit - (gasBefore - gasleft()); // gas limit - gas used
-            refundAddress = extraData.refundAddress;
         }
 
         emit FailAckPkgReceived(channelId, msgBytes);
@@ -209,7 +207,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         delegateAdditional();
     }
 
-    function createGroup(address, string memory, ExtraData memory) external payable returns (bool) {
+    function createGroup(address, string memory, uint256, ExtraData memory) external payable returns (bool) {
         delegateAdditional();
     }
 
@@ -217,7 +215,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         delegateAdditional();
     }
 
-    function deleteGroup(uint256, ExtraData memory) external payable returns (bool) {
+    function deleteGroup(uint256, uint256, ExtraData memory) external payable returns (bool) {
         delegateAdditional();
     }
 
@@ -225,7 +223,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         delegateAdditional();
     }
 
-    function updateGroup(UpdateSynPackage memory, ExtraData memory) external payable returns (bool) {
+    function updateGroup(UpdateSynPackage memory, uint256, ExtraData memory) external payable returns (bool) {
         delegateAdditional();
     }
 
@@ -267,9 +265,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     mems[i] = memsIter[i].toAddress();
                 }
                 ackPkg.members = mems;
+                success = true; // extraData is optional
             } else if (idx == 5) {
                 ackPkg.extraData = iter.next().toBytes();
-                success = true;
             } else {
                 break;
             }
@@ -290,8 +288,10 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
             revert("unexpected status code");
         }
 
-        (_extraData, success) = _bytesToExtraData(ackPkg.extraData);
-        require(success, "unrecognized extra data");
+        if (ackPkg.extraData.length > 0) {
+            (_extraData, success) = _bytesToExtraData(ackPkg.extraData);
+            require(success, "unrecognized extra data");
+        }
     }
 
     function _doUpdate(UpdateAckPackage memory ackPkg) internal {
@@ -339,7 +339,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
             return (extraData, false);
         }
 
-        for (uint256 i = 0; i < elementsNum - 1; i++) {
+        for (uint256 i; i < elementsNum - 1; ++i) {
             if (pkgIter.hasNext()) {
                 pkgIter.next();
             } else {
@@ -348,10 +348,15 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         }
 
         if (pkgIter.hasNext()) {
-            (extraData, success) = _bytesToExtraData(pkgIter.next().toBytes());
+            bytes memory extraBytes = pkgIter.next().toBytes();
+            if (extraBytes.length > 0) {
+                (extraData, success) = _bytesToExtraData(extraBytes);
+            } else {
+                // empty extra data
+                success = true;
+            }
         } else {
-            // empty extra data
-            return (extraData, true);
+            return (extraData, false);
         }
     }
 }

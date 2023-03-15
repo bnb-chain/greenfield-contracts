@@ -16,7 +16,7 @@ import "../lib/RLPEncode.sol";
 // which means same state variables and same order of state variables.
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as BucketHub.
-contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessControl {
+contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessControl {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
@@ -31,7 +31,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         address primarySpAddress;
         uint256 primarySpApprovalExpiredHeight;
         bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
-        uint8 readQuota;
+        uint256 readQuota;
         bytes extraData; // rlp encode of ExtraData
     }
 
@@ -98,7 +98,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      * Callback function will be called when the request is processed.
      *
      * @param synPkg Package containing information of the bucket to be created
-     * @param callbackGasLimit Gas limit for callback function
+     * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time.
      */
@@ -177,7 +177,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
      * Callback function will be called when the request is processed.
      *
      * @param id The bucket's id
-     * @param callbackGasLimit Gas limit for callback function
+     * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time.
      */
@@ -194,10 +194,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
+            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
         }
 
         // check authorization
@@ -238,7 +235,7 @@ contract AdditionalBucketHub is Initializable, NFTWrapResourceStorage, AccessCon
         elements[4] = synPkg.primarySpAddress.encodeAddress();
         elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();
         elements[6] = synPkg.primarySpSignature.encodeBytes();
-        elements[7] = uint256(synPkg.readQuota).encodeUint();
+        elements[7] = synPkg.readQuota.encodeUint();
         elements[8] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }

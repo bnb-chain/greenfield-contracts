@@ -4,14 +4,14 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/Deployer1.sol";
+import "../contracts/Deployer.sol";
 import "../contracts/CrossChain.sol";
 import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
 import "./TestDeployer.sol";
 
 contract CrossChainTest is TestDeployer {
-    Deployer1 public deployer;
+    Deployer public deployer;
     GovHub public govHub;
     CrossChain public crossChain;
     TokenHub public tokenHub;
@@ -21,8 +21,8 @@ contract CrossChainTest is TestDeployer {
     address private user1 = 0x1000000000000000000000000000000012345678;
 
     function setUp() public {
-        (address _deployer1,) = _deployOnTestChain();
-        deployer = Deployer1(_deployer1);
+        address _deployer = _deployOnTestChain();
+        deployer = Deployer(_deployer);
         assert(deployer.deployed());
 
         govHub = GovHub(payable(deployer.proxyGovHub()));

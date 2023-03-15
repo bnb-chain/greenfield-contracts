@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "forge-std/Test.sol";
 
 contract TestDeployer is Test {
-    function _deployOnTestChain() internal returns (address deployer1, address deployer2) {
+    function _deployOnTestChain() internal returns (address deployer) {
         string[] memory inputs = new string[](3);
         inputs[0] = "npm";
         inputs[1] = "run";
@@ -20,17 +20,10 @@ contract TestDeployer is Test {
         inputs[0] = "bash";
         inputs[1] = "./lib/getDeployer.sh";
         inputs[2] = string.concat("./deployment/", chainIdString, "-deployment.json");
-        inputs[3] = "1";
 
         bytes memory res = vm.ffi(inputs);
         assembly {
-            deployer1 := mload(add(res, 20))
-        }
-
-        inputs[3] = "2";
-        res = vm.ffi(inputs);
-        assembly {
-            deployer2 := mload(add(res, 20))
+            deployer := mload(add(res, 20))
         }
     }
 }

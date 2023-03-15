@@ -16,7 +16,7 @@ import "../lib/RLPEncode.sol";
 // which means same state variables and same order of state variables.
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as ObjectHub.
-contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessControl {
+contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessControl {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
@@ -81,8 +81,9 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
      * Callback function will be called when the request is processed
      *
      * @param id The bucket's id
+     * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset as the `msg.sender` all the time.
+     * It will be reset as the `msg.sender` all the time
      */
     function deleteObject(uint256 id, uint256 callbackGasLimit, ExtraData memory extraData)
         external
@@ -97,10 +98,7 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
+            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
         }
 
         // check authorization
@@ -133,9 +131,10 @@ contract AdditionalObjectHub is Initializable, NFTWrapResourceStorage, AccessCon
 
     /*----------------- internal function -----------------*/
     function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
+        bytes[] memory elements = new bytes[](3);
         elements[0] = synPkg.operator.encodeAddress();
         elements[1] = synPkg.id.encodeUint();
+        elements[2] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 }

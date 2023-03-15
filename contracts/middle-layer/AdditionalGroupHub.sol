@@ -16,7 +16,7 @@ import "../lib/RLPEncode.sol";
 // which means same state variables and same order of state variables.
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as GroupHub.
-contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessControl {
+contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessControl {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
@@ -140,7 +140,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      *
      * @param owner The group's owner
      * @param name The group's name
-     * @param callbackGasLimit Gas limit for callback function
+     * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time.
      */
@@ -157,10 +157,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
+            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
         }
 
         // check authorization
@@ -223,7 +220,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * Callback function will be called when the request is processed.
      *
      * @param id The group's id
-     * @param callbackGasLimit Gas limit for callback function
+     * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time.
      */
@@ -240,10 +237,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
+            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
         }
 
         // check authorization
@@ -312,7 +306,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
      * Callback function will be called when the request is processed.
      *
      * @param synPkg Package containing information of the group to be updated
-     * @param callbackGasLimit Gas limit for callback function
+     * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time.
      */
@@ -329,10 +323,7 @@ contract AdditionalGroupHub is Initializable, NFTWrapResourceStorage, AccessCont
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(
-                retryQueue[msg.sender].length() == 0,
-                "retry queue is not empty, please process the previous package first"
-            );
+            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
         }
 
         // check authorization
