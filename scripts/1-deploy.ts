@@ -171,7 +171,7 @@ const main = async () => {
 
     await memberToken.deployTransaction.wait(5);
 
-    await deployer.init([
+    let tx = await deployer.init([
         implGovHub.address,
         implCrossChain.address,
         implTokenHub.address,
@@ -190,7 +190,9 @@ const main = async () => {
     ]);
     log('deployer init success');
 
-    let tx = await deployer.deploy(initConsensusStateBytes);
+    await tx.wait(5);
+
+    tx = await deployer.deploy(initConsensusStateBytes);
     log('deploy success');
 
     await tx.wait(5);
