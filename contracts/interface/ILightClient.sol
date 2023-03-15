@@ -19,5 +19,4 @@ interface ILightClient {
     function getInturnRelayer() public view returns (InturnRelayer memory);
     function getInturnRelayerAddress() external view returns (address);
 
-
 }
