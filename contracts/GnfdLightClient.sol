@@ -7,9 +7,8 @@ import "./Config.sol";
 import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./lib/BytesLib.sol";
-import "./interface/ILightClient.sol";
 
-contract GnfdLightClient is Initializable, Config {
+contract GnfdLightClient is Initializable, Config, ILightClient {
     struct Validator {
         bytes32 pubKey;
         int64 votingPower;
@@ -157,11 +156,11 @@ contract GnfdLightClient is Initializable, Config {
         }
     }
 
-    function getInturnRelayer() external view returns (ILightClient.InturnRelayer memory relayer) {
+    function getInturnRelayer() external view returns (InturnRelayer memory relayer) {
         return getInturnRelayerWithInterval();
     }
 
-    function getInturnRelayerWithInterval() private view returns (ILightClient.InturnRelayer memory relayer) {
+    function getInturnRelayerWithInterval() private view returns (InturnRelayer memory relayer) {
         uint256 relayerSize = validatorSet.length;
         uint256 totalInterval = inTurnRelayerRelayInterval * relayerSize;
         uint256 curTs = block.timestamp;
@@ -177,12 +176,12 @@ contract GnfdLightClient is Initializable, Config {
     }
 
     function getInturnRelayerBlsPubKey() external view returns (bytes memory) {
-        ILightClient.InturnRelayer memory relayer = getInturnRelayerWithInterval();
+        InturnRelayer memory relayer = getInturnRelayerWithInterval();
         return relayer.blsKey;
     }
 
     function getInturnRelayerAddress() external view returns (address) {
-        ILightClient.InturnRelayer memory relayer = getInturnRelayerWithInterval();
+        InturnRelayer memory relayer = getInturnRelayerWithInterval();
         return relayer.addr;
     }
 
