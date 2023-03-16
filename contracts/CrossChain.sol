@@ -397,7 +397,7 @@ contract CrossChain is Config, Initializable {
         } else if (Memory.compareStrings(key, "inTurnRelayerValidityPeriod")) {
             require(valueLength == 32, "length of value for inTurnRelayerValidityPeriod should be 32");
             uint256 newInTurnRelayerValidityPeriod = BytesToTypes.bytesToUint256(valueLength, value);
-            require(newInTurnRelayerValidityPeriod > 30 && newInTurnRelayerValidityPeriod < 100, "the newInTurnRelayerValidityPeriod should be [30, 100 seconds] ");
+            require(newInTurnRelayerValidityPeriod >= 30 && newInTurnRelayerValidityPeriod <= 100, "the newInTurnRelayerValidityPeriod should be [30, 100 seconds] ");
             inTurnRelayerValidityPeriod = newInTurnRelayerValidityPeriod;
         } else {
             require(false, "unknown param");

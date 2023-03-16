@@ -272,7 +272,7 @@ contract GnfdLightClient is Initializable, Config {
         if (Memory.compareStrings(key, "inTurnRelayerRelayInterval")) {
             require(valueLength == 32, "length of value for inTurnRelayerRelayInterval should be 32");
             uint256 newInTurnRelayerRelayInterval = BytesToTypes.bytesToUint256(valueLength, value);
-            require(newInTurnRelayerRelayInterval > 300 && newInTurnRelayerRelayInterval < 1800, "the newInTurnRelayerRelayInterval should be [300, 1800 seconds] ");
+            require(newInTurnRelayerRelayInterval >= 300 && newInTurnRelayerRelayInterval <= 1800, "the newInTurnRelayerRelayInterval should be [300, 1800 seconds] ");
             inTurnRelayerRelayInterval = newInTurnRelayerRelayInterval;
         } else {
             require(false, "unknown param");
