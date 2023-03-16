@@ -68,8 +68,7 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
         // make sure the extra data is as expected
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id, extraData: ""});
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
@@ -121,8 +120,7 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
         (bool success,) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);

@@ -85,8 +85,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         // make sure the extra data is as expected
         synPkg.extraData = "";
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit CreateSubmitted(owner, msg.sender, synPkg.name);
@@ -132,8 +131,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         (bool success,) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address");
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit CreateSubmitted(owner, msg.sender, synPkg.name);
@@ -164,8 +162,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id, extraData: ""});
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
@@ -217,8 +214,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         (bool success,) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address");
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);

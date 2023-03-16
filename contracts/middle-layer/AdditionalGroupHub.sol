@@ -126,8 +126,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         // make sure the extra data is as expected
         CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name, extraData: ""});
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit CreateSubmitted(owner, msg.sender, name);
@@ -174,8 +173,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         (bool success,) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address");
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit CreateSubmitted(owner, msg.sender, name);
@@ -207,8 +205,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         // make sure the extra data is as expected
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id, extraData: ""});
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
@@ -260,8 +257,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         (bool success,) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
@@ -293,8 +289,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         // make sure the extra data is as expected
         synPkg.extraData = "";
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
@@ -345,8 +340,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         (bool success,) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
-        address _crossChain = CROSS_CHAIN;
-        ICrossChain(_crossChain).sendSynPackage(
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
