@@ -390,8 +390,8 @@ contract GroupHubTest is Test, GroupHub {
 
         bytes[] memory elements = new bytes[](6);
         elements[0] = ackPkg.status.encodeUint();
-        elements[1] = ackPkg.operator.encodeAddress();
-        elements[2] = ackPkg.id.encodeUint();
+        elements[1] = ackPkg.id.encodeUint();
+        elements[2] = ackPkg.operator.encodeAddress();
         elements[3] = ackPkg.opType.encodeUint();
         elements[4] = members.encodeList();
         elements[5] = _extraDataToBytes(extraData).encodeBytes();

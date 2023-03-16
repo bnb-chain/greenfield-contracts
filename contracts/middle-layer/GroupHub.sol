@@ -53,8 +53,8 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     // GNFD to BSC
     struct UpdateAckPackage {
         uint32 status;
-        address operator;
         uint256 id; // group id
+        address operator;
         uint8 opType; // add/remove members
         address[] members;
         bytes extraData; // rlp encode of ExtraData
@@ -253,9 +253,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
             if (idx == 0) {
                 ackPkg.status = uint32(iter.next().toUint());
             } else if (idx == 1) {
-                ackPkg.operator = iter.next().toAddress();
-            } else if (idx == 2) {
                 ackPkg.id = iter.next().toUint();
+            } else if (idx == 2) {
+                ackPkg.operator = iter.next().toAddress();
             } else if (idx == 3) {
                 ackPkg.opType = uint8(iter.next().toUint());
             } else if (idx == 4) {

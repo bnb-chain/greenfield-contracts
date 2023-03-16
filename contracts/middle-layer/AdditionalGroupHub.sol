@@ -57,8 +57,8 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
     // GNFD to BSC
     struct UpdateAckPackage {
         uint32 status;
-        address operator;
         uint256 id; // group id
+        address operator;
         uint8 opType; // add/remove members
         address[] members;
         bytes extraData; // rlp encode of ExtraData
