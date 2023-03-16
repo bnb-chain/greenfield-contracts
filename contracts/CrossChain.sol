@@ -17,7 +17,6 @@ contract CrossChain is Config, Initializable {
     uint8 public constant ACK_PACKAGE = 0x01;
     uint8 public constant FAIL_ACK_PACKAGE = 0x02;
 
-    uint256 public constant IN_TURN_RELAYER_VALIDITY_PERIOD = 30 seconds;
 
     // 0xebbda044f67428d7e9b472f9124983082bcda4f84f5148ca0a9ccbe06350f196
     bytes32 public constant SUSPEND_PROPOSAL = keccak256("SUSPEND_PROPOSAL");
@@ -44,6 +43,7 @@ contract CrossChain is Config, Initializable {
     uint256 public callbackGasPrice;
     uint256 public previousTxHeight;
     uint256 public txCounter;
+    uint256 public inTurnRelayerValidityPeriod;
     int64 public oracleSequence;
     mapping(uint8 => address) public channelHandlerMap;
     mapping(address => mapping(uint8 => bool)) public registeredContractChannelMap;
@@ -149,7 +149,7 @@ contract CrossChain is Config, Initializable {
         oracleSequence = -1;
         previousTxHeight = 0;
         txCounter = 0;
-
+        inTurnRelayerValidityPeriod = 30 seconds;
         quorumMap[SUSPEND_PROPOSAL] = 1;
         quorumMap[REOPEN_PROPOSAL] = 2;
         quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
@@ -394,6 +394,11 @@ contract CrossChain is Config, Initializable {
             uint16 cancelTransferQuorum = BytesToTypes.bytesToUint16(2, value);
             require(cancelTransferQuorum > 0 && cancelTransferQuorum < 100, "invalid cancel transfer quorum");
             quorumMap[CANCEL_TRANSFER_PROPOSAL] = cancelTransferQuorum;
+        } else if (Memory.compareStrings(key, "inTurnRelayerValidityPeriod")) {
+            require(valueLength == 32, "length of value for inTurnRelayerValidityPeriod should be 32");
+            uint256 newInTurnRelayerValidityPeriod = BytesToTypes.bytesToUint256(valueLength, value);
+            require(newInTurnRelayerValidityPeriod > 30 && newInTurnRelayerValidityPeriod < 100, "the newInTurnRelayerValidityPeriod should be [30, 100 seconds] ");
+            inTurnRelayerValidityPeriod = newInTurnRelayerValidityPeriod;
         } else {
             require(false, "unknown param");
         }
@@ -479,7 +484,7 @@ contract CrossChain is Config, Initializable {
         address inturnRelayerAddr = ILightClient(LIGHT_CLIENT).getInturnRelayerAddress();
         if (msg.sender != inturnRelayerAddr) {
             uint256 curTs = block.timestamp;
-            require(curTs - eventTime > IN_TURN_RELAYER_VALIDITY_PERIOD, "invalid candidate relayer");
+            require(curTs - eventTime > inTurnRelayerValidityPeriod, "invalid candidate relayer");
         }
     }
 

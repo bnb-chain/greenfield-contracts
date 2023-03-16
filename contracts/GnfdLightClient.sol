@@ -37,8 +37,6 @@ contract GnfdLightClient is Initializable, Config {
     uint256 public constant MESSAGE_HASH_LENGTH = 32;
     uint256 public constant BLS_SIGNATURE_LENGTH = 96;
 
-    uint256 public constant IN_TURN_RELAYER_RELAY_INTERVAL = 600 seconds;
-
     /* --------------------- 2. storage --------------------- */
     bytes32 public chainID;
     uint64 public gnfdHeight;
@@ -47,9 +45,11 @@ contract GnfdLightClient is Initializable, Config {
     Validator[] public validatorSet;
     mapping(uint64 => address payable) public submitters;
 
+    uint256 public inTurnRelayerRelayInterval;
     /* --------------------- 3. events ----------------------- */
     event InitConsensusState(uint64 height);
     event UpdatedConsensusState(uint64 height, bool validatorSetChanged);
+    event ParamChange(string key, bytes value);
 
     /* --------------------- 4. functions -------------------- */
     modifier onlyRelayer() {
@@ -80,6 +80,8 @@ contract GnfdLightClient is Initializable, Config {
         chainID = tmpChainID;
         updateConsensusState(ptr, len, true, 0);
         consensusStateBytes = _initConsensusStateBytes;
+
+        inTurnRelayerRelayInterval = 600 seconds;
 
         emit InitConsensusState(gnfdHeight);
     }
@@ -155,28 +157,32 @@ contract GnfdLightClient is Initializable, Config {
         }
     }
 
-    function getInturnRelayer() public view returns (ILightClient.InturnRelayer memory relayer) {
+    function getInturnRelayer() external view returns (ILightClient.InturnRelayer memory relayer) {
+        return getInturnRelayerWithInterval();
+    }
+
+    function getInturnRelayerWithInterval() public view returns (ILightClient.InturnRelayer memory relayer) {
         uint256 relayerSize = validatorSet.length;
-        uint256 totalInterval = IN_TURN_RELAYER_RELAY_INTERVAL * relayerSize;
+        uint256 totalInterval = inTurnRelayerRelayInterval * relayerSize;
         uint256 curTs = block.timestamp;
         uint256 remainder = curTs % totalInterval;
-        uint256 inTurnRelayerIndex  = remainder/IN_TURN_RELAYER_RELAY_INTERVAL;
-        uint256 start = curTs - (remainder - inTurnRelayerIndex*IN_TURN_RELAYER_RELAY_INTERVAL);
+        uint256 inTurnRelayerIndex  = remainder/inTurnRelayerRelayInterval;
+        uint256 start = curTs - (remainder - inTurnRelayerIndex*inTurnRelayerRelayInterval);
 
         relayer.start = start;
-        relayer.end = start + IN_TURN_RELAYER_RELAY_INTERVAL;
+        relayer.end = start + inTurnRelayerRelayInterval;
         relayer.blsKey = validatorSet[inTurnRelayerIndex].relayerBlsKey;
         relayer.addr = validatorSet[inTurnRelayerIndex].relayerAddress;
         return relayer;
     }
 
     function getInturnRelayerBlsPubKey() external view returns (bytes memory) {
-        ILightClient.InturnRelayer memory relayer = getInturnRelayer();
+        ILightClient.InturnRelayer memory relayer = getInturnRelayerWithInterval();
         return relayer.blsKey;
     }
 
     function getInturnRelayerAddress() external view returns (address) {
-        ILightClient.InturnRelayer memory relayer = getInturnRelayer();
+        ILightClient.InturnRelayer memory relayer = getInturnRelayerWithInterval();
         return relayer.addr;
     }
 
@@ -257,5 +263,20 @@ contract GnfdLightClient is Initializable, Config {
 
     function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
         return (400_001, "GnfdLightClient", "init version");
+    }
+
+    function updateParam(string calldata key, bytes calldata value)
+    onlyGov
+    external {
+        uint256 valueLength = value.length;
+        if (Memory.compareStrings(key, "inTurnRelayerRelayInterval")) {
+            require(valueLength == 32, "length of value for inTurnRelayerRelayInterval should be 32");
+            uint256 newInTurnRelayerRelayInterval = BytesToTypes.bytesToUint256(valueLength, value);
+            require(newInTurnRelayerRelayInterval > 300 && newInTurnRelayerRelayInterval < 1800, "the newInTurnRelayerRelayInterval should be [300, 1800 seconds] ");
+            inTurnRelayerRelayInterval = newInTurnRelayerRelayInterval;
+        } else {
+            require(false, "unknown param");
+        }
+        emit ParamChange(key, value);
     }
 }
