@@ -161,7 +161,7 @@ contract GnfdLightClient is Initializable, Config {
         return getInturnRelayerWithInterval();
     }
 
-    function getInturnRelayerWithInterval() public view returns (ILightClient.InturnRelayer memory relayer) {
+    function getInturnRelayerWithInterval() private view returns (ILightClient.InturnRelayer memory relayer) {
         uint256 relayerSize = validatorSet.length;
         uint256 totalInterval = inTurnRelayerRelayInterval * relayerSize;
         uint256 curTs = block.timestamp;
