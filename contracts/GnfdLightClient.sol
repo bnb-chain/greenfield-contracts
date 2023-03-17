@@ -8,7 +8,7 @@ import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./lib/BytesLib.sol";
 
-contract GnfdLightClient is Initializable, Config {
+contract GnfdLightClient is Initializable, Config, ILightClient {
     struct Validator {
         bytes32 pubKey;
         int64 votingPower;
@@ -44,9 +44,11 @@ contract GnfdLightClient is Initializable, Config {
     Validator[] public validatorSet;
     mapping(uint64 => address payable) public submitters;
 
+    uint256 public inTurnRelayerRelayInterval;
     /* --------------------- 3. events ----------------------- */
     event InitConsensusState(uint64 height);
     event UpdatedConsensusState(uint64 height, bool validatorSetChanged);
+    event ParamChange(string key, bytes value);
 
     /* --------------------- 4. functions -------------------- */
     modifier onlyRelayer() {
@@ -77,6 +79,8 @@ contract GnfdLightClient is Initializable, Config {
         chainID = tmpChainID;
         updateConsensusState(ptr, len, true, 0);
         consensusStateBytes = _initConsensusStateBytes;
+
+        inTurnRelayerRelayInterval = 600 seconds;
 
         emit InitConsensusState(gnfdHeight);
     }
@@ -150,6 +154,35 @@ contract GnfdLightClient is Initializable, Config {
         for (uint256 i = 0; i < validatorSet.length; i++) {
             _blsPubKeys = abi.encodePacked(_blsPubKeys, validatorSet[i].relayerBlsKey);
         }
+    }
+
+    function getInturnRelayer() external view returns (InturnRelayer memory relayer) {
+        return getInturnRelayerWithInterval();
+    }
+
+    function getInturnRelayerWithInterval() private view returns (InturnRelayer memory relayer) {
+        uint256 relayerSize = validatorSet.length;
+        uint256 totalInterval = inTurnRelayerRelayInterval * relayerSize;
+        uint256 curTs = block.timestamp;
+        uint256 remainder = curTs % totalInterval;
+        uint256 inTurnRelayerIndex  = remainder/inTurnRelayerRelayInterval;
+        uint256 start = curTs - (remainder - inTurnRelayerIndex*inTurnRelayerRelayInterval);
+
+        relayer.start = start;
+        relayer.end = start + inTurnRelayerRelayInterval;
+        relayer.blsKey = validatorSet[inTurnRelayerIndex].relayerBlsKey;
+        relayer.addr = validatorSet[inTurnRelayerIndex].relayerAddress;
+        return relayer;
+    }
+
+    function getInturnRelayerBlsPubKey() external view returns (bytes memory) {
+        InturnRelayer memory relayer = getInturnRelayerWithInterval();
+        return relayer.blsKey;
+    }
+
+    function getInturnRelayerAddress() external view returns (address) {
+        InturnRelayer memory relayer = getInturnRelayerWithInterval();
+        return relayer.addr;
     }
 
     // TODO we will optimize the gas consumption here.
@@ -234,5 +267,20 @@ contract GnfdLightClient is Initializable, Config {
         returns (uint256 version, string memory name, string memory description)
     {
         return (400_001, "GnfdLightClient", "init version");
+    }
+
+    function updateParam(string calldata key, bytes calldata value)
+    onlyGov
+    external {
+        uint256 valueLength = value.length;
+        if (Memory.compareStrings(key, "inTurnRelayerRelayInterval")) {
+            require(valueLength == 32, "length of value for inTurnRelayerRelayInterval should be 32");
+            uint256 newInTurnRelayerRelayInterval = BytesToTypes.bytesToUint256(valueLength, value);
+            require(newInTurnRelayerRelayInterval >= 300 && newInTurnRelayerRelayInterval <= 1800, "the newInTurnRelayerRelayInterval should be [300, 1800 seconds] ");
+            inTurnRelayerRelayInterval = newInTurnRelayerRelayInterval;
+        } else {
+            require(false, "unknown param");
+        }
+        emit ParamChange(key, value);
     }
 }
