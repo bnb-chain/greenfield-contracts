@@ -82,6 +82,7 @@ contract CrossChain is Config, Initializable {
     event ParamChange(string key, bytes value);
     event EnableOrDisableChannel(uint8 indexed channelId, bool isEnable);
     event AddChannel(uint8 indexed channelId, address indexed contractAddr);
+    event RefundFeeTooLow(address indexed refundAddress, uint256 refundAmount);
 
     modifier onlyRegisteredContractChannel(uint8 channelId) {
         require(
@@ -126,6 +127,9 @@ contract CrossChain is Config, Initializable {
         require(TOKEN_HUB != address(0), "zero TOKEN_HUB");
         require(LIGHT_CLIENT != address(0), "zero LIGHT_CLIENT");
         require(RELAYER_HUB != address(0), "zero RELAYER_HUB");
+        require(BUCKET_HUB != address(0), "zero BUCKET_HUB");
+        require(OBJECT_HUB != address(0), "zero OBJECT_HUB");
+        require(GROUP_HUB != address(0), "zero GROUP_HUB");
 
         relayFee = 2e15;
         minAckRelayFee = 2e15;
@@ -140,8 +144,17 @@ contract CrossChain is Config, Initializable {
         channelHandlerMap[TRANSFER_OUT_CHANNEL_ID] = TOKEN_HUB;
         registeredContractChannelMap[TOKEN_HUB][TRANSFER_OUT_CHANNEL_ID] = true;
 
-        channelHandlerMap[GOV_CHANNELID] = GOV_HUB;
-        registeredContractChannelMap[GOV_HUB][GOV_CHANNELID] = true;
+        channelHandlerMap[GOV_CHANNEL_ID] = GOV_HUB;
+        registeredContractChannelMap[GOV_HUB][GOV_CHANNEL_ID] = true;
+
+        channelHandlerMap[BUCKET_CHANNEL_ID] = BUCKET_HUB;
+        registeredContractChannelMap[BUCKET_HUB][BUCKET_CHANNEL_ID] = true;
+
+        channelHandlerMap[OBJECT_CHANNEL_ID] = OBJECT_HUB;
+        registeredContractChannelMap[OBJECT_HUB][OBJECT_CHANNEL_ID] = true;
+
+        channelHandlerMap[GROUP_CHANNEL_ID] = GROUP_HUB;
+        registeredContractChannelMap[GROUP_HUB][GROUP_CHANNEL_ID] = true;
 
         callbackGasPrice = 6 gwei;
         batchSizeForOracle = 50;
@@ -244,38 +257,44 @@ contract CrossChain is Config, Initializable {
             address _refundAddress;
             // TODO: The _refundAddress will be placed on the communication layer after
             if (packageType == ACK_PACKAGE) {
-                try IMiddleLayer(_handler).handleAckPackage(channelId, sequence, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
+                try IMiddleLayer(_handler).handleAckPackage(channelId, sequence, packageLoad, _callbackGasLimit)
+                returns (uint256 remainingGas, address refundAddress) {
                     _refundFee = remainingGas * callbackGasPrice;
                     if (_refundFee > _maxCallbackFee) {
                         _refundFee = _maxCallbackFee;
                     }
                     _refundAddress = refundAddress;
-                }
-                catch Error(string memory reason) {
+                } catch Error(string memory reason) {
                     emit UnexpectedRevertInPackageHandler(_handler, reason);
                 } catch (bytes memory lowLevelData) {
                     emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
                 }
             } else if (packageType == FAIL_ACK_PACKAGE) {
-                try IMiddleLayer(_handler).handleFailAckPackage(channelId, sequence, packageLoad, _callbackGasLimit) returns (uint256 remainingGas, address refundAddress) {
+                try IMiddleLayer(_handler).handleFailAckPackage(channelId, sequence, packageLoad, _callbackGasLimit)
+                returns (uint256 remainingGas, address refundAddress) {
                     _refundFee = remainingGas * callbackGasPrice;
                     if (_refundFee > _maxCallbackFee) {
                         _refundFee = _maxCallbackFee;
                     }
                     _refundAddress = refundAddress;
-                }
-                catch Error(string memory reason) {
+                } catch Error(string memory reason) {
                     emit UnexpectedRevertInPackageHandler(_handler, reason);
                 } catch (bytes memory lowLevelData) {
                     emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
                 }
             } else {
                 // should not happen, still protect
-                revert('Unknown Package Type');
+                revert("Unknown Package Type");
             }
 
-            if (_refundFee > 0 && _refundAddress != address(0)) {
-                ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
+            if (_refundAddress != address(0)) {
+                if (_refundFee <= 2300 * callbackGasPrice) {
+                    // Refund cost is larger than the refund fee. Just ignore it and add to relayer reward
+                    _refundFee = 0;
+                    emit RefundFeeTooLow(_refundAddress, _refundFee);
+                } else {
+                    ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
+                }
             } else {
                 _refundFee = 0;
             }
@@ -317,10 +336,7 @@ contract CrossChain is Config, Initializable {
         }
     }
 
-    function updateParam(string calldata key, bytes calldata value)
-    onlyGov
-    whenNotSuspended
-    external {
+    function updateParam(string calldata key, bytes calldata value) external onlyGov whenNotSuspended {
         uint256 valueLength = value.length;
         if (Memory.compareStrings(key, "relayFee")) {
             require(valueLength == 32, "invalid relayFee value length");
@@ -330,20 +346,30 @@ contract CrossChain is Config, Initializable {
         } else if (Memory.compareStrings(key, "minAckRelayFee")) {
             require(valueLength == 32, "invalid minAckRelayFee value length");
             uint256 newMinAckRelayFee = BytesToTypes.bytesToUint256(valueLength, value);
-            require(newMinAckRelayFee <= 1 ether && newMinAckRelayFee > 0, "the newMinAckRelayFee should be in (0, 1 ether]");
+            require(
+                newMinAckRelayFee <= 1 ether && newMinAckRelayFee > 0, "the newMinAckRelayFee should be in (0, 1 ether]"
+            );
             minAckRelayFee = newMinAckRelayFee;
         } else if (Memory.compareStrings(key, "batchSizeForOracle")) {
             require(valueLength == 32, "invalid batchSizeForOracle value length");
             uint256 newBatchSizeForOracle = BytesToTypes.bytesToUint256(valueLength, value);
-            require(newBatchSizeForOracle <= 10000 && newBatchSizeForOracle >= 10, "the newBatchSizeForOracle should be in [10, 10000]");
+            require(
+                newBatchSizeForOracle <= 10000 && newBatchSizeForOracle >= 10,
+                "the newBatchSizeForOracle should be in [10, 10000]"
+            );
             batchSizeForOracle = newBatchSizeForOracle;
         } else if (Memory.compareStrings(key, "callbackGasPrice")) {
             require(valueLength == 32, "invalid callbackGasPrice value length");
             uint256 newCallbackGasPrice = BytesToTypes.bytesToUint256(valueLength, value);
-            require(newCallbackGasPrice > 0 && newCallbackGasPrice < 1000 gwei, "the newCallbackGasPrice should be in (0, 1000 gwei)");
+            require(
+                newCallbackGasPrice > 0 && newCallbackGasPrice < 1000 gwei,
+                "the newCallbackGasPrice should be in (0, 1000 gwei)"
+            );
             callbackGasPrice = newCallbackGasPrice;
         } else if (Memory.compareStrings(key, "addOrUpdateChannel")) {
-            require(valueLength == 21, "length of value for addOrUpdateChannel should be 21, channelId + handlerAddress");
+            require(
+                valueLength == 21, "length of value for addOrUpdateChannel should be 21, channelId + handlerAddress"
+            );
             bytes memory valueLocal = value;
             uint8 channelId;
             assembly {
@@ -361,7 +387,9 @@ contract CrossChain is Config, Initializable {
             emit AddChannel(channelId, handlerContract);
         } else if (Memory.compareStrings(key, "enableOrDisableChannel")) {
             bytes memory valueLocal = value;
-            require(valueLocal.length == 2, "length of value for enableOrDisableChannel should be 2, channelId:isEnable");
+            require(
+                valueLocal.length == 2, "length of value for enableOrDisableChannel should be 2, channelId:isEnable"
+            );
 
             uint8 channelId;
             assembly {
@@ -375,7 +403,8 @@ contract CrossChain is Config, Initializable {
 
             bool isEnable = (status == 1);
             address handlerContract = channelHandlerMap[channelId];
-            if (handlerContract != address(0x00)) { //channel existing
+            if (handlerContract != address(0x00)) {
+                //channel existing
                 registeredContractChannelMap[handlerContract][channelId] = isEnable;
                 emit EnableOrDisableChannel(channelId, isEnable);
             }
@@ -410,6 +439,7 @@ contract CrossChain is Config, Initializable {
     | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | SynRelayerFee | AckRelayerFee(optional) | PackageLoad |
     | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes      | 32 bytes / 0 bytes      |   len bytes |
     */
+
     function _checkPayload(bytes calldata payload)
         internal
         view
@@ -539,7 +569,12 @@ contract CrossChain is Config, Initializable {
         return (relayFee, minAckRelayFee);
     }
 
-    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+    function versionInfo()
+        external
+        pure
+        override
+        returns (uint256 version, string memory name, string memory description)
+    {
         return (200_001, "CrossChain", "init version");
     }
 }

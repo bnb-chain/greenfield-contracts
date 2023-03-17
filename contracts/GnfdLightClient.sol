@@ -260,7 +260,12 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         return val;
     }
 
-    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+    function versionInfo()
+        external
+        pure
+        override
+        returns (uint256 version, string memory name, string memory description)
+    {
         return (400_001, "GnfdLightClient", "init version");
     }
 

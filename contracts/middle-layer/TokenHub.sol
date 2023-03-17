@@ -104,7 +104,11 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256)
+        external
+        onlyCrossChain
+        returns (uint256 remainingGas, address refundAddress)
+    {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutAckPackage(msgBytes);
         } else {
@@ -120,7 +124,11 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256)
+        external
+        onlyCrossChain
+        returns (uint256 remainingGas, address refundAddress)
+    {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutFailAckPackage(msgBytes);
         } else {
@@ -131,7 +139,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
     }
 
     function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external onlyCrossChain {
-        (bool success, ) = _refundAddress.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: _refundFee}("");
+        (bool success,) = _refundAddress.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: _refundFee}("");
 
         if (success) {
             emit SuccessRefundCallbackFee(_refundAddress, _refundFee);
@@ -339,7 +347,12 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         return elements.encodeList();
     }
 
-    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+    function versionInfo()
+        external
+        pure
+        override
+        returns (uint256 version, string memory name, string memory description)
+    {
         return (300_001, "TokenHub", "init version");
     }
 }

@@ -1,13 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0.
+
 pragma solidity ^0.8.0;
 
 import "./TestDeployer.sol";
 import "../contracts/Deployer.sol";
 import "../contracts/CrossChain.sol";
 import "../contracts/GnfdProxy.sol";
-import "../contracts/GnfdProxyAdmin.sol";
 import "../contracts/GnfdLightClient.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/TokenHub.sol";
 
 contract DeployerTest is TestDeployer {
     Deployer deployer;
@@ -28,7 +27,7 @@ contract DeployerTest is TestDeployer {
     function test_deploy() public {
         address _deployer = _deployOnTestChain();
         deployer = Deployer(_deployer);
-        assert(deployer.deployed());
+        assertTrue(deployer.deployed());
     }
 }
 
