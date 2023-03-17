@@ -19,6 +19,8 @@ contract GovHub is Config, Initializable {
     /*----------------- constants -----------------*/
     uint8 public constant PARAM_UPDATE_MESSAGE_TYPE = 0;
 
+    uint32 public constant CODE_OK = 0;
+    uint32 public constant ERROR_FAIL_DECODE = 100;
     uint32 public constant ERROR_TARGET_NOT_CONTRACT = 101;
     uint32 public constant ERROR_TARGET_CONTRACT_FAIL = 102;
     uint32 public constant ERROR_INVALID_IMPLEMENTATION = 103;
@@ -39,8 +41,7 @@ contract GovHub is Config, Initializable {
     }
 
     /*----------------- external function -----------------*/
-    function initialize() public initializer {
-    }
+    function initialize() public initializer {}
 
     function handleSynPackage(uint8, bytes calldata msgBytes)
         external
@@ -60,12 +61,22 @@ contract GovHub is Config, Initializable {
     }
 
     // should not happen
-    function handleAckPackage(uint8, uint64, bytes calldata, uint256) external view onlyCrossChain returns (uint256, address) {
+    function handleAckPackage(uint8, uint64, bytes calldata, uint256)
+        external
+        view
+        onlyCrossChain
+        returns (uint256, address)
+    {
         revert("receive unexpected ack package");
     }
 
     // should not happen
-    function handleFailAckPackage(uint8, uint64, bytes calldata, uint256) external view onlyCrossChain returns (uint256, address) {
+    function handleFailAckPackage(uint8, uint64, bytes calldata, uint256)
+        external
+        view
+        onlyCrossChain
+        returns (uint256, address)
+    {
         revert("receive unexpected fail ack package");
     }
 
@@ -90,11 +101,14 @@ contract GovHub is Config, Initializable {
                 require(_isContract(target), "invalid target");
                 require(_isContract(newImpl), "invalid implementation value");
 
-                (lastVersion, lastName, ) = Config(target).upgradeInfo();
+                (lastVersion, lastName,) = Config(target).versionInfo();
                 IProxyAdmin(PROXY_ADMIN).upgrade(target, newImpl);
-                (newVersion, newName, ) = Config(target).upgradeInfo();
+                (newVersion, newName,) = Config(target).versionInfo();
                 require(newVersion == lastVersion + 1, "invalid upgrade version");
-                require(keccak256(abi.encodePacked(lastName)) == keccak256(abi.encodePacked(newName)), "invalid upgrade name");
+                require(
+                    keccak256(abi.encodePacked(lastName)) == keccak256(abi.encodePacked(newName)),
+                    "invalid upgrade name"
+                );
 
                 emit SuccessUpgrade(target, newImpl);
             }
@@ -117,8 +131,8 @@ contract GovHub is Config, Initializable {
         ParamChangePackage memory pkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
+        bool success;
+        uint256 idx;
         while (iter.hasNext()) {
             if (idx == 0) {
                 pkg.key = string(iter.next().toBytes());
@@ -135,7 +149,12 @@ contract GovHub is Config, Initializable {
         return (pkg, success);
     }
 
-    function upgradeInfo() external pure override returns (uint256 version, string memory name, string memory description) {
+    function versionInfo()
+        external
+        pure
+        override
+        returns (uint256 version, string memory name, string memory description)
+    {
         return (100_001, "GovHub", "init version");
     }
 }

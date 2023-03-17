@@ -18,7 +18,7 @@ const main = async () => {
     });
     await tx.wait(1);
 
-    const validators = contracts.initConsensusState.vals;
+    const validators = contracts.initConsensusState.validators;
     for (let i = 0; i < validators.length; i++) {
         const relayer = validators[i].relayerAddress;
         tx = await operator.sendTransaction({

@@ -19,7 +19,7 @@ contract TokenHubScript is Script {
         tokenHub = TokenHub(proxyTokenHub);
         uint256 privateKey = uint256(vm.envBytes32("DeployerPrivateKey"));
         address developer = vm.addr(privateKey);
-        console.log('developer', developer, developer.balance);
+        console.log("developer", developer, developer.balance);
 
         vm.startBroadcast();
         tokenHub.transferOut{value: amount + 1 ether}(receipt, amount);

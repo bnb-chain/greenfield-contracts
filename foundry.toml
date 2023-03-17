@@ -6,6 +6,7 @@ libs = ['lib']
 test = 'foundry-tests'
 script = 'foundry-scripts'
 fs_permissions = [{ access = "read", path = "./deployment/"}]
+fs_permissions = [{ access = "read-write", path = "./out" }]
 
 [profile.fmt]
 # These are all the `forge fmt` defaults.

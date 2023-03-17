@@ -23,8 +23,8 @@ library CmnPkg {
         CommonAckPackage memory ackPkg;
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
-        bool success = false;
-        uint256 idx = 0;
+        bool success;
+        uint256 idx;
         while (iter.hasNext()) {
             if (idx == 0) {
                 ackPkg.code = uint32(iter.next().toUint());

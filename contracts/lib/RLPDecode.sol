@@ -116,7 +116,11 @@ library RLPDecode {
             result := byte(0, mload(memPtr))
         }
 
-        return result == 0 ? false : true;
+        if (result == 0 || result == STRING_SHORT_START) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     function toAddress(RLPItem memory item) internal pure returns (address) {

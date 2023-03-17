@@ -13,13 +13,13 @@ const main = async () => {
     log('operator.address: ', operator.address, toHuman(balance));
 
     const tokenHub = (await ethers.getContractAt('TokenHub', contracts.TokenHub)) as TokenHub;
-    log('upgradeInfo', await tokenHub.upgradeInfo());
+    log('versionInfo', await tokenHub.versionInfo());
 
     const lightClient = (await ethers.getContractAt(
         'GnfdLightClient',
         contracts.LightClient
     )) as GnfdLightClient;
-    log(await lightClient.upgradeInfo());
+    log(await lightClient.versionInfo());
 };
 
 main()
