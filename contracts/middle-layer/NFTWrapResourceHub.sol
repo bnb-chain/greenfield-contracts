@@ -76,9 +76,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                 ackPkg.id = iter.next().toUint();
             } else if (idx == 2) {
                 ackPkg.creator = iter.next().toAddress();
-                success = true; // extraData is optional
             } else if (idx == 3) {
                 ackPkg.extraData = iter.next().toBytes();
+                success = true;
             } else {
                 break;
             }
@@ -128,9 +128,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                 ackPkg.status = uint32(iter.next().toUint());
             } else if (idx == 1) {
                 ackPkg.id = iter.next().toUint();
-                success = true; // extraData is optional
             } else if (idx == 2) {
                 ackPkg.extraData = iter.next().toBytes();
+                success = true;
             } else {
                 break;
             }
@@ -241,9 +241,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                 _extraData.refundAddress = iter.next().toAddress();
             } else if (idx == 2) {
                 _extraData.failureHandleStrategy = FailureHandleStrategy(uint8(iter.next().toUint()));
-                success = true; // the call back data can be empty
             } else if (idx == 3) {
                 _extraData.callbackData = iter.next().toBytes();
+                success = true;
             } else {
                 break;
             }

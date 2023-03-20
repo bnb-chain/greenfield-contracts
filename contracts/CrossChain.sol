@@ -17,7 +17,6 @@ contract CrossChain is Config, Initializable {
     uint8 public constant ACK_PACKAGE = 0x01;
     uint8 public constant FAIL_ACK_PACKAGE = 0x02;
 
-
     // 0xebbda044f67428d7e9b472f9124983082bcda4f84f5148ca0a9ccbe06350f196
     bytes32 public constant SUSPEND_PROPOSAL = keccak256("SUSPEND_PROPOSAL");
     // 0xcf82004e82990eca84a75e16ba08aa620238e076e0bc7fc4c641df44bbf5b55a
@@ -426,7 +425,10 @@ contract CrossChain is Config, Initializable {
         } else if (Memory.compareStrings(key, "inTurnRelayerValidityPeriod")) {
             require(valueLength == 32, "length of value for inTurnRelayerValidityPeriod should be 32");
             uint256 newInTurnRelayerValidityPeriod = BytesToTypes.bytesToUint256(valueLength, value);
-            require(newInTurnRelayerValidityPeriod >= 30 && newInTurnRelayerValidityPeriod <= 100, "the newInTurnRelayerValidityPeriod should be [30, 100 seconds] ");
+            require(
+                newInTurnRelayerValidityPeriod >= 30 && newInTurnRelayerValidityPeriod <= 100,
+                "the newInTurnRelayerValidityPeriod should be [30, 100 seconds] "
+            );
             inTurnRelayerValidityPeriod = newInTurnRelayerValidityPeriod;
         } else {
             require(false, "unknown param");
