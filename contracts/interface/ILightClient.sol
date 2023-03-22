@@ -3,10 +3,9 @@
 pragma solidity ^0.8.0;
 
 interface ILightClient {
-
     struct InturnRelayer {
         address addr;
-        bytes   blsKey;
+        bytes blsKey;
         uint256 start;
         uint256 end;
     }
@@ -18,5 +17,4 @@ interface ILightClient {
     function getRelayers() external view returns (address[] memory);
     function getInturnRelayer() external view returns (InturnRelayer memory);
     function getInturnRelayerAddress() external view returns (address);
-
 }

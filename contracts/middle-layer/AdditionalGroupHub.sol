@@ -68,6 +68,15 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
     event UpdateSuccess(address indexed operator, uint256 indexed id, uint8 opType);
     event UpdateFailed(address indexed operator, uint256 indexed id, uint8 opType);
 
+    /*----------------- external function -----------------*/
+
+    /**
+     * @dev grant some authorization to an account
+     *
+     * @param account The address of the account to be granted
+     * @param acCode The authorization code
+     * @param expireTime The expiration time of the authorization
+     */
     function grant(address account, uint32 acCode, uint256 expireTime) external {
         if (expireTime == 0) {
             expireTime = block.timestamp + 30 days; // 30 days in default
@@ -89,6 +98,12 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         require(acCode == 0, "invalid authorization code");
     }
 
+    /**
+     * @dev revoke some authorization from an account
+     *
+     * @param account The address of the account to be revoked
+     * @param acCode The authorization code
+     */
     function revoke(address account, uint32 acCode) external {
         if (acCode & AUTH_CODE_CREATE != 0) {
             acCode = acCode & ~AUTH_CODE_CREATE;
