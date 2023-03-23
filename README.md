@@ -1,7 +1,7 @@
 # Greenfield Contracts
 Greenfield Contracts is the bridge between GreenField and BSC for cross-chain communication.
 
-## Prepare
+## Requirement
 
 set environment
 ```shell
