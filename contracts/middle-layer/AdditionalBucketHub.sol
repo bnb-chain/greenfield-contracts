@@ -26,13 +26,19 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
     struct CreateSynPackage {
         address creator;
         string name;
-        bool isPublic;
+        VisibilityType visibility;
         address paymentAddress;
         address primarySpAddress;
         uint256 primarySpApprovalExpiredHeight;
         bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
         uint256 readQuota;
         bytes extraData; // rlp encode of ExtraData
+    }
+
+    enum VisibilityType {
+        PublicRead,
+        Private,
+        Default // If the bucket Visibility is default, it's finally set to private.
     }
 
     /*----------------- external function -----------------*/
@@ -241,7 +247,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         bytes[] memory elements = new bytes[](9);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = synPkg.isPublic.encodeBool();
+        elements[2] = uint256(synPkg.visibility).encodeUint();
         elements[3] = synPkg.paymentAddress.encodeAddress();
         elements[4] = synPkg.primarySpAddress.encodeAddress();
         elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();

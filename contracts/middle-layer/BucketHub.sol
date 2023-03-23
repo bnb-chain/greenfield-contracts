@@ -20,13 +20,19 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     struct CreateSynPackage {
         address creator;
         string name;
-        bool isPublic;
+        VisibilityType visibility;
         address paymentAddress;
         address primarySpAddress;
         uint256 primarySpApprovalExpiredHeight;
         bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
         uint256 readQuota;
         bytes extraData; // rlp encode of ExtraData
+    }
+
+    enum VisibilityType {
+        PublicRead,
+        Private,
+        Default // If the bucket Visibility is default, it's finally set to private.
     }
 
     function initialize(address _ERC721_token, address _additional) public initializer {
