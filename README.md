@@ -25,6 +25,12 @@ Install dependencies:
 make install-dependencies
 ```
 
+## Lint
+```shell
+yarn lint:check
+yarn lint:write
+```
+
 ## Build
 ```shell
 make build
