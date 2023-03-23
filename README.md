@@ -43,5 +43,6 @@ make test
 ```
 
 ## License
-The library is licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0),
-also included in our repository in the [LICENSE](LICENSE) file.
+The greenfield binaries (i.e. all code inside the `contracts` directory) is licensed under the
+[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html), also
+included in our repository in the `COPYING` file.
