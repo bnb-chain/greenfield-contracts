@@ -43,11 +43,10 @@ contract GovHub is Config, Initializable {
     /*----------------- external function -----------------*/
     function initialize() public initializer {}
 
-    function handleSynPackage(uint8, bytes calldata msgBytes)
-        external
-        onlyCrossChain
-        returns (bytes memory responsePayload)
-    {
+    function handleSynPackage(
+        uint8,
+        bytes calldata msgBytes
+    ) external onlyCrossChain returns (bytes memory responsePayload) {
         (ParamChangePackage memory proposal, bool success) = _decodeSynPackage(msgBytes);
         if (!success) {
             return CmnPkg.encodeCommonAckPackage(ERROR_FAIL_DECODE);
@@ -61,22 +60,22 @@ contract GovHub is Config, Initializable {
     }
 
     // should not happen
-    function handleAckPackage(uint8, uint64, bytes calldata, uint256)
-        external
-        view
-        onlyCrossChain
-        returns (uint256, address)
-    {
+    function handleAckPackage(
+        uint8,
+        uint64,
+        bytes calldata,
+        uint256
+    ) external view onlyCrossChain returns (uint256, address) {
         revert("receive unexpected ack package");
     }
 
     // should not happen
-    function handleFailAckPackage(uint8, uint64, bytes calldata, uint256)
-        external
-        view
-        onlyCrossChain
-        returns (uint256, address)
-    {
+    function handleFailAckPackage(
+        uint8,
+        uint64,
+        bytes calldata,
+        uint256
+    ) external view onlyCrossChain returns (uint256, address) {
         revert("receive unexpected fail ack package");
     }
 
@@ -101,9 +100,9 @@ contract GovHub is Config, Initializable {
                 require(_isContract(target), "invalid target");
                 require(_isContract(newImpl), "invalid implementation value");
 
-                (lastVersion, lastName,) = Config(target).versionInfo();
+                (lastVersion, lastName, ) = Config(target).versionInfo();
                 IProxyAdmin(PROXY_ADMIN).upgrade(target, newImpl);
-                (newVersion, newName,) = Config(target).versionInfo();
+                (newVersion, newName, ) = Config(target).versionInfo();
                 require(newVersion == lastVersion + 1, "invalid upgrade version");
                 require(
                     keccak256(abi.encodePacked(lastName)) == keccak256(abi.encodePacked(newName)),
@@ -118,8 +117,7 @@ contract GovHub is Config, Initializable {
         // update param
         require(totalTargets == 1, "Only single parameter update is allowed in a proposal");
         address _target = BytesToTypes.bytesToAddress(20, proposal.targets);
-        try IParamSubscriber(_target).updateParam(proposal.key, proposal.values) {}
-        catch (bytes memory reason) {
+        try IParamSubscriber(_target).updateParam(proposal.key, proposal.values) {} catch (bytes memory reason) {
             emit FailUpdateParam(reason);
             return ERROR_TARGET_CONTRACT_FAIL;
         }

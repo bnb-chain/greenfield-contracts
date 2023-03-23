@@ -143,7 +143,9 @@ library RLPDecode {
             result := mload(memPtr)
 
             // shfit to the correct location if neccesary
-            if lt(len, 32) { result := div(result, exp(256, sub(32, len))) }
+            if lt(len, 32) {
+                result := div(result, exp(256, sub(32, len)))
+            }
         }
 
         return result;
@@ -254,10 +256,10 @@ library RLPDecode {
     }
 
     /*
-    * @param src Pointer to source
-    * @param dest Pointer to destination
-    * @param len Amount of memory to copy from the source
-    */
+     * @param src Pointer to source
+     * @param dest Pointer to destination
+     * @param len Amount of memory to copy from the source
+     */
     function copy(uint256 src, uint256 dest, uint256 len) private pure {
         if (len == 0) {
             return;

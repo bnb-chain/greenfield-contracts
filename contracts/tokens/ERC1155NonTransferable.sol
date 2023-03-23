@@ -43,10 +43,12 @@ contract ERC1155NonTransferable is Context, ERC165, IERC1155NonTransferable {
         _mint(to, id, value, data);
     }
 
-    function mintBatch(address to, uint256[] memory ids, uint256[] memory values, bytes memory data)
-        public
-        onlyControlHub
-    {
+    function mintBatch(
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values,
+        bytes memory data
+    ) public onlyControlHub {
         _mintBatch(to, ids, values, data);
     }
 

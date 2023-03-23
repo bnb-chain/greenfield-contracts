@@ -83,11 +83,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
      */
-    function handleSynPackage(uint8 channelId, bytes calldata msgBytes)
-        external
-        onlyCrossChain
-        returns (bytes memory)
-    {
+    function handleSynPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChain returns (bytes memory) {
         if (channelId == TRANSFER_IN_CHANNEL_ID) {
             return _handleTransferInSynPackage(msgBytes);
         } else {
@@ -104,11 +100,12 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256)
-        external
-        onlyCrossChain
-        returns (uint256 remainingGas, address refundAddress)
-    {
+    function handleAckPackage(
+        uint8 channelId,
+        uint64 sequence,
+        bytes calldata msgBytes,
+        uint256
+    ) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutAckPackage(msgBytes);
         } else {
@@ -124,11 +121,12 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
      * @param channelId The channel for cross-chain communication
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      */
-    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256)
-        external
-        onlyCrossChain
-        returns (uint256 remainingGas, address refundAddress)
-    {
+    function handleFailAckPackage(
+        uint8 channelId,
+        uint64 sequence,
+        bytes calldata msgBytes,
+        uint256
+    ) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
             _handleTransferOutFailAckPackage(msgBytes);
         } else {
@@ -139,7 +137,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
     }
 
     function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external onlyCrossChain {
-        (bool success,) = _refundAddress.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: _refundFee}("");
+        (bool success, ) = _refundAddress.call{ gas: MAX_GAS_FOR_TRANSFER_BNB, value: _refundFee }("");
 
         if (success) {
             emit SuccessRefundCallbackFee(_refundAddress, _refundFee);
@@ -163,12 +161,18 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         );
         uint256 _ackRelayFee = msg.value - amount - relayFee;
 
-        TransferOutSynPackage memory transOutSynPkg =
-            TransferOutSynPackage({amount: amount, recipient: recipient, refundAddr: msg.sender});
+        TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage({
+            amount: amount,
+            recipient: recipient,
+            refundAddr: msg.sender
+        });
 
         address _crosschain = CROSS_CHAIN;
         ICrossChain(_crosschain).sendSynPackage(
-            TRANSFER_OUT_CHANNEL_ID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee
+            TRANSFER_OUT_CHANNEL_ID,
+            _encodeTransferOutSynPackage(transOutSynPkg),
+            relayFee,
+            _ackRelayFee
         );
         emit TransferOutSuccess(msg.sender, amount, relayFee, _ackRelayFee);
         return true;
@@ -182,7 +186,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         }
 
         if (actualAmount > 0) {
-            (bool success,) = msg.sender.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: actualAmount}("");
+            (bool success, ) = msg.sender.call{ gas: MAX_GAS_FOR_TRANSFER_BNB, value: actualAmount }("");
             require(success, "transfer bnb error");
             emit RewardTo(msg.sender, actualAmount);
         }
@@ -191,11 +195,9 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
     }
 
     /*----------------- internal function -----------------*/
-    function _decodeTransferInSynPackage(bytes memory msgBytes)
-        internal
-        pure
-        returns (TransferInSynPackage memory, bool)
-    {
+    function _decodeTransferInSynPackage(
+        bytes memory msgBytes
+    ) internal pure returns (TransferInSynPackage memory, bool) {
         TransferInSynPackage memory transInSynPkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
@@ -217,11 +219,9 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         return (transInSynPkg, success);
     }
 
-    function _encodeTransferInRefundPackage(TransferInRefundPackage memory transInAckPkg)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function _encodeTransferInRefundPackage(
+        TransferInRefundPackage memory transInAckPkg
+    ) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
         elements[0] = transInAckPkg.refundAmount.encodeUint();
         elements[1] = transInAckPkg.refundAddr.encodeAddress();
@@ -249,7 +249,9 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         if (address(this).balance < transInSynPkg.amount) {
             return TRANSFER_IN_FAILURE_INSUFFICIENT_BALANCE;
         }
-        (bool success,) = transInSynPkg.recipient.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: transInSynPkg.amount}("");
+        (bool success, ) = transInSynPkg.recipient.call{ gas: MAX_GAS_FOR_TRANSFER_BNB, value: transInSynPkg.amount }(
+            ""
+        );
         if (!success) {
             return TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT;
         }
@@ -257,11 +259,9 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         return TRANSFER_IN_SUCCESS;
     }
 
-    function _decodeTransferOutAckPackage(bytes memory msgBytes)
-        internal
-        pure
-        returns (TransferOutAckPackage memory, bool)
-    {
+    function _decodeTransferOutAckPackage(
+        bytes memory msgBytes
+    ) internal pure returns (TransferOutAckPackage memory, bool) {
         TransferOutAckPackage memory transOutAckPkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
@@ -290,8 +290,10 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
     }
 
     function _doRefund(TransferOutAckPackage memory transOutAckPkg) internal {
-        (bool success,) =
-            transOutAckPkg.refundAddr.call{gas: MAX_GAS_FOR_TRANSFER_BNB, value: transOutAckPkg.refundAmount}("");
+        (bool success, ) = transOutAckPkg.refundAddr.call{
+            gas: MAX_GAS_FOR_TRANSFER_BNB,
+            value: transOutAckPkg.refundAmount
+        }("");
         if (!success) {
             emit RefundFailure(transOutAckPkg.refundAddr, transOutAckPkg.refundAmount, transOutAckPkg.status);
         } else {
@@ -299,11 +301,9 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         }
     }
 
-    function _decodeTransferOutSynPackage(bytes memory msgBytes)
-        internal
-        pure
-        returns (TransferOutSynPackage memory, bool)
-    {
+    function _decodeTransferOutSynPackage(
+        bytes memory msgBytes
+    ) internal pure returns (TransferOutSynPackage memory, bool) {
         TransferOutSynPackage memory transOutSynPkg;
 
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
@@ -335,11 +335,9 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable {
         _doRefund(transOutAckPkg);
     }
 
-    function _encodeTransferOutSynPackage(TransferOutSynPackage memory transOutSynPkg)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function _encodeTransferOutSynPackage(
+        TransferOutSynPackage memory transOutSynPkg
+    ) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
         elements[0] = transOutSynPkg.amount.encodeUint();
         elements[1] = transOutSynPkg.recipient.encodeAddress();

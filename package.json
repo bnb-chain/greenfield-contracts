@@ -3,7 +3,7 @@
     "deploy:test": "npx hardhat run scripts/1-deploy.ts --network test",
     "lint:ts": "npx prettier --write scripts/** test/**",
     "lint:check": "npx prettier -c contracts/**",
-    "lint:write": "npx prettier --write 'contracts/*.sol contracts/**/*.sol'",
+    "lint:write": "npx prettier --write contracts/**",
     "build": "npx hardhat compile"
   },
   "dependencies": {

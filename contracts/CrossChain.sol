@@ -85,7 +85,8 @@ contract CrossChain is Config, Initializable {
 
     modifier onlyRegisteredContractChannel(uint8 channelId) {
         require(
-            registeredContractChannelMap[msg.sender][channelId], "the contract and channel have not been registered"
+            registeredContractChannelMap[msg.sender][channelId],
+            "the contract and channel have not been registered"
         );
         _;
     }
@@ -167,20 +168,23 @@ contract CrossChain is Config, Initializable {
         quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
     }
 
-    function encodePayload(uint8 packageType, uint256 _relayFee, uint256 _ackRelayFee, bytes memory msgBytes)
-        public
-        view
-        returns (bytes memory)
-    {
-        return packageType == SYN_PACKAGE
-            ? abi.encodePacked(packageType, uint64(block.timestamp), _relayFee, _ackRelayFee, msgBytes)
-            : abi.encodePacked(packageType, uint64(block.timestamp), _relayFee, msgBytes);
+    function encodePayload(
+        uint8 packageType,
+        uint256 _relayFee,
+        uint256 _ackRelayFee,
+        bytes memory msgBytes
+    ) public view returns (bytes memory) {
+        return
+            packageType == SYN_PACKAGE
+                ? abi.encodePacked(packageType, uint64(block.timestamp), _relayFee, _ackRelayFee, msgBytes)
+                : abi.encodePacked(packageType, uint64(block.timestamp), _relayFee, msgBytes);
     }
 
-    function handlePackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorsBitSet)
-        external
-        whenNotSuspended
-    {
+    function handlePackage(
+        bytes calldata _payload,
+        bytes calldata _blsSignature,
+        uint256 _validatorsBitSet
+    ) external whenNotSuspended {
         // 1. decode _payload
         // 1-1 check if the chainId is valid
         (
@@ -256,7 +260,8 @@ contract CrossChain is Config, Initializable {
             address _refundAddress;
             // TODO: The _refundAddress will be placed on the communication layer after
             if (packageType == ACK_PACKAGE) {
-                try IMiddleLayer(_handler).handleAckPackage(channelId, sequence, packageLoad, _callbackGasLimit)
+                try
+                    IMiddleLayer(_handler).handleAckPackage(channelId, sequence, packageLoad, _callbackGasLimit)
                 returns (uint256 remainingGas, address refundAddress) {
                     _refundFee = remainingGas * callbackGasPrice;
                     if (_refundFee > _maxCallbackFee) {
@@ -269,7 +274,8 @@ contract CrossChain is Config, Initializable {
                     emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
                 }
             } else if (packageType == FAIL_ACK_PACKAGE) {
-                try IMiddleLayer(_handler).handleFailAckPackage(channelId, sequence, packageLoad, _callbackGasLimit)
+                try
+                    IMiddleLayer(_handler).handleFailAckPackage(channelId, sequence, packageLoad, _callbackGasLimit)
                 returns (uint256 remainingGas, address refundAddress) {
                     _refundFee = remainingGas * callbackGasPrice;
                     if (_refundFee > _maxCallbackFee) {
@@ -301,10 +307,12 @@ contract CrossChain is Config, Initializable {
         }
     }
 
-    function sendSynPackage(uint8 channelId, bytes calldata msgBytes, uint256 _relayFee, uint256 _ackRelayFee)
-        external
-        onlyRegisteredContractChannel(channelId)
-    {
+    function sendSynPackage(
+        uint8 channelId,
+        bytes calldata msgBytes,
+        uint256 _relayFee,
+        uint256 _ackRelayFee
+    ) external onlyRegisteredContractChannel(channelId) {
         uint64 sendSequence = channelSendSequenceMap[channelId];
         _sendPackage(sendSequence, channelId, encodePayload(SYN_PACKAGE, _relayFee, _ackRelayFee, msgBytes));
         sendSequence++;
@@ -346,7 +354,8 @@ contract CrossChain is Config, Initializable {
             require(valueLength == 32, "invalid minAckRelayFee value length");
             uint256 newMinAckRelayFee = BytesToTypes.bytesToUint256(valueLength, value);
             require(
-                newMinAckRelayFee <= 1 ether && newMinAckRelayFee > 0, "the newMinAckRelayFee should be in (0, 1 ether]"
+                newMinAckRelayFee <= 1 ether && newMinAckRelayFee > 0,
+                "the newMinAckRelayFee should be in (0, 1 ether]"
             );
             minAckRelayFee = newMinAckRelayFee;
         } else if (Memory.compareStrings(key, "batchSizeForOracle")) {
@@ -367,7 +376,8 @@ contract CrossChain is Config, Initializable {
             callbackGasPrice = newCallbackGasPrice;
         } else if (Memory.compareStrings(key, "addOrUpdateChannel")) {
             require(
-                valueLength == 21, "length of value for addOrUpdateChannel should be 21, channelId + handlerAddress"
+                valueLength == 21,
+                "length of value for addOrUpdateChannel should be 21, channelId + handlerAddress"
             );
             bytes memory valueLocal = value;
             uint8 channelId;
@@ -387,7 +397,8 @@ contract CrossChain is Config, Initializable {
         } else if (Memory.compareStrings(key, "enableOrDisableChannel")) {
             bytes memory valueLocal = value;
             require(
-                valueLocal.length == 2, "length of value for enableOrDisableChannel should be 2, channelId:isEnable"
+                valueLocal.length == 2,
+                "length of value for enableOrDisableChannel should be 2, channelId:isEnable"
             );
 
             uint8 channelId;
@@ -436,13 +447,16 @@ contract CrossChain is Config, Initializable {
 
         emit ParamChange(key, value);
     }
+
     /*----------------- internal function -----------------*/
     /*
     | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | SynRelayerFee | AckRelayerFee(optional) | PackageLoad |
     | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes      | 32 bytes / 0 bytes      |   len bytes |
     */
 
-    function _checkPayload(bytes calldata payload)
+    function _checkPayload(
+        bytes calldata payload
+    )
         internal
         view
         returns (
