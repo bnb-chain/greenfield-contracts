@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
@@ -119,11 +119,11 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         return true;
     }
 
-    function verifyPackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorSetBitMap)
-        external
-        view
-        returns (bool)
-    {
+    function verifyPackage(
+        bytes calldata _payload,
+        bytes calldata _blsSignature,
+        uint256 _validatorSetBitMap
+    ) external view returns (bool) {
         require(_blsSignature.length == BLS_SIGNATURE_LENGTH, "invalid signature length");
 
         uint256 bitCount;
@@ -136,7 +136,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
                 input = abi.encodePacked(input, validatorSet[i].relayerBlsKey);
             }
         }
-        require(bitCount >= validatorSet.length * 2 / 3, "no majority validators");
+        require(bitCount >= (validatorSet.length * 2) / 3, "no majority validators");
 
         (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         return success && result.length > 0;

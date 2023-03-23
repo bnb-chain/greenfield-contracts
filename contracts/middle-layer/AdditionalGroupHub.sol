@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
@@ -139,10 +139,13 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         }
 
         // make sure the extra data is as expected
-        CreateSynPackage memory synPkg = CreateSynPackage({creator: owner, name: name, extraData: ""});
+        CreateSynPackage memory synPkg = CreateSynPackage({ creator: owner, name: name, extraData: "" });
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
+            GROUP_CHANNEL_ID,
+            _encodeCreateSynPackage(synPkg),
+            relayFee,
+            _ackRelayFee
         );
         emit CreateSubmitted(owner, msg.sender, name);
         return true;
@@ -158,11 +161,12 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time.
      */
-    function createGroup(address owner, string memory name, uint256 callbackGasLimit, ExtraData memory extraData)
-        external
-        payable
-        returns (bool)
-    {
+    function createGroup(
+        address owner,
+        string memory name,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable returns (bool) {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
@@ -181,15 +185,21 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        CreateSynPackage memory synPkg =
-            CreateSynPackage({creator: owner, name: name, extraData: _extraDataToBytes(extraData)});
+        CreateSynPackage memory synPkg = CreateSynPackage({
+            creator: owner,
+            name: name,
+            extraData: _extraDataToBytes(extraData)
+        });
 
         // check refund address
-        (bool success,) = extraData.refundAddress.call("");
+        (bool success, ) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address");
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID, _encodeCreateSynPackage(synPkg), relayFee, _ackRelayFee
+            GROUP_CHANNEL_ID,
+            _encodeCreateSynPackage(synPkg),
+            relayFee,
+            _ackRelayFee
         );
         emit CreateSubmitted(owner, msg.sender, name);
         return true;
@@ -209,19 +219,21 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
         if (
-            !(
-                msg.sender == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender
-                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender)
-            )
+            !(msg.sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
         ) {
             require(hasRole(ROLE_DELETE, owner, msg.sender), "no delete permission");
         }
 
         // make sure the extra data is as expected
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id, extraData: ""});
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
+            GROUP_CHANNEL_ID,
+            _encodeCmnDeleteSynPackage(synPkg),
+            relayFee,
+            _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
@@ -236,11 +248,11 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time.
      */
-    function deleteGroup(uint256 id, uint256 callbackGasLimit, ExtraData memory extraData)
-        external
-        payable
-        returns (bool)
-    {
+    function deleteGroup(
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable returns (bool) {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
@@ -255,25 +267,30 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
         if (
-            !(
-                msg.sender == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender
-                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender)
-            )
+            !(msg.sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
         ) {
             require(hasRole(ROLE_DELETE, owner, msg.sender), "no delete permission");
         }
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        CmnDeleteSynPackage memory synPkg =
-            CmnDeleteSynPackage({operator: owner, id: id, extraData: _extraDataToBytes(extraData)});
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
+            operator: owner,
+            id: id,
+            extraData: _extraDataToBytes(extraData)
+        });
 
         // check refund address
-        (bool success,) = extraData.refundAddress.call("");
+        (bool success, ) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
+            GROUP_CHANNEL_ID,
+            _encodeCmnDeleteSynPackage(synPkg),
+            relayFee,
+            _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
@@ -293,10 +310,9 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
         if (
-            !(
-                msg.sender == owner || IERC721NonTransferable(ERC721Token).getApproved(synPkg.id) == msg.sender
-                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender)
-            )
+            !(msg.sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(synPkg.id) == msg.sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
         ) {
             require(hasRole(ROLE_UPDATE, owner, msg.sender), "no update permission");
         }
@@ -305,7 +321,10 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         synPkg.extraData = "";
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
+            GROUP_CHANNEL_ID,
+            _encodeUpdateSynPackage(synPkg),
+            relayFee,
+            _ackRelayFee
         );
         emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
         return true;
@@ -320,11 +339,11 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time.
      */
-    function updateGroup(UpdateSynPackage memory synPkg, uint256 callbackGasLimit, ExtraData memory extraData)
-        external
-        payable
-        returns (bool)
-    {
+    function updateGroup(
+        UpdateSynPackage memory synPkg,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable returns (bool) {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
@@ -339,10 +358,9 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
         if (
-            !(
-                msg.sender == owner || IERC721NonTransferable(ERC721Token).getApproved(synPkg.id) == msg.sender
-                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender)
-            )
+            !(msg.sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(synPkg.id) == msg.sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
         ) {
             require(hasRole(ROLE_UPDATE, owner, msg.sender), "no update permission");
         }
@@ -352,11 +370,14 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         synPkg.extraData = _extraDataToBytes(extraData);
 
         // check refund address
-        (bool success,) = extraData.refundAddress.call("");
+        (bool success, ) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID, _encodeUpdateSynPackage(synPkg), relayFee, _ackRelayFee
+            GROUP_CHANNEL_ID,
+            _encodeUpdateSynPackage(synPkg),
+            relayFee,
+            _ackRelayFee
         );
         emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
         return true;
