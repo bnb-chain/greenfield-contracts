@@ -162,7 +162,7 @@ contract CrossChain is Config, Initializable {
         oracleSequence = -1;
         previousTxHeight = 0;
         txCounter = 0;
-        inTurnRelayerValidityPeriod = 30 seconds;
+        inTurnRelayerValidityPeriod = 45 seconds;
         quorumMap[SUSPEND_PROPOSAL] = 1;
         quorumMap[REOPEN_PROPOSAL] = 2;
         quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
