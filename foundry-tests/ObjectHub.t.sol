@@ -22,8 +22,8 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-    event ReceivedAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
-    event ReceivedFailAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
+    event ReceivedAckPkg(uint8 channelId, bytes callbackData);
+    event ReceivedFailAckPkg(uint8 channelId, bytes callbackData);
 
     ERC721NonTransferable public objectToken;
     ObjectHub public objectHub;
@@ -154,7 +154,7 @@ contract ObjectHubTest is Test, ObjectHub {
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
 
         vm.expectEmit(false, false, false, false, address(this));
-        emit ReceivedAckPkg(OBJECT_CHANNEL_ID, msgBytes, "");
+        emit ReceivedAckPkg(OBJECT_CHANNEL_ID, "");
         vm.prank(CROSS_CHAIN);
         objectHub.handleAckPackage(OBJECT_CHANNEL_ID, sequence, msgBytes, 5000);
     }
@@ -175,7 +175,7 @@ contract ObjectHubTest is Test, ObjectHub {
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
 
         vm.expectEmit(false, false, false, false, address(this));
-        emit ReceivedFailAckPkg(OBJECT_CHANNEL_ID, msgBytes, "");
+        emit ReceivedFailAckPkg(OBJECT_CHANNEL_ID, "");
         vm.prank(CROSS_CHAIN);
         objectHub.handleFailAckPackage(OBJECT_CHANNEL_ID, sequence, msgBytes, 5000);
     }
@@ -223,14 +223,13 @@ contract ObjectHubTest is Test, ObjectHub {
         objectHub.retryPackage();
     }
 
-    /*----------------- middle-layer app function -----------------*/
-    // override the function in GroupHub
-    function handleAckPackage(uint8 channelId, bytes calldata ackPkg, bytes calldata callbackData) external {
-        emit ReceivedAckPkg(channelId, ackPkg, callbackData);
+    /*----------------- dApp function -----------------*/
+    function handleAckPackage(uint8 channelId, CmnDeleteAckPackage memory, bytes calldata callbackData) external {
+        emit ReceivedAckPkg(channelId, callbackData);
     }
 
-    function handleFailAckPackage(uint8 channelId, bytes calldata failPkg, bytes calldata callbackData) external {
-        emit ReceivedFailAckPkg(channelId, failPkg, callbackData);
+    function handleFailAckPackage(uint8 channelId, CmnDeleteSynPackage memory, bytes calldata callbackData) external {
+        emit ReceivedFailAckPkg(channelId, callbackData);
     }
 
     /*----------------- Internal function -----------------*/

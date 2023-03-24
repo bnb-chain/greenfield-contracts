@@ -253,7 +253,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, UPDATE_GROUP_ACK, pkgBytes, extraData.callbackData, true, reason
+                            extraData.appAddress, UPDATE_GROUP_ACK, pkgBytes, extraData.callbackData, false, reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }

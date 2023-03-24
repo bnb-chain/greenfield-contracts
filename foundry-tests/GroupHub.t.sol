@@ -24,8 +24,8 @@ contract GroupHubTest is Test, GroupHub {
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
     event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
-    event ReceivedAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
-    event ReceivedFailAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
+    event ReceivedAckPkg(uint8 channelId, bytes callbackData);
+    event ReceivedFailAckPkg(uint8 channelId, bytes callbackData);
 
     ERC721NonTransferable public groupToken;
     ERC1155NonTransferable public memberToken;
@@ -128,14 +128,14 @@ contract GroupHubTest is Test, GroupHub {
         for (uint256 i; i < 3; i++) {
             newMembers[i] = address(uint160(i + 1));
         }
-        UpdateSynPackage memory synPkg =
-            UpdateSynPackage({operator: address(this), id: id, opType: UPDATE_ADD, members: newMembers, extraData: ""});
+        UpdateGroupSynPackage memory synPkg =
+            UpdateGroupSynPackage({operator: address(this), id: id, opType: UPDATE_ADD, members: newMembers, extraData: ""});
 
         vm.expectEmit(true, true, true, true, address(groupHub));
         emit UpdateSubmitted(address(this), address(this), id, UPDATE_ADD, newMembers);
         groupHub.updateGroup{value: 4e15}(synPkg);
 
-        UpdateAckPackage memory updateAckPkg = UpdateAckPackage({
+        UpdateGroupAckPackage memory updateAckPkg = UpdateGroupAckPackage({
             status: STATUS_SUCCESS,
             operator: address(this),
             id: id,
@@ -143,7 +143,7 @@ contract GroupHubTest is Test, GroupHub {
             members: newMembers,
             extraData: ""
         });
-        bytes memory msgBytes = _encodeUpdateAckPackage(updateAckPkg);
+        bytes memory msgBytes = _encodeUpdateGroupAckPackage(updateAckPkg);
 
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
         vm.expectEmit(true, true, true, true, address(memberToken));
@@ -212,7 +212,7 @@ contract GroupHubTest is Test, GroupHub {
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
 
         vm.expectEmit(false, false, false, false, address(this));
-        emit ReceivedAckPkg(GROUP_CHANNEL_ID, msgBytes, "");
+        emit ReceivedAckPkg(GROUP_CHANNEL_ID, "");
         vm.prank(CROSS_CHAIN);
         groupHub.handleAckPackage(GROUP_CHANNEL_ID, sequence, msgBytes, 5000);
     }
@@ -224,13 +224,13 @@ contract GroupHubTest is Test, GroupHub {
             failureHandleStrategy: FailureHandleStrategy.BlockOnFail,
             callbackData: ""
         });
-        CreateSynPackage memory synPkg =
-            CreateSynPackage({creator: address(this), name: "test", extraData: _extraDataToBytes(extraData)});
-        bytes memory msgBytes = _encodeCreateSynPackage(synPkg);
+        CreateGroupSynPackage memory synPkg =
+            CreateGroupSynPackage({creator: address(this), name: "test", extraData: _extraDataToBytes(extraData)});
+        bytes memory msgBytes = _encodeCreateGroupSynPackage(synPkg);
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
 
         vm.expectEmit(false, false, false, false, address(this));
-        emit ReceivedFailAckPkg(GROUP_CHANNEL_ID, msgBytes, "");
+        emit ReceivedFailAckPkg(GROUP_CHANNEL_ID, "");
         vm.prank(CROSS_CHAIN);
         groupHub.handleFailAckPackage(GROUP_CHANNEL_ID, sequence, msgBytes, 5000);
     }
@@ -274,14 +274,13 @@ contract GroupHubTest is Test, GroupHub {
         groupHub.retryPackage();
     }
 
-    /*----------------- middle-layer app function -----------------*/
-    // override the function in GroupHub
-    function handleAckPackage(uint8 channelId, bytes calldata ackPkg, bytes calldata callbackData) external {
-        emit ReceivedAckPkg(channelId, ackPkg, callbackData);
+    /*----------------- dApp function -----------------*/
+    function handleAckPackage(uint8 channelId, CmnCreateAckPackage memory, bytes calldata callbackData) external {
+        emit ReceivedAckPkg(channelId, callbackData);
     }
 
-    function handleFailAckPackage(uint8 channelId, bytes calldata failPkg, bytes calldata callbackData) external {
-        emit ReceivedFailAckPkg(channelId, failPkg, callbackData);
+    function handleFailAckPackage(uint8 channelId, CreateGroupSynPackage memory, bytes calldata callbackData) external {
+        emit ReceivedFailAckPkg(channelId, callbackData);
     }
 
     /*----------------- Internal function -----------------*/
@@ -358,7 +357,7 @@ contract GroupHubTest is Test, GroupHub {
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 
-    function _encodeUpdateAckPackage(UpdateAckPackage memory ackPkg) internal pure returns (bytes memory) {
+    function _encodeUpdateGroupAckPackage(UpdateGroupAckPackage memory ackPkg) internal pure returns (bytes memory) {
         bytes[] memory members = new bytes[](ackPkg.members.length);
         for (uint256 i; i < ackPkg.members.length; ++i) {
             members[i] = ackPkg.members[i].encodeAddress();
@@ -374,8 +373,8 @@ contract GroupHubTest is Test, GroupHub {
         return _RLPEncode(TYPE_UPDATE, elements.encodeList());
     }
 
-    function _encodeUpdateAckPackage(
-        UpdateAckPackage memory ackPkg,
+    function _encodeUpdateGroupAckPackage(
+        UpdateGroupAckPackage memory ackPkg,
         address refundAddr,
         FailureHandleStrategy failStrategy
     ) internal view returns (bytes memory) {
@@ -401,7 +400,7 @@ contract GroupHubTest is Test, GroupHub {
         return _RLPEncode(TYPE_UPDATE, elements.encodeList());
     }
 
-    function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
+    function _encodeCreateGroupSynPackage(CreateGroupSynPackage memory synPkg) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();

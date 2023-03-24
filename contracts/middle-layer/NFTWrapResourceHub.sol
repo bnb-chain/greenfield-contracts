@@ -111,7 +111,7 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, CMN_CREATE_ACK, pkgBytes, extraData.callbackData, true, reason
+                            extraData.appAddress, CMN_CREATE_ACK, pkgBytes, extraData.callbackData, false, reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -169,7 +169,7 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, CMN_DELETE_ACK, pkgBytes, extraData.callbackData, true, reason
+                            extraData.appAddress, CMN_DELETE_ACK, pkgBytes, extraData.callbackData, false, reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -231,8 +231,13 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
     }
 
     function _doMirror(CmnMirrorSynPackage memory synPkg) internal virtual returns (uint32) {
-        try IERC721NonTransferable(ERC721Token).mint(synPkg.owner, synPkg.id) {} catch (bytes memory reason) {
-            emit MirrorFailed(synPkg.id, synPkg.owner, reason);
+        try IERC721NonTransferable(ERC721Token).mint(
+            synPkg.owner, synPkg.id
+        ) {} catch Error(string memory error) {
+            emit MirrorFailed(synPkg.id, synPkg.owner, bytes(error));
+            return STATUS_FAILED;
+        } catch (bytes memory lowLevelData) {
+            emit MirrorFailed(synPkg.id, synPkg.owner, lowLevelData);
             return STATUS_FAILED;
         }
         emit MirrorSuccess(synPkg.id, synPkg.owner);
