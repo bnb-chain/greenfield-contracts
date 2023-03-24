@@ -2,48 +2,49 @@
 
 pragma solidity ^0.8.0;
 
-import "../middle-layer/NFTWrapResourceStorage.sol";
+import "../middle-layer/resource-mirror/storage/BucketStorage.sol";
+import "../middle-layer/resource-mirror/storage/GroupStorage.sol";
 
 interface IApplication {
     function handleAckPackage(
         uint8 channelId,
-        NFTWrapResourceStorage.CmnCreateAckPackage calldata ackPkg,
+        CmnStorage.CmnCreateAckPackage calldata ackPkg,
         bytes calldata callbackData
     ) external;
 
     function handleAckPackage(
         uint8 channelId,
-        NFTWrapResourceStorage.CmnDeleteAckPackage calldata ackPkg,
+        CmnStorage.CmnDeleteAckPackage calldata ackPkg,
         bytes calldata callbackData
     ) external;
 
     function handleAckPackage(
         uint8 channelId,
-        NFTWrapResourceStorage.UpdateGroupAckPackage calldata ackPkg,
+        GroupStorage.UpdateGroupAckPackage calldata ackPkg,
         bytes calldata callbackData
     ) external;
 
     function handleFailAckPackage(
         uint8 channelId,
-        NFTWrapResourceStorage.CmnDeleteSynPackage calldata deleteSynPkg,
+        CmnStorage.CmnDeleteSynPackage calldata deleteSynPkg,
         bytes calldata callbackData
     ) external;
 
     function handleFailAckPackage(
         uint8 channelId,
-        NFTWrapResourceStorage.CreateBucketSynPackage calldata createBucketSynPkg,
+        BucketStorage.CreateBucketSynPackage calldata createBucketSynPkg,
         bytes calldata callbackData
     ) external;
 
     function handleFailAckPackage(
         uint8 channelId,
-        NFTWrapResourceStorage.CreateGroupSynPackage calldata createGroupSynPkg,
+        GroupStorage.CreateGroupSynPackage calldata createGroupSynPkg,
         bytes calldata callbackData
     ) external;
 
     function handleFailAckPackage(
         uint8 channelId,
-        NFTWrapResourceStorage.UpdateGroupSynPackage calldata updateGroupSynPkg,
+        GroupStorage.UpdateGroupSynPackage calldata updateGroupSynPkg,
         bytes calldata callbackData
     ) external;
 }

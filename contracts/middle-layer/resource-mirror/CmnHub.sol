@@ -4,26 +4,16 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./NFTWrapResourceStorage.sol";
-import "../lib/BytesToTypes.sol";
-import "../lib/Memory.sol";
-import "../lib/RLPDecode.sol";
-import "../lib/RLPEncode.sol";
-import "../interface/IAccessControl.sol";
-import "../interface/IApplication.sol";
-import "../interface/IERC721NonTransferable.sol";
+import "./storage/CmnStorage.sol";
+import "./rlp/CmnRlp.sol";
+import "../../lib/Memory.sol";
+import "../../interface/IAccessControl.sol";
+import "../../interface/IApplication.sol";
+import "../../interface/IERC721NonTransferable.sol";
 
 // DO NOT define any state variables in this contract.
-abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
+abstract contract CmnHub is CmnStorage, Initializable {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
-    using RLPEncode for *;
-    using RLPDecode for *;
-
-    /*----------------- modifier -----------------*/
-    modifier onlyGovHub() {
-        require(msg.sender == GOV_HUB, "only GovHub contract");
-        _;
-    }
 
     /*----------------- middle-layer function -----------------*/
     // need to be implemented in child contract
@@ -57,7 +47,7 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
     }
 
     /*----------------- update param -----------------*/
-    function updateParam(string calldata key, bytes calldata value) external virtual onlyGovHub {
+    function updateParam(string calldata key, bytes calldata value) external virtual onlyGov {
         if (Memory.compareStrings(key, "BaseURI")) {
             IERC721NonTransferable(ERC721Token).setBaseURI(string(value));
         } else {
@@ -72,7 +62,7 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal virtual returns (uint256 remainingGas, address refundAddress) {
-        (CmnCreateAckPackage memory ackPkg, bool success) = _decodeCmnCreateAckPackage(pkgBytes);
+        (CmnCreateAckPackage memory ackPkg, bool success) = CmnRlp(rlp).decodeCmnCreateAckPackage(pkgBytes);
         require(success, "unrecognized create ack package");
 
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -85,7 +75,7 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
 
         if (ackPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = _bytesToExtraData(ackPkg.extraData);
+            (extraData, success) = CmnRlp(rlp).decodeExtraData(ackPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -140,7 +130,7 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal virtual returns (uint256 remainingGas, address refundAddress) {
-        (CmnDeleteAckPackage memory ackPkg, bool success) = _decodeCmnDeleteAckPackage(pkgBytes);
+        (CmnDeleteAckPackage memory ackPkg, bool success) = CmnRlp(rlp).decodeCmnDeleteAckPackage(pkgBytes);
         require(success, "unrecognized delete ack package");
 
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -153,7 +143,7 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
 
         if (ackPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = _bytesToExtraData(ackPkg.extraData);
+            (extraData, success) = CmnRlp(rlp).decodeExtraData(ackPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -203,51 +193,13 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         emit DeleteSuccess(id);
     }
 
-    function _decodeCmnMirrorSynPackage(
-        bytes memory msgBytes
-    ) internal pure returns (CmnMirrorSynPackage memory, bool success) {
-        CmnMirrorSynPackage memory synPkg;
-
-        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
-        uint8 opType = uint8(msgIter.next().toUint());
-        require(opType == TYPE_MIRROR, "wrong syn operation type");
-
-        RLPDecode.Iterator memory pkgIter;
-        if (msgIter.hasNext()) {
-            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
-        } else {
-            revert("wrong syn package");
-        }
-
-        uint256 idx;
-        while (pkgIter.hasNext()) {
-            if (idx == 0) {
-                synPkg.id = pkgIter.next().toUint();
-            } else if (idx == 1) {
-                synPkg.owner = pkgIter.next().toAddress();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (synPkg, success);
-    }
-
-    function _encodeCmnMirrorAckPackage(CmnMirrorAckPackage memory mirrorAckPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = uint256(mirrorAckPkg.status).encodeUint();
-        elements[1] = mirrorAckPkg.id.encodeUint();
-        return _RLPEncode(TYPE_MIRROR, elements.encodeList());
-    }
-
     function _handleMirrorSynPackage(bytes memory msgBytes) internal virtual returns (bytes memory) {
-        (CmnMirrorSynPackage memory synPkg, bool success) = _decodeCmnMirrorSynPackage(msgBytes);
+        (CmnMirrorSynPackage memory synPkg, bool success) = CmnRlp(rlp).decodeCmnMirrorSynPackage(msgBytes);
         require(success, "unrecognized mirror package");
 
         uint32 status = _doMirror(synPkg);
         CmnMirrorAckPackage memory mirrorAckPkg = CmnMirrorAckPackage({ status: status, id: synPkg.id });
-        return _encodeCmnMirrorAckPackage(mirrorAckPkg);
+        return CmnRlp(rlp).encodeCmnMirrorAckPackage(mirrorAckPkg);
     }
 
     function _doMirror(CmnMirrorSynPackage memory synPkg) internal virtual returns (uint32) {
@@ -267,12 +219,12 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal virtual returns (uint256 remainingGas, address refundAddress) {
-        (CmnDeleteSynPackage memory synPkg, bool success) = _decodeCmnDeleteSynPackage(pkgBytes);
+        (CmnDeleteSynPackage memory synPkg, bool success) = CmnRlp(rlp).decodeCmnDeleteSynPackage(pkgBytes);
         require(success, "unrecognized delete fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = _bytesToExtraData(synPkg.extraData);
+            (extraData, success) = CmnRlp(rlp).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -314,29 +266,6 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                     }
                 }
             }
-        }
-    }
-
-    function _bytesToExtraData(
-        bytes memory _extraDataBytes
-    ) internal pure returns (ExtraData memory _extraData, bool success) {
-        RLPDecode.Iterator memory iter = _extraDataBytes.toRLPItem().iterator();
-
-        uint256 idx;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                _extraData.appAddress = iter.next().toAddress();
-            } else if (idx == 1) {
-                _extraData.refundAddress = iter.next().toAddress();
-            } else if (idx == 2) {
-                _extraData.failureHandleStrategy = FailureHandleStrategy(uint8(iter.next().toUint()));
-            } else if (idx == 3) {
-                _extraData.callbackData = iter.next().toBytes();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
         }
     }
 

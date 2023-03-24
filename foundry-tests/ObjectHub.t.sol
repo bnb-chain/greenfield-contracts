@@ -4,12 +4,13 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/CrossChain.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/ObjectHub.sol";
-import "../contracts/tokens/ERC721NonTransferable.sol";
-import "../contracts/lib/RLPDecode.sol";
-import "../contracts/lib/RLPEncode.sol";
+import "contracts/CrossChain.sol";
+import "contracts/middle-layer/GovHub.sol";
+import "contracts/middle-layer/resource-mirror/ObjectHub.sol";
+import "contracts/tokens/ERC721NonTransferable.sol";
+import "contracts/lib/RLPDecode.sol";
+import "contracts/lib/RLPEncode.sol";
+import "contracts/interface/IObjectRlp.sol";
 
 contract ObjectHubTest is Test, ObjectHub {
     using RLPEncode for *;
@@ -39,6 +40,7 @@ contract ObjectHubTest is Test, ObjectHub {
         crossChain = CrossChain(CROSS_CHAIN);
         objectHub = ObjectHub(OBJECT_HUB);
         objectToken = ERC721NonTransferable(objectHub.ERC721Token());
+        rlp = objectHub.rlp();
 
         vm.label(GOV_HUB, "govHub");
         vm.label(OBJECT_HUB, "objectHub");
@@ -170,8 +172,8 @@ contract ObjectHubTest is Test, ObjectHub {
             callbackData: ""
         });
         CmnDeleteSynPackage memory synPkg =
-            CmnDeleteSynPackage({operator: address(this), id: 0, extraData: _extraDataToBytes(extraData)});
-        bytes memory msgBytes = _encodeCmnDeleteSynPackage(synPkg);
+            CmnDeleteSynPackage({operator: address(this), id: 0, extraData: IObjectRlp(rlp).encodeExtraData(extraData)});
+        bytes memory msgBytes = IObjectRlp(rlp).encodeCmnDeleteSynPackage(synPkg);
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
 
         vm.expectEmit(false, false, false, false, address(this));
@@ -241,19 +243,19 @@ contract ObjectHubTest is Test, ObjectHub {
         return elements.encodeList();
     }
 
-    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal pure returns (bytes memory) {
+    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = synPkg.id.encodeUint();
         elements[1] = synPkg.owner.encodeAddress();
-        return _RLPEncode(TYPE_MIRROR, elements.encodeList());
+        return IObjectRlp(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
     }
 
-    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
+    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = "".encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
+        return IObjectRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id, address refundAddr, FailureHandleStrategy failStrategy)
@@ -271,15 +273,7 @@ contract ObjectHubTest is Test, ObjectHub {
         bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        elements[2] = _extraDataToBytes(extraData).encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
-    }
-
-    function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        elements[2] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
+        elements[2] = IObjectRlp(rlp).encodeExtraData(extraData).encodeBytes();
+        return IObjectRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 }

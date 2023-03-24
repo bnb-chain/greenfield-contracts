@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/GnfdLightClient.sol";
+import "contracts/GnfdLightClient.sol";
 
 contract GnfdLightClientTest is Test {
     address private developer = 0x0000000000000000000000000000000012345678;

@@ -5,50 +5,32 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./AccessControl.sol";
-import "./NFTWrapResourceHub.sol";
-import "../interface/ICrossChain.sol";
-import "../interface/IERC1155NonTransferable.sol";
-import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPDecode.sol";
-import "../lib/RLPEncode.sol";
+import "./CmnHub.sol";
+import "./storage/GroupStorage.sol";
+import "../../interface/IERC1155NonTransferable.sol";
+import "../../interface/IERC721NonTransferable.sol";
+import "../../interface/IGroupRlp.sol";
 
-contract GroupHub is NFTWrapResourceHub, AccessControl {
+contract GroupHub is GroupStorage, AccessControl, CmnHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
 
-    /*----------------- constants -----------------*/
-    // operation type
-    uint8 public constant TYPE_UPDATE = 4;
-
-    // update type
-    uint8 public constant UPDATE_ADD = 1;
-    uint8 public constant UPDATE_DELETE = 2;
-
-    // authorization code
-    uint32 public constant AUTH_CODE_UPDATE = 4; // 0100
-
-    // role
-    bytes32 public constant ROLE_UPDATE = keccak256("ROLE_UPDATE");
-
-    // package type
-    bytes32 public constant CREATE_GROUP_SYN = keccak256("CREATE_GROUP_SYN");
-    bytes32 public constant UPDATE_GROUP_SYN = keccak256("UPDATE_GROUP_SYN");
-    bytes32 public constant UPDATE_GROUP_ACK = keccak256("UPDATE_GROUP_ACK");
-
-    // ERC1155 token contract
-    address public ERC1155Token;
-
-    function initialize(address _ERC721_token, address _ERC1155_token, address _additional) public initializer {
+    function initialize(
+        address _ERC721_token,
+        address _ERC1155_token,
+        address _additional,
+        address _groupRlp
+    ) public initializer {
         ERC721Token = _ERC721_token;
         ERC1155Token = _ERC1155_token;
         additional = _additional;
+        rlp = _groupRlp;
 
         channelId = GROUP_CHANNEL_ID;
     }
 
     /*----------------- middle-layer app function -----------------*/
-
     /**
      * @dev handle sync cross-chain package from BSC to GNFD
      *
@@ -163,7 +145,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- update param -----------------*/
-    function updateParam(string calldata key, bytes calldata value) external override onlyGovHub {
+    function updateParam(string calldata key, bytes calldata value) external override onlyGov {
         if (Memory.compareStrings(key, "ERC721BaseURI")) {
             IERC721NonTransferable(ERC721Token).setBaseURI(string(value));
         } else if (Memory.compareStrings(key, "ERC1155BaseURI")) {
@@ -175,47 +157,12 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- internal function -----------------*/
-    function _decodeUpdateGroupAckPackage(
-        bytes memory pkgBytes
-    ) internal pure returns (UpdateGroupAckPackage memory, bool) {
-        UpdateGroupAckPackage memory ackPkg;
-        RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
-
-        bool success;
-        uint256 idx;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                ackPkg.status = uint32(iter.next().toUint());
-            } else if (idx == 1) {
-                ackPkg.id = iter.next().toUint();
-            } else if (idx == 2) {
-                ackPkg.operator = iter.next().toAddress();
-            } else if (idx == 3) {
-                ackPkg.opType = uint8(iter.next().toUint());
-            } else if (idx == 4) {
-                RLPDecode.RLPItem[] memory membersIter = iter.next().toList();
-                address[] memory members = new address[](membersIter.length);
-                for (uint256 i; i < membersIter.length; ++i) {
-                    members[i] = membersIter[i].toAddress();
-                }
-                ackPkg.members = members;
-            } else if (idx == 5) {
-                ackPkg.extraData = iter.next().toBytes();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (ackPkg, success);
-    }
-
     function _handleUpdateGroupAckPackage(
         bytes memory pkgBytes,
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (UpdateGroupAckPackage memory ackPkg, bool success) = _decodeUpdateGroupAckPackage(pkgBytes);
+        (UpdateGroupAckPackage memory ackPkg, bool success) = IGroupRlp(rlp).decodeUpdateGroupAckPackage(pkgBytes);
         require(success, "unrecognized update ack package");
 
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -228,7 +175,7 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
 
         if (ackPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = _bytesToExtraData(ackPkg.extraData);
+            (extraData, success) = IGroupRlp(rlp).decodeExtraData(ackPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -292,39 +239,17 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         emit UpdateSuccess(ackPkg.operator, ackPkg.id, ackPkg.opType);
     }
 
-    function _decodeCreateGroupSynPackage(
-        bytes memory pkgBytes
-    ) internal pure returns (CreateGroupSynPackage memory synPkg, bool success) {
-        RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
-
-        uint256 idx;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                synPkg.creator = iter.next().toAddress();
-            } else if (idx == 1) {
-                synPkg.name = string(iter.next().toBytes());
-            } else if (idx == 2) {
-                synPkg.extraData = iter.next().toBytes();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (synPkg, success);
-    }
-
     function _handleCreateFailAckPackage(
         bytes memory pkgBytes,
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CreateGroupSynPackage memory synPkg, bool success) = _decodeCreateGroupSynPackage(pkgBytes);
+        (CreateGroupSynPackage memory synPkg, bool success) = IGroupRlp(rlp).decodeCreateGroupSynPackage(pkgBytes);
         require(success, "unrecognized create group fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = _bytesToExtraData(synPkg.extraData);
+            (extraData, success) = IGroupRlp(rlp).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -369,48 +294,17 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         }
     }
 
-    function _decodeUpdateGroupSynPackage(
-        bytes memory pkgBytes
-    ) internal pure returns (UpdateGroupSynPackage memory synPkg, bool success) {
-        RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
-
-        uint256 idx;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                synPkg.operator = iter.next().toAddress();
-            } else if (idx == 1) {
-                synPkg.id = iter.next().toUint();
-            } else if (idx == 2) {
-                synPkg.opType = uint8(iter.next().toUint());
-            } else if (idx == 3) {
-                RLPDecode.RLPItem[] memory membersIter = iter.next().toList();
-                address[] memory members = new address[](membersIter.length);
-                for (uint256 i; i < membersIter.length; ++i) {
-                    members[i] = membersIter[i].toAddress();
-                }
-                synPkg.members = members;
-            } else if (idx == 4) {
-                synPkg.extraData = iter.next().toBytes();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (synPkg, success);
-    }
-
     function _handleUpdateFailAckPackage(
         bytes memory pkgBytes,
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (UpdateGroupSynPackage memory synPkg, bool success) = _decodeUpdateGroupSynPackage(pkgBytes);
+        (UpdateGroupSynPackage memory synPkg, bool success) = IGroupRlp(rlp).decodeUpdateGroupSynPackage(pkgBytes);
         require(success, "unrecognized create group fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = _bytesToExtraData(synPkg.extraData);
+            (extraData, success) = IGroupRlp(rlp).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {

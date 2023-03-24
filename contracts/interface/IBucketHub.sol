@@ -2,20 +2,20 @@
 
 pragma solidity ^0.8.0;
 
-import "../middle-layer/NFTWrapResourceStorage.sol";
+import "../middle-layer/resource-mirror/storage/BucketStorage.sol";
 
 interface IBucketHub {
     function createBucket(
-        NFTWrapResourceStorage.CreateBucketSynPackage memory,
+        BucketStorage.CreateBucketSynPackage memory,
         uint256,
-        NFTWrapResourceStorage.ExtraData memory
+        CmnStorage.ExtraData memory
     ) external payable returns (bool);
 
-    function createBucket(NFTWrapResourceStorage.CreateBucketSynPackage memory) external payable returns (bool);
+    function createBucket(BucketStorage.CreateBucketSynPackage memory) external payable returns (bool);
 
     function deleteBucket(uint256) external payable returns (bool);
 
-    function deleteBucket(uint256, uint256, NFTWrapResourceStorage.ExtraData memory) external payable returns (bool);
+    function deleteBucket(uint256, uint256, CmnStorage.ExtraData memory) external payable returns (bool);
 
     function hasRole(bytes32 role, address granter, address account) external view returns (bool);
 

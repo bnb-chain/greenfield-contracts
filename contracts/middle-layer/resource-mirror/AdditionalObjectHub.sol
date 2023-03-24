@@ -6,24 +6,20 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./AccessControl.sol";
-import "./NFTWrapResourceStorage.sol";
-import "../interface/IApplication.sol";
-import "../interface/ICrossChain.sol";
-import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPDecode.sol";
-import "../lib/RLPEncode.sol";
+import "./storage/ObjectStorage.sol";
+import "../../interface/IApplication.sol";
+import "../../interface/ICrossChain.sol";
+import "../../interface/IERC721NonTransferable.sol";
+import "../../interface/IObjectRlp.sol";
 
 // Highlight: This contract must have the same storage layout as ObjectHub
 // which means same state variables and same order of state variables.
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as ObjectHub.
-contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessControl {
+contract AdditionalObjectHub is ObjectStorage, AccessControl {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
-    using RLPEncode for *;
-    using RLPDecode for *;
 
     /*----------------- external function -----------------*/
-
     /**
      * @dev grant some authorization to an account
      *
@@ -85,7 +81,7 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
+            IObjectRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -133,7 +129,7 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: id,
-            extraData: _extraDataToBytes(extraData)
+            extraData: IObjectRlp(rlp).encodeExtraData(extraData)
         });
 
         // check refund address
@@ -142,7 +138,7 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
+            IObjectRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -154,7 +150,9 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
         CallbackPackage memory callbackPkg = getRetryPackage(msg.sender);
         if (callbackPkg.isFailAck) {
             if (callbackPkg.pkgType == CMN_DELETE_SYN) {
-                (CmnDeleteSynPackage memory synPkg, bool success) = _decodeCmnDeleteSynPackage(callbackPkg.msgBytes);
+                (CmnDeleteSynPackage memory synPkg, bool success) = IObjectRlp(rlp).decodeCmnDeleteSynPackage(
+                    callbackPkg.msgBytes
+                );
                 require(success, "decode delete object fail ack package failed");
 
                 IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
@@ -166,7 +164,9 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
             }
         } else {
             if (callbackPkg.pkgType == CMN_DELETE_ACK) {
-                (CmnDeleteAckPackage memory ackPkg, bool success) = _decodeCmnDeleteAckPackage(callbackPkg.msgBytes);
+                (CmnDeleteAckPackage memory ackPkg, bool success) = IObjectRlp(rlp).decodeCmnDeleteAckPackage(
+                    callbackPkg.msgBytes
+                );
                 require(success, "decode delete object ack package failed");
 
                 IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
@@ -177,14 +177,5 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
                 revert("invalid callback package type");
             }
         }
-    }
-
-    /*----------------- internal function -----------------*/
-    function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        elements[2] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 }

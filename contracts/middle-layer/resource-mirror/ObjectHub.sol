@@ -5,20 +5,19 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./AccessControl.sol";
-import "./NFTWrapResourceHub.sol";
-import "../interface/ICrossChain.sol";
-import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPDecode.sol";
-import "../lib/RLPEncode.sol";
+import "./CmnHub.sol";
+import "./storage/ObjectStorage.sol";
+import "../../interface/IERC721NonTransferable.sol";
 
-contract ObjectHub is NFTWrapResourceHub, AccessControl {
+contract ObjectHub is ObjectStorage, AccessControl, CmnHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
 
-    function initialize(address _ERC721_token, address _additional) public initializer {
+    function initialize(address _ERC721_token, address _additional, address _objectRlp) public initializer {
         ERC721Token = _ERC721_token;
         additional = _additional;
+        rlp = _objectRlp;
 
         channelId = OBJECT_CHANNEL_ID;
     }

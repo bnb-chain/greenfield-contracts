@@ -4,13 +4,13 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/CrossChain.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/GroupHub.sol";
-import "../contracts/tokens/ERC721NonTransferable.sol";
-import "../contracts/tokens/ERC1155NonTransferable.sol";
-import "../contracts/lib/RLPDecode.sol";
-import "../contracts/lib/RLPEncode.sol";
+import "contracts/CrossChain.sol";
+import "contracts/middle-layer/GovHub.sol";
+import "contracts/middle-layer/resource-mirror/GroupHub.sol";
+import "contracts/tokens/ERC721NonTransferable.sol";
+import "contracts/tokens/ERC1155NonTransferable.sol";
+import "contracts/lib/RLPDecode.sol";
+import "contracts/lib/RLPEncode.sol";
 
 contract GroupHubTest is Test, GroupHub {
     using RLPEncode for *;
@@ -43,6 +43,7 @@ contract GroupHubTest is Test, GroupHub {
         groupHub = GroupHub(GROUP_HUB);
         groupToken = ERC721NonTransferable(groupHub.ERC721Token());
         memberToken = ERC1155NonTransferable(groupHub.ERC1155Token());
+        rlp = groupHub.rlp();
 
         vm.label(GOV_HUB, "govHub");
         vm.label(GROUP_HUB, "groupHub");
@@ -225,8 +226,8 @@ contract GroupHubTest is Test, GroupHub {
             callbackData: ""
         });
         CreateGroupSynPackage memory synPkg =
-            CreateGroupSynPackage({creator: address(this), name: "test", extraData: _extraDataToBytes(extraData)});
-        bytes memory msgBytes = _encodeCreateGroupSynPackage(synPkg);
+            CreateGroupSynPackage({creator: address(this), name: "test", extraData: IGroupRlp(rlp).encodeExtraData(extraData)});
+        bytes memory msgBytes = IGroupRlp(rlp).encodeCreateGroupSynPackage(synPkg);
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
 
         vm.expectEmit(false, false, false, false, address(this));
@@ -292,20 +293,20 @@ contract GroupHubTest is Test, GroupHub {
         return elements.encodeList();
     }
 
-    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal pure returns (bytes memory) {
+    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = synPkg.id.encodeUint();
         elements[1] = synPkg.owner.encodeAddress();
-        return _RLPEncode(TYPE_MIRROR, elements.encodeList());
+        return IGroupRlp(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
     }
 
-    function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal pure returns (bytes memory) {
+    function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal view returns (bytes memory) {
         bytes[] memory elements = new bytes[](4);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = creator.encodeAddress();
         elements[3] = "".encodeBytes();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
+        return IGroupRlp(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
     }
 
     function _encodeCreateAckPackage(
@@ -326,16 +327,16 @@ contract GroupHubTest is Test, GroupHub {
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = creator.encodeAddress();
-        elements[3] = _extraDataToBytes(extraData).encodeBytes();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
+        elements[3] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
+        return IGroupRlp(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
     }
 
-    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
+    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = "".encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
+        return IGroupRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id, address refundAddr, FailureHandleStrategy failStrategy)
@@ -353,11 +354,11 @@ contract GroupHubTest is Test, GroupHub {
         bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        elements[2] = _extraDataToBytes(extraData).encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
+        elements[2] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
+        return IGroupRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 
-    function _encodeUpdateGroupAckPackage(UpdateGroupAckPackage memory ackPkg) internal pure returns (bytes memory) {
+    function _encodeUpdateGroupAckPackage(UpdateGroupAckPackage memory ackPkg) internal view returns (bytes memory) {
         bytes[] memory members = new bytes[](ackPkg.members.length);
         for (uint256 i; i < ackPkg.members.length; ++i) {
             members[i] = ackPkg.members[i].encodeAddress();
@@ -370,7 +371,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[3] = ackPkg.opType.encodeUint();
         elements[4] = members.encodeList();
         elements[5] = "".encodeBytes();
-        return _RLPEncode(TYPE_UPDATE, elements.encodeList());
+        return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
     }
 
     function _encodeUpdateGroupAckPackage(
@@ -396,15 +397,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[2] = ackPkg.operator.encodeAddress();
         elements[3] = ackPkg.opType.encodeUint();
         elements[4] = members.encodeList();
-        elements[5] = _extraDataToBytes(extraData).encodeBytes();
-        return _RLPEncode(TYPE_UPDATE, elements.encodeList());
-    }
-
-    function _encodeCreateGroupSynPackage(CreateGroupSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = synPkg.creator.encodeAddress();
-        elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
+        elements[5] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
+        return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
     }
 }

@@ -2,29 +2,24 @@
 
 pragma solidity ^0.8.0;
 
-import "../middle-layer/NFTWrapResourceStorage.sol";
+import "../middle-layer/resource-mirror/storage/GroupStorage.sol";
 
 interface IGroupHub {
-    function createGroup(
-        address,
-        string memory,
-        uint256,
-        NFTWrapResourceStorage.ExtraData memory
-    ) external payable returns (bool);
+    function createGroup(address, string memory, uint256, CmnStorage.ExtraData memory) external payable returns (bool);
 
     function createGroup(address, string memory) external payable returns (bool);
 
     function deleteGroup(uint256) external payable returns (bool);
 
-    function deleteGroup(uint256, uint256, NFTWrapResourceStorage.ExtraData memory) external payable returns (bool);
+    function deleteGroup(uint256, uint256, CmnStorage.ExtraData memory) external payable returns (bool);
 
     function updateGroup(
-        NFTWrapResourceStorage.UpdateGroupSynPackage memory,
+        GroupStorage.UpdateGroupSynPackage memory,
         uint256,
-        NFTWrapResourceStorage.UpdateGroupSynPackage memory
+        GroupStorage.UpdateGroupSynPackage memory
     ) external payable returns (bool);
 
-    function updateGroup(NFTWrapResourceStorage.UpdateGroupSynPackage memory) external payable returns (bool);
+    function updateGroup(GroupStorage.UpdateGroupSynPackage memory) external payable returns (bool);
 
     function hasRole(bytes32 role, address granter, address account) external view returns (bool);
 

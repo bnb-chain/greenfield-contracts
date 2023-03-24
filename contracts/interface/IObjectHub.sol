@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import "../middle-layer/NFTWrapResourceStorage.sol";
+import "../middle-layer/resource-mirror/storage/ObjectStorage.sol";
 
 interface IObjectHub {
-    function deleteObject(uint256, uint256, NFTWrapResourceStorage.ExtraData memory) external payable returns (bool);
+    function deleteObject(uint256, uint256, CmnStorage.ExtraData memory) external payable returns (bool);
 
     function deleteObject(uint256) external payable returns (bool);
 

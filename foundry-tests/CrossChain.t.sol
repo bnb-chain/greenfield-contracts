@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/Deployer.sol";
-import "../contracts/CrossChain.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/TokenHub.sol";
+import "contracts/Deployer.sol";
+import "contracts/CrossChain.sol";
+import "contracts/middle-layer/GovHub.sol";
+import "contracts/middle-layer/TokenHub.sol";
 import "./TestDeployer.sol";
 
 contract CrossChainTest is TestDeployer {

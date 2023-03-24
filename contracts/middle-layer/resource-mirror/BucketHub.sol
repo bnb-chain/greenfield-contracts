@@ -5,28 +5,25 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./AccessControl.sol";
-import "./NFTWrapResourceHub.sol";
-import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPDecode.sol";
-import "../lib/RLPEncode.sol";
+import "./CmnHub.sol";
+import "./storage/BucketStorage.sol";
+import "../../interface/IBucketRlp.sol";
+import "../../interface/IERC721NonTransferable.sol";
 
-contract BucketHub is NFTWrapResourceHub, AccessControl {
+contract BucketHub is BucketStorage, AccessControl, CmnHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
 
-    // package type
-    bytes32 public constant CREATE_BUCKET_SYN = keccak256("CREATE_BUCKET_SYN");
-
-    function initialize(address _ERC721_token, address _additional) public initializer {
+    function initialize(address _ERC721_token, address _additional, address _bucketRlp) public initializer {
         ERC721Token = _ERC721_token;
         additional = _additional;
+        rlp = _bucketRlp;
 
         channelId = BUCKET_CHANNEL_ID;
     }
 
     /*----------------- middle-layer app function -----------------*/
-
     /**
      * @dev handle sync cross-chain package from BSC to GNFD
      *
@@ -129,51 +126,17 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- internal function -----------------*/
-    function _decodeCreateBucketSynPackage(
-        bytes memory pkgBytes
-    ) internal pure returns (CreateBucketSynPackage memory synPkg, bool success) {
-        RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
-
-        uint256 idx;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                synPkg.creator = iter.next().toAddress();
-            } else if (idx == 1) {
-                synPkg.name = string(iter.next().toBytes());
-            } else if (idx == 2) {
-                synPkg.visibility = BucketVisibilityType(iter.next().toUint());
-            } else if (idx == 3) {
-                synPkg.paymentAddress = iter.next().toAddress();
-            } else if (idx == 4) {
-                synPkg.primarySpAddress = iter.next().toAddress();
-            } else if (idx == 5) {
-                synPkg.primarySpApprovalExpiredHeight = iter.next().toUint();
-            } else if (idx == 6) {
-                synPkg.primarySpSignature = iter.next().toBytes();
-            } else if (idx == 7) {
-                synPkg.chargedReadQuota = uint64(iter.next().toUint());
-            } else if (idx == 8) {
-                synPkg.extraData = iter.next().toBytes();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (synPkg, success);
-    }
-
     function _handleCreateFailAckPackage(
         bytes memory pkgBytes,
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CreateBucketSynPackage memory synPkg, bool success) = _decodeCreateBucketSynPackage(pkgBytes);
+        (CreateBucketSynPackage memory synPkg, bool success) = IBucketRlp(rlp).decodeCreateBucketSynPackage(pkgBytes);
         require(success, "unrecognized create bucket fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = _bytesToExtraData(synPkg.extraData);
+            (extraData, success) = IBucketRlp(rlp).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
