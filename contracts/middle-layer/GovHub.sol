@@ -25,6 +25,7 @@ contract GovHub is Config, Initializable {
     uint32 public constant ERROR_TARGET_CONTRACT_FAIL = 102;
     uint32 public constant ERROR_INVALID_IMPLEMENTATION = 103;
     uint32 public constant ERROR_UPGRADE_FAIL = 104;
+    uint32 public constant ADDRESS_LENGTH = 20;
 
     bytes32 public constant UPGRADE_KEY_HASH = keccak256(abi.encodePacked("upgrade"));
 
@@ -80,8 +81,8 @@ contract GovHub is Config, Initializable {
     }
 
     function _notifyUpdates(ParamChangePackage memory proposal) internal returns (uint32) {
-        require(proposal.targets.length > 0 && proposal.targets.length % 20 == 0, "invalid target length");
-        uint256 totalTargets = proposal.targets.length / 20;
+        require(proposal.targets.length > 0 && proposal.targets.length % ADDRESS_LENGTH == 0, "invalid target length");
+        uint256 totalTargets = proposal.targets.length / ADDRESS_LENGTH;
 
         // upgrade contracts
         // TODO: The rollback mechanism will be added to the GovHub to prevent an upgrade error in extreme cases
@@ -95,8 +96,8 @@ contract GovHub is Config, Initializable {
             string memory lastName;
             string memory newName;
             for (uint256 i; i < totalTargets; ++i) {
-                target = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.targets);
-                newImpl = BytesToTypes.bytesToAddress(20 * (i + 1), proposal.values);
+                target = BytesToTypes.bytesToAddress(ADDRESS_LENGTH * (i + 1), proposal.targets);
+                newImpl = BytesToTypes.bytesToAddress(ADDRESS_LENGTH * (i + 1), proposal.values);
                 require(_isContract(target), "invalid target");
                 require(_isContract(newImpl), "invalid implementation value");
 
@@ -116,7 +117,7 @@ contract GovHub is Config, Initializable {
 
         // update param
         require(totalTargets == 1, "Only single parameter update is allowed in a proposal");
-        address _target = BytesToTypes.bytesToAddress(20, proposal.targets);
+        address _target = BytesToTypes.bytesToAddress(ADDRESS_LENGTH, proposal.targets);
         try IParamSubscriber(_target).updateParam(proposal.key, proposal.values) {} catch (bytes memory reason) {
             emit FailUpdateParam(reason);
             return ERROR_TARGET_CONTRACT_FAIL;
