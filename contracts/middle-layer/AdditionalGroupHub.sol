@@ -114,7 +114,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
             revokeRole(ROLE_DELETE, account);
         }
         if (acCode & AUTH_CODE_UPDATE != 0) {
-            acCode = acCode & ~AUTH_CODE_DELETE;
+            acCode = acCode & ~AUTH_CODE_UPDATE;
             revokeRole(ROLE_UPDATE, account);
         }
 
