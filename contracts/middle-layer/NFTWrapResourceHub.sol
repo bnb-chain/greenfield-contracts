@@ -9,11 +9,13 @@ import "../lib/BytesToTypes.sol";
 import "../lib/Memory.sol";
 import "../lib/RLPDecode.sol";
 import "../lib/RLPEncode.sol";
-import "../interface/IERC721NonTransferable.sol";
 import "../interface/IAccessControl.sol";
+import "../interface/IApplication.sol";
+import "../interface/IERC721NonTransferable.sol";
 
 // DO NOT define any state variables in this contract.
 abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
+    using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
 
@@ -50,6 +52,10 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         delegateAdditional();
     }
 
+    function retryPackage() external {
+        delegateAdditional();
+    }
+
     /*----------------- update param -----------------*/
     function updateParam(string calldata key, bytes calldata value) external virtual onlyGovHub {
         if (Memory.compareStrings(key, "BaseURI")) {
@@ -61,35 +67,12 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
     }
 
     /*----------------- internal function -----------------*/
-    function _decodeCmnCreateAckPackage(
-        RLPDecode.Iterator memory iter
-    ) internal pure returns (CmnCreateAckPackage memory, bool) {
-        CmnCreateAckPackage memory ackPkg;
-
-        bool success;
-        uint256 idx;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                ackPkg.status = uint32(iter.next().toUint());
-            } else if (idx == 1) {
-                ackPkg.id = iter.next().toUint();
-            } else if (idx == 2) {
-                ackPkg.creator = iter.next().toAddress();
-            } else if (idx == 3) {
-                ackPkg.extraData = iter.next().toBytes();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (ackPkg, success);
-    }
-
     function _handleCreateAckPackage(
-        RLPDecode.Iterator memory iter
-    ) internal virtual returns (ExtraData memory _extraData) {
-        (CmnCreateAckPackage memory ackPkg, bool success) = _decodeCmnCreateAckPackage(iter);
+        bytes memory pkgBytes,
+        uint64 sequence,
+        uint256 callbackGasLimit
+    ) internal virtual returns (uint256 remainingGas, address refundAddress) {
+        (CmnCreateAckPackage memory ackPkg, bool success) = _decodeCmnCreateAckPackage(pkgBytes);
         require(success, "unrecognized create ack package");
 
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -101,8 +84,39 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         }
 
         if (ackPkg.extraData.length > 0) {
-            (_extraData, success) = _bytesToExtraData(ackPkg.extraData);
+            ExtraData memory extraData;
+            (extraData, success) = _bytesToExtraData(ackPkg.extraData);
             require(success, "unrecognized extra data");
+
+            if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
+                bytes memory reason;
+                bool failed;
+                uint256 gasBefore = gasleft();
+                try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
+                    channelId, ackPkg, extraData.callbackData
+                ) {} catch Error(string memory error) {
+                    reason = bytes(error);
+                    failed = true;
+                } catch (bytes memory lowLevelData) {
+                    reason = lowLevelData;
+                    failed = true;
+                }
+
+                remainingGas =
+                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                refundAddress = extraData.refundAddress;
+
+                if (failed) {
+                    bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
+                    emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
+                    if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
+                        packageMap[pkgHash] = CallbackPackage(
+                            extraData.appAddress, CMN_CREATE_ACK, pkgBytes, extraData.callbackData, true, reason
+                        );
+                        retryQueue[extraData.appAddress].pushBack(pkgHash);
+                    }
+                }
+            }
         }
     }
 
@@ -111,33 +125,12 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         emit CreateSuccess(creator, id);
     }
 
-    function _decodeCmnDeleteAckPackage(
-        RLPDecode.Iterator memory iter
-    ) internal pure returns (CmnDeleteAckPackage memory, bool) {
-        CmnDeleteAckPackage memory ackPkg;
-
-        bool success;
-        uint256 idx;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                ackPkg.status = uint32(iter.next().toUint());
-            } else if (idx == 1) {
-                ackPkg.id = iter.next().toUint();
-            } else if (idx == 2) {
-                ackPkg.extraData = iter.next().toBytes();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (ackPkg, success);
-    }
-
     function _handleDeleteAckPackage(
-        RLPDecode.Iterator memory iter
-    ) internal virtual returns (ExtraData memory _extraData) {
-        (CmnDeleteAckPackage memory ackPkg, bool success) = _decodeCmnDeleteAckPackage(iter);
+        bytes memory pkgBytes,
+        uint64 sequence,
+        uint256 callbackGasLimit
+    ) internal virtual returns (uint256 remainingGas, address refundAddress) {
+        (CmnDeleteAckPackage memory ackPkg, bool success) = _decodeCmnDeleteAckPackage(pkgBytes);
         require(success, "unrecognized delete ack package");
 
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -149,8 +142,39 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         }
 
         if (ackPkg.extraData.length > 0) {
-            (_extraData, success) = _bytesToExtraData(ackPkg.extraData);
+            ExtraData memory extraData;
+            (extraData, success) = _bytesToExtraData(ackPkg.extraData);
             require(success, "unrecognized extra data");
+
+            if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
+                bytes memory reason;
+                bool failed;
+                uint256 gasBefore = gasleft();
+                try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
+                    channelId, ackPkg, extraData.callbackData
+                ) {} catch Error(string memory error) {
+                    reason = bytes(error);
+                    failed = true;
+                } catch (bytes memory lowLevelData) {
+                    reason = lowLevelData;
+                    failed = true;
+                }
+
+                remainingGas =
+                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                refundAddress = extraData.refundAddress;
+
+                if (failed) {
+                    bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
+                    emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
+                    if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
+                        packageMap[pkgHash] = CallbackPackage(
+                            extraData.appAddress, CMN_DELETE_ACK, pkgBytes, extraData.callbackData, true, reason
+                        );
+                        retryQueue[extraData.appAddress].pushBack(pkgHash);
+                    }
+                }
+            }
         }
     }
 
@@ -161,7 +185,7 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
 
     function _decodeCmnMirrorSynPackage(
         bytes memory msgBytes
-    ) internal pure returns (CmnMirrorSynPackage memory, bool) {
+    ) internal pure returns (CmnMirrorSynPackage memory, bool success) {
         CmnMirrorSynPackage memory synPkg;
 
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
@@ -175,7 +199,6 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
             revert("wrong syn package");
         }
 
-        bool success;
         uint256 idx;
         while (pkgIter.hasNext()) {
             if (idx == 0) {
@@ -216,9 +239,56 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         return STATUS_SUCCESS;
     }
 
-    function _bytesToExtraData(
-        bytes memory _extraDataBytes
-    ) internal pure returns (ExtraData memory _extraData, bool success) {
+    function _handleDeleteFailAckPackage(
+        bytes memory pkgBytes,
+        uint64 sequence,
+        uint256 callbackGasLimit
+    ) internal virtual returns (uint256 remainingGas, address refundAddress) {
+        (CmnDeleteSynPackage memory synPkg, bool success) = _decodeCmnDeleteSynPackage(pkgBytes);
+        require(success, "unrecognized delete fail ack package");
+
+        if (synPkg.extraData.length > 0) {
+            ExtraData memory extraData;
+            (extraData, success) = _bytesToExtraData(synPkg.extraData);
+            require(success, "unrecognized extra data");
+
+            if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
+                bytes memory reason;
+                bool failed;
+                uint256 gasBefore = gasleft();
+                try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
+                    channelId, synPkg, extraData.callbackData
+                ) {} catch Error(string memory error) {
+                    reason = bytes(error);
+                    failed = true;
+                } catch (bytes memory lowLevelData) {
+                    reason = lowLevelData;
+                    failed = true;
+                }
+
+                remainingGas =
+                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                refundAddress = extraData.refundAddress;
+
+                if (failed) {
+                    bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
+                    emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
+                    if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
+                        packageMap[pkgHash] = CallbackPackage(
+                            extraData.appAddress, CMN_DELETE_SYN, pkgBytes, extraData.callbackData, true, reason
+                        );
+                        retryQueue[extraData.appAddress].pushBack(pkgHash);
+                    }
+                }
+            }
+        }
+    }
+
+    function _bytesToExtraData(bytes memory _extraDataBytes)
+        internal
+        pure
+        returns (ExtraData memory _extraData, bool success)
+    {
         RLPDecode.Iterator memory iter = _extraDataBytes.toRLPItem().iterator();
 
         uint256 idx;

@@ -46,16 +46,16 @@ contract AccessControl is Context, IAccessControl, ERC165 {
     }
 
     /**
-     * @dev Grants `role` to `account` from msg.sender.
+     * @dev Grants `role` to `grantee` from msg.sender.
      *
-     * If `account` had not been already granted `role`, emits a {RoleGranted}
+     * If `grantee` had not been already granted `role`, emits a {RoleGranted}
      * event.
      *
      * May emit a {RoleGranted} event.
      */
-    function grantRole(bytes32 role, address account, uint256 expireTime) public virtual {
+    function grantRole(bytes32 role, address grantee, uint256 expireTime) public virtual {
         require(expireTime > block.timestamp, "AccessControl: Expire time must be greater than current time");
-        _grantRole(role, _msgSender(), account, expireTime);
+        _grantRole(role, _msgSender(), grantee, expireTime);
     }
 
     /**

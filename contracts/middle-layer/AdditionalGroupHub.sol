@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgrad
 
 import "./AccessControl.sol";
 import "./NFTWrapResourceStorage.sol";
+import "../interface/IApplication.sol";
 import "../interface/ICrossChain.sol";
 import "../interface/IERC721NonTransferable.sol";
 import "../lib/RLPDecode.sol";
@@ -35,38 +36,13 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
     // role
     bytes32 public constant ROLE_UPDATE = keccak256("ROLE_UPDATE");
 
+    // package type
+    bytes32 public constant CREATE_GROUP_SYN = keccak256("CREATE_GROUP_SYN");
+    bytes32 public constant UPDATE_GROUP_SYN = keccak256("UPDATE_GROUP_SYN");
+    bytes32 public constant UPDATE_GROUP_ACK = keccak256("UPDATE_GROUP_ACK");
+
     // ERC1155 token contract
     address public ERC1155Token;
-
-    /*----------------- struct / event -----------------*/
-    // BSC to GNFD
-    struct CreateSynPackage {
-        address creator;
-        string name;
-        bytes extraData; // rlp encode of ExtraData
-    }
-
-    struct UpdateSynPackage {
-        address operator;
-        uint256 id; // group id
-        uint8 opType; // add/remove members
-        address[] members;
-        bytes extraData; // rlp encode of ExtraData
-    }
-
-    // GNFD to BSC
-    struct UpdateAckPackage {
-        uint32 status;
-        uint256 id; // group id
-        address operator;
-        uint8 opType; // add/remove members
-        address[] members;
-        bytes extraData; // rlp encode of ExtraData
-    }
-
-    event UpdateSubmitted(address owner, address operator, uint256 id, uint8 opType, address[] members);
-    event UpdateSuccess(address indexed operator, uint256 indexed id, uint8 opType);
-    event UpdateFailed(address indexed operator, uint256 indexed id, uint8 opType);
 
     /*----------------- external function -----------------*/
 
@@ -139,11 +115,11 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         }
 
         // make sure the extra data is as expected
-        CreateSynPackage memory synPkg = CreateSynPackage({ creator: owner, name: name, extraData: "" });
+        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({ creator: owner, name: name, extraData: "" });
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeCreateSynPackage(synPkg),
+            _encodeCreateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -185,7 +161,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        CreateSynPackage memory synPkg = CreateSynPackage({
+        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
             creator: owner,
             name: name,
             extraData: _extraDataToBytes(extraData)
@@ -197,7 +173,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeCreateSynPackage(synPkg),
+            _encodeCreateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -301,7 +277,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
      *
      * @param synPkg Package containing information of the group to be updated
      */
-    function updateGroup(UpdateSynPackage memory synPkg) external payable returns (bool) {
+    function updateGroup(UpdateGroupSynPackage memory synPkg) external payable returns (bool) {
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
@@ -322,7 +298,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeUpdateSynPackage(synPkg),
+            _encodeUpdateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -340,7 +316,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
      * It will be reset as the `msg.sender` all the time.
      */
     function updateGroup(
-        UpdateSynPackage memory synPkg,
+        UpdateGroupSynPackage memory synPkg,
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
@@ -375,7 +351,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeUpdateSynPackage(synPkg),
+            _encodeUpdateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -383,8 +359,69 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         return true;
     }
 
+    function retryPackage() external {
+        CallbackPackage memory callbackPkg = getRetryPackage(msg.sender);
+        if (callbackPkg.isFailAck) {
+            if (callbackPkg.pkgType == CREATE_GROUP_SYN) {
+                (CreateGroupSynPackage memory synPkg, bool success) = _decodeCreateGroupSynPackage(callbackPkg.msgBytes);
+                require(success, "decode create group fail ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else if (callbackPkg.pkgType == CMN_DELETE_SYN) {
+                (CmnDeleteSynPackage memory synPkg, bool success) = _decodeCmnDeleteSynPackage(callbackPkg.msgBytes);
+                require(success, "decode delete group fail ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else if (callbackPkg.pkgType == UPDATE_GROUP_SYN) {
+                (UpdateGroupSynPackage memory synPkg, bool success) = _decodeUpdateGroupSynPackage(callbackPkg.msgBytes);
+                require(success, "decode update group fail ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else {
+                revert("invalid callback package type");
+            }
+        } else {
+            if (callbackPkg.pkgType == CMN_CREATE_ACK) {
+                (CmnCreateAckPackage memory ackPkg, bool success) = _decodeCmnCreateAckPackage(callbackPkg.msgBytes);
+                require(success, "decode create group ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else if (callbackPkg.pkgType == CMN_DELETE_ACK) {
+                (CmnDeleteAckPackage memory ackPkg, bool success) = _decodeCmnDeleteAckPackage(callbackPkg.msgBytes);
+                require(success, "decode delete group ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else if (callbackPkg.pkgType == CMN_DELETE_ACK) {
+                (UpdateGroupAckPackage memory ackPkg, bool success) = _decodeUpdateGroupAckPackage(callbackPkg.msgBytes);
+                require(success, "decode update group ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else {
+                revert("invalid callback package type");
+            }
+        }
+    }
+
     /*----------------- internal function -----------------*/
-    function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
+    function _encodeCreateGroupSynPackage(CreateGroupSynPackage memory synPkg) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();
@@ -400,7 +437,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 
-    function _encodeUpdateSynPackage(UpdateSynPackage memory synPkg) internal pure returns (bytes memory) {
+    function _encodeUpdateGroupSynPackage(UpdateGroupSynPackage memory synPkg) internal pure returns (bytes memory) {
         bytes[] memory members = new bytes[](synPkg.members.length);
         for (uint256 i; i < synPkg.members.length; ++i) {
             members[i] = synPkg.members[i].encodeAddress();
@@ -413,5 +450,99 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         elements[3] = members.encodeList();
         elements[4] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_UPDATE, elements.encodeList());
+    }
+
+    function _decodeCreateGroupSynPackage(bytes memory pkgBytes)
+        internal
+        pure
+        returns (CreateGroupSynPackage memory synPkg, bool success)
+    {
+        RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
+
+        uint256 idx;
+        while (iter.hasNext()) {
+            if (idx == 0) {
+                synPkg.creator = iter.next().toAddress();
+            } else if (idx == 1) {
+                synPkg.name = string(iter.next().toBytes());
+            } else if (idx == 2) {
+                synPkg.extraData = iter.next().toBytes();
+                success = true;
+            } else {
+                break;
+            }
+            idx++;
+        }
+        return (synPkg, success);
+    }
+
+    function _decodeUpdateGroupSynPackage(bytes memory pkgBytes)
+        internal
+        pure
+        returns (UpdateGroupSynPackage memory synPkg, bool success)
+    {
+        RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
+
+        uint256 idx;
+        while (iter.hasNext()) {
+            if (idx == 0) {
+                synPkg.operator = iter.next().toAddress();
+            } else if (idx == 1) {
+                synPkg.id = iter.next().toUint();
+            } else if (idx == 2) {
+                synPkg.opType = uint8(iter.next().toUint());
+            } else if (idx == 3) {
+                RLPDecode.RLPItem[] memory membersIter = iter.next().toList();
+                address[] memory members = new address[](membersIter.length);
+                for (uint256 i; i < membersIter.length; ++i) {
+                    members[i] = membersIter[i].toAddress();
+                }
+                synPkg.members = members;
+            } else if (idx == 4) {
+                synPkg.extraData = iter.next().toBytes();
+                success = true;
+            } else {
+                break;
+            }
+            idx++;
+        }
+        return (synPkg, success);
+    }
+
+    function _decodeUpdateGroupAckPackage(bytes memory pkgBytes)
+        internal
+        pure
+        returns (UpdateGroupAckPackage memory, bool)
+    {
+        UpdateGroupAckPackage memory ackPkg;
+        RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
+
+        bool success;
+        uint256 idx;
+        while (iter.hasNext()) {
+            if (idx == 0) {
+                ackPkg.status = uint32(iter.next().toUint());
+            } else if (idx == 1) {
+                ackPkg.id = iter.next().toUint();
+            } else if (idx == 2) {
+                ackPkg.operator = iter.next().toAddress();
+            } else if (idx == 3) {
+                ackPkg.opType = uint8(iter.next().toUint());
+            } else if (idx == 4) {
+                RLPDecode.RLPItem[] memory membersIter = iter.next().toList();
+                address[] memory members = new address[](membersIter.length);
+                for (uint256 i; i < membersIter.length; ++i) {
+                    members[i] = membersIter[i].toAddress();
+                }
+                ackPkg.members = members;
+            } else if (idx == 5) {
+                ackPkg.extraData = iter.next().toBytes();
+                success = true;
+            } else {
+                break;
+            }
+            idx++;
+        }
+        return (ackPkg, success);
     }
 }

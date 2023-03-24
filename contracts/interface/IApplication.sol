@@ -2,8 +2,43 @@
 
 pragma solidity ^0.8.0;
 
-interface IApplication {
-    function handleAckPackage(uint8 channelId, bytes calldata msgBytes, bytes calldata callbackData) external;
+import "../middle-layer/NFTWrapResourceStorage.sol";
 
-    function handleFailAckPackage(uint8 channelId, bytes calldata msgBytes, bytes calldata callbackData) external;
+interface IApplication {
+    function handleAckPackage(
+        uint8 channelId,
+        NFTWrapResourceStorage.CmnCreateAckPackage calldata ackPkg,
+        bytes calldata callbackData
+    ) external;
+    function handleAckPackage(
+        uint8 channelId,
+        NFTWrapResourceStorage.CmnDeleteAckPackage calldata ackPkg,
+        bytes calldata callbackData
+    ) external;
+    function handleAckPackage(
+        uint8 channelId,
+        NFTWrapResourceStorage.UpdateGroupAckPackage calldata ackPkg,
+        bytes calldata callbackData
+    ) external;
+
+    function handleFailAckPackage(
+        uint8 channelId,
+        NFTWrapResourceStorage.CmnDeleteSynPackage calldata deleteSynPkg,
+        bytes calldata callbackData
+    ) external;
+    function handleFailAckPackage(
+        uint8 channelId,
+        NFTWrapResourceStorage.CreateBucketSynPackage calldata createBucketSynPkg,
+        bytes calldata callbackData
+    ) external;
+    function handleFailAckPackage(
+        uint8 channelId,
+        NFTWrapResourceStorage.CreateGroupSynPackage calldata createGroupSynPkg,
+        bytes calldata callbackData
+    ) external;
+    function handleFailAckPackage(
+        uint8 channelId,
+        NFTWrapResourceStorage.UpdateGroupSynPackage calldata updateGroupSynPkg,
+        bytes calldata callbackData
+    ) external;
 }

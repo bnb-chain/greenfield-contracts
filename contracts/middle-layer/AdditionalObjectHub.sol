@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgrad
 
 import "./AccessControl.sol";
 import "./NFTWrapResourceStorage.sol";
+import "../interface/IApplication.sol";
 import "../interface/ICrossChain.sol";
 import "../interface/IERC721NonTransferable.sol";
 import "../lib/RLPDecode.sol";
@@ -147,6 +148,35 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
         );
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
+    }
+
+    function retryPackage() external {
+        CallbackPackage memory callbackPkg = getRetryPackage(msg.sender);
+        if (callbackPkg.isFailAck) {
+            if (callbackPkg.pkgType == CMN_DELETE_SYN) {
+                (CmnDeleteSynPackage memory synPkg, bool success) = _decodeCmnDeleteSynPackage(callbackPkg.msgBytes);
+                require(success, "decode delete object fail ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else {
+                revert("invalid callback package type");
+            }
+        } else {
+            if (callbackPkg.pkgType == CMN_DELETE_ACK) {
+                (CmnDeleteAckPackage memory ackPkg, bool success) = _decodeCmnDeleteAckPackage(callbackPkg.msgBytes);
+                require(success, "decode delete object ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else {
+                revert("invalid callback package type");
+            }
+        }
     }
 
     /*----------------- internal function -----------------*/

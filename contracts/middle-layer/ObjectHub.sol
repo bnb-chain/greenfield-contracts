@@ -48,58 +48,20 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
+        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
-        uint8 opType = uint8(msgIter.next().toUint());
-        RLPDecode.Iterator memory pkgIter;
-        if (msgIter.hasNext()) {
-            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
+        uint8 opType = uint8(iter.next().toUint());
+        bytes memory pkgBytes;
+        if (iter.hasNext()) {
+            pkgBytes = iter.next().toBytes();
         } else {
             revert("wrong ack package");
         }
 
-        ExtraData memory extraData;
         if (opType == TYPE_DELETE) {
-            extraData = _handleDeleteAckPackage(pkgIter);
+            (remainingGas, refundAddress) = _handleDeleteAckPackage(pkgBytes, sequence, callbackGasLimit);
         } else {
             revert("unexpected operation type");
-        }
-
-        if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
-            bytes memory reason;
-            bool failed;
-            uint256 gasBefore = gasleft();
-            try
-                IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
-                    channelId,
-                    msgBytes,
-                    extraData.callbackData
-                )
-            {} catch Error(string memory error) {
-                reason = bytes(error);
-                failed = true;
-            } catch (bytes memory lowLevelData) {
-                reason = lowLevelData;
-                failed = true;
-            }
-
-            remainingGas = callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
-            refundAddress = extraData.refundAddress;
-
-            if (failed) {
-                bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
-                emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                    packageMap[pkgHash] = CallbackPackage(
-                        extraData.appAddress,
-                        msgBytes,
-                        extraData.callbackData,
-                        true,
-                        reason
-                    );
-                    retryQueue[extraData.appAddress].pushBack(pkgHash);
-                }
-            }
         }
     }
 
@@ -116,44 +78,20 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        (ExtraData memory extraData, bool success) = _decodeFailAckPackage(msgBytes);
-        require(success, "decode fail ack package failed");
+        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
-        if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
-            bytes memory reason;
-            bool failed;
-            uint256 gasBefore = gasleft();
-            try
-                IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
-                    channelId,
-                    msgBytes,
-                    extraData.callbackData
-                )
-            {} catch Error(string memory error) {
-                reason = bytes(error);
-                failed = true;
-            } catch (bytes memory lowLevelData) {
-                reason = lowLevelData;
-                failed = true;
-            }
+        uint8 opType = uint8(iter.next().toUint());
+        bytes memory pkgBytes;
+        if (iter.hasNext()) {
+            pkgBytes = iter.next().toBytes();
+        } else {
+            revert("wrong failAck package");
+        }
 
-            remainingGas = callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
-            refundAddress = extraData.refundAddress;
-
-            if (failed) {
-                bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
-                emit AppHandleFailAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                    packageMap[pkgHash] = CallbackPackage(
-                        extraData.appAddress,
-                        msgBytes,
-                        extraData.callbackData,
-                        true,
-                        reason
-                    );
-                    retryQueue[extraData.appAddress].pushBack(pkgHash);
-                }
-            }
+        if (opType == TYPE_DELETE) {
+            (remainingGas, refundAddress) = _handleDeleteFailAckPackage(pkgBytes, sequence, callbackGasLimit);
+        } else {
+            revert("unexpected operation type");
         }
 
         emit FailAckPkgReceived(channelId, msgBytes);
@@ -175,47 +113,5 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
 
     function deleteObject(uint256, uint256, ExtraData memory) external payable returns (bool) {
         delegateAdditional();
-    }
-
-    /*----------------- internal function -----------------*/
-    function _decodeFailAckPackage(
-        bytes memory msgBytes
-    ) internal pure returns (ExtraData memory extraData, bool success) {
-        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
-
-        uint8 opType = uint8(msgIter.next().toUint());
-        RLPDecode.Iterator memory pkgIter;
-        if (msgIter.hasNext()) {
-            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
-        } else {
-            return (extraData, false);
-        }
-
-        uint256 elementsNum;
-        if (opType == TYPE_DELETE) {
-            elementsNum = 3;
-        } else {
-            return (extraData, false);
-        }
-
-        for (uint256 i; i < elementsNum - 1; ++i) {
-            if (pkgIter.hasNext()) {
-                pkgIter.next();
-            } else {
-                return (extraData, false);
-            }
-        }
-
-        if (pkgIter.hasNext()) {
-            bytes memory extraBytes = pkgIter.next().toBytes();
-            if (extraBytes.length > 0) {
-                (extraData, success) = _bytesToExtraData(extraBytes);
-            } else {
-                // empty extra data
-                success = true;
-            }
-        } else {
-            return (extraData, false);
-        }
     }
 }

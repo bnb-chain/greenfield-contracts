@@ -82,7 +82,7 @@ contract BucketHubTest is Test, BucketHub {
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
-            readQuota: 0,
+            chargedReadQuota: 0,
             extraData: ""
         });
 
@@ -129,7 +129,7 @@ contract BucketHubTest is Test, BucketHub {
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
-            readQuota: 0,
+            chargedReadQuota: 0,
             extraData: ""
         });
 
@@ -209,7 +209,7 @@ contract BucketHubTest is Test, BucketHub {
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
-            readQuota: 0,
+            chargedReadQuota: 0,
             extraData: _extraDataToBytes(extraData)
         });
         bytes memory msgBytes = _encodeCreateSynPackage(synPkg);
@@ -247,7 +247,7 @@ contract BucketHubTest is Test, BucketHub {
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
-            readQuota: 0,
+            chargedReadQuota: 0,
             extraData: ""
         });
 
@@ -364,7 +364,7 @@ contract BucketHubTest is Test, BucketHub {
         elements[4] = synPkg.primarySpAddress.encodeAddress();
         elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();
         elements[6] = synPkg.primarySpSignature.encodeBytes();
-        elements[7] = synPkg.readQuota.encodeUint();
+        elements[7] = synPkg.chargedReadQuota.encodeUint();
         elements[8] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }

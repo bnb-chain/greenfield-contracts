@@ -15,25 +15,8 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     using RLPEncode for *;
     using RLPDecode for *;
 
-    /*----------------- struct -----------------*/
-    // BSC to GNFD
-    struct CreateSynPackage {
-        address creator;
-        string name;
-        VisibilityType visibility;
-        address paymentAddress;
-        address primarySpAddress;
-        uint256 primarySpApprovalExpiredHeight;
-        bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
-        uint256 readQuota;
-        bytes extraData; // rlp encode of ExtraData
-    }
-
-    enum VisibilityType {
-        PublicRead,
-        Private,
-        Default // If the bucket Visibility is default, it's finally set to private.
-    }
+    // package type
+    bytes32 public constant CREATE_BUCKET_SYN = keccak256("CREATE_BUCKET_SYN");
 
     function initialize(address _ERC721_token, address _additional) public initializer {
         ERC721Token = _ERC721_token;
@@ -66,60 +49,22 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
+        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
-        uint8 opType = uint8(msgIter.next().toUint());
-        RLPDecode.Iterator memory pkgIter;
-        if (msgIter.hasNext()) {
-            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
+        uint8 opType = uint8(iter.next().toUint());
+        bytes memory pkgBytes;
+        if (iter.hasNext()) {
+            pkgBytes = iter.next().toBytes();
         } else {
             revert("wrong ack package");
         }
 
-        ExtraData memory extraData;
         if (opType == TYPE_CREATE) {
-            extraData = _handleCreateAckPackage(pkgIter);
+            (remainingGas, refundAddress) = _handleCreateAckPackage(pkgBytes, sequence, callbackGasLimit);
         } else if (opType == TYPE_DELETE) {
-            extraData = _handleDeleteAckPackage(pkgIter);
+            (remainingGas, refundAddress) = _handleDeleteAckPackage(pkgBytes, sequence, callbackGasLimit);
         } else {
             revert("unexpected operation type");
-        }
-
-        if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
-            bytes memory reason;
-            bool failed;
-            uint256 gasBefore = gasleft();
-            try
-                IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
-                    channelId,
-                    msgBytes,
-                    extraData.callbackData
-                )
-            {} catch Error(string memory error) {
-                reason = bytes(error);
-                failed = true;
-            } catch (bytes memory lowLevelData) {
-                reason = lowLevelData;
-                failed = true;
-            }
-
-            remainingGas = callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
-            refundAddress = extraData.refundAddress;
-
-            if (failed) {
-                bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
-                emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                    packageMap[pkgHash] = CallbackPackage(
-                        extraData.appAddress,
-                        msgBytes,
-                        extraData.callbackData,
-                        true,
-                        reason
-                    );
-                    retryQueue[extraData.appAddress].pushBack(pkgHash);
-                }
-            }
         }
     }
 
@@ -136,44 +81,22 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        (ExtraData memory extraData, bool success) = _decodeFailAckPackage(msgBytes);
-        require(success, "decode fail ack package failed");
+        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
-        if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
-            bytes memory reason;
-            bool failed;
-            uint256 gasBefore = gasleft();
-            try
-                IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
-                    channelId,
-                    msgBytes,
-                    extraData.callbackData
-                )
-            {} catch Error(string memory error) {
-                reason = bytes(error);
-                failed = true;
-            } catch (bytes memory lowLevelData) {
-                reason = lowLevelData;
-                failed = true;
-            }
+        uint8 opType = uint8(iter.next().toUint());
+        bytes memory pkgBytes;
+        if (iter.hasNext()) {
+            pkgBytes = iter.next().toBytes();
+        } else {
+            revert("wrong failAck package");
+        }
 
-            remainingGas = callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
-            refundAddress = extraData.refundAddress;
-
-            if (failed) {
-                bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
-                emit AppHandleFailAckPkgFailed(extraData.appAddress, pkgHash, reason);
-                if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                    packageMap[pkgHash] = CallbackPackage(
-                        extraData.appAddress,
-                        msgBytes,
-                        extraData.callbackData,
-                        true,
-                        reason
-                    );
-                    retryQueue[extraData.appAddress].pushBack(pkgHash);
-                }
-            }
+        if (opType == TYPE_CREATE) {
+            (remainingGas, refundAddress) = _handleCreateFailAckPackage(pkgBytes, sequence, callbackGasLimit);
+        } else if (opType == TYPE_DELETE) {
+            (remainingGas, refundAddress) = _handleDeleteFailAckPackage(pkgBytes, sequence, callbackGasLimit);
+        } else {
+            revert("unexpected operation type");
         }
 
         emit FailAckPkgReceived(channelId, msgBytes);
@@ -189,11 +112,11 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
         return (400_001, "BucketHub", "init version");
     }
 
-    function createBucket(CreateSynPackage memory) external payable returns (bool) {
+    function createBucket(CreateBucketSynPackage memory) external payable returns (bool) {
         delegateAdditional();
     }
 
-    function createBucket(CreateSynPackage memory, uint256, ExtraData memory) external payable returns (bool) {
+    function createBucket(CreateBucketSynPackage memory, uint256, ExtraData memory) external payable returns (bool) {
         delegateAdditional();
     }
 
@@ -206,46 +129,82 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- internal function -----------------*/
-    function _decodeFailAckPackage(
-        bytes memory msgBytes
-    ) internal pure returns (ExtraData memory extraData, bool success) {
-        RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
+    function _decodeCreateBucketSynPackage(
+        bytes memory pkgBytes
+    ) internal pure returns (CreateBucketSynPackage memory synPkg, bool success) {
+        RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
 
-        uint8 opType = uint8(msgIter.next().toUint());
-        RLPDecode.Iterator memory pkgIter;
-        if (msgIter.hasNext()) {
-            pkgIter = msgIter.next().toBytes().toRLPItem().iterator();
-        } else {
-            return (extraData, false);
-        }
-
-        uint256 elementsNum;
-        if (opType == TYPE_CREATE) {
-            elementsNum = 9;
-        } else if (opType == TYPE_DELETE) {
-            elementsNum = 3;
-        } else {
-            return (extraData, false);
-        }
-
-        for (uint256 i; i < elementsNum - 1; ++i) {
-            if (pkgIter.hasNext()) {
-                pkgIter.next();
-            } else {
-                return (extraData, false);
-            }
-        }
-
-        if (pkgIter.hasNext()) {
-            bytes memory extraBytes = pkgIter.next().toBytes();
-            if (extraBytes.length > 0) {
-                (extraData, success) = _bytesToExtraData(extraBytes);
-            } else {
-                // empty extra data
+        uint256 idx;
+        while (iter.hasNext()) {
+            if (idx == 0) {
+                synPkg.creator = iter.next().toAddress();
+            } else if (idx == 1) {
+                synPkg.name = string(iter.next().toBytes());
+            } else if (idx == 2) {
+                synPkg.visibility = BucketVisibilityType(iter.next().toUint());
+            } else if (idx == 3) {
+                synPkg.paymentAddress = iter.next().toAddress();
+            } else if (idx == 4) {
+                synPkg.primarySpAddress = iter.next().toAddress();
+            } else if (idx == 5) {
+                synPkg.primarySpApprovalExpiredHeight = iter.next().toUint();
+            } else if (idx == 6) {
+                synPkg.primarySpSignature = iter.next().toBytes();
+            } else if (idx == 7) {
+                synPkg.chargedReadQuota = uint64(iter.next().toUint());
+            } else if (idx == 8) {
+                synPkg.extraData = iter.next().toBytes();
                 success = true;
+            } else {
+                break;
             }
-        } else {
-            return (extraData, false);
+            idx++;
+        }
+        return (synPkg, success);
+    }
+
+    function _handleCreateFailAckPackage(
+        bytes memory pkgBytes,
+        uint64 sequence,
+        uint256 callbackGasLimit
+    ) internal returns (uint256 remainingGas, address refundAddress) {
+        (CreateBucketSynPackage memory synPkg, bool success) = _decodeCreateBucketSynPackage(pkgBytes);
+        require(success, "unrecognized create bucket fail ack package");
+
+        if (synPkg.extraData.length > 0) {
+            ExtraData memory extraData;
+            (extraData, success) = _bytesToExtraData(synPkg.extraData);
+            require(success, "unrecognized extra data");
+
+            if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
+                bytes memory reason;
+                bool failed;
+                uint256 gasBefore = gasleft();
+                try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
+                    channelId, synPkg, extraData.callbackData
+                ) {} catch Error(string memory error) {
+                    reason = bytes(error);
+                    failed = true;
+                } catch (bytes memory lowLevelData) {
+                    reason = lowLevelData;
+                    failed = true;
+                }
+
+                remainingGas =
+                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                refundAddress = extraData.refundAddress;
+
+                if (failed) {
+                    bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
+                    emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
+                    if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
+                        packageMap[pkgHash] = CallbackPackage(
+                            extraData.appAddress, CREATE_BUCKET_SYN, pkgBytes, extraData.callbackData, true, reason
+                        );
+                        retryQueue[extraData.appAddress].pushBack(pkgHash);
+                    }
+                }
+            }
         }
     }
 }

@@ -1,5 +1,4 @@
 [profile.default]
-#src = 'src'
 src = 'contracts'
 out = 'out'
 libs = ['lib']
@@ -36,7 +35,6 @@ out = "artifacts"
 libs = ["node_modules"]
 
 
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config
 [rpc_endpoints]
 bsc-test = "https://data-seed-prebsc-1-s1.binance.org:8545/"
 bsc = "https://bsc-dataseed1.binance.org/"

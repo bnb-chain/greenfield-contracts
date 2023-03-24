@@ -4,12 +4,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./interface/IApplication.sol";
-
 contract PackageQueue {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
-
-    uint8 public channelId;
 
     // app address => retry queue of package hash
     mapping(address => DoubleEndedQueueUpgradeable.Bytes32Deque) public retryQueue;
@@ -27,6 +23,7 @@ contract PackageQueue {
 
     struct CallbackPackage {
         address appAddress;
+        bytes32 pkgType;
         bytes msgBytes;
         bytes callbackData;
         bool isFailAck;
@@ -39,27 +36,19 @@ contract PackageQueue {
     // PlaceHolder reserve for future usage
     uint256[50] public PkgQueueSlots;
 
-    modifier checkCaller() {
-        address appAddress = msg.sender;
+    modifier checkCaller(address appAddress) {
         bytes32 pkgHash = retryQueue[appAddress].front();
         require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
         _;
     }
 
-    function retryPackage() external checkCaller {
-        address appAddress = msg.sender;
-        bytes32 pkgHash = retryQueue[appAddress].popFront();
-        bytes memory _msgBytes = packageMap[pkgHash].msgBytes;
-        bytes memory _callbackData = packageMap[pkgHash].callbackData;
-        if (packageMap[pkgHash].isFailAck) {
-            IApplication(appAddress).handleFailAckPackage(channelId, _msgBytes, _callbackData);
-        } else {
-            IApplication(appAddress).handleAckPackage(channelId, _msgBytes, _callbackData);
-        }
-        delete packageMap[pkgHash];
+    function getRetryPackage(address appAddress) public view checkCaller(appAddress) returns (CallbackPackage memory) {
+        bytes32 pkgHash = retryQueue[appAddress].front();
+        CallbackPackage memory callbackPkg = packageMap[pkgHash];
+        return callbackPkg;
     }
 
-    function skipPackage() external checkCaller {
+    function skipPackage() external checkCaller(msg.sender) {
         address appAddress = msg.sender;
         bytes32 pkgHash = retryQueue[appAddress].popFront();
         delete packageMap[pkgHash];

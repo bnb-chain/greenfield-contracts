@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgrad
 
 import "./AccessControl.sol";
 import "./NFTWrapResourceStorage.sol";
+import "../interface/IApplication.sol";
 import "../interface/ICrossChain.sol";
 import "../interface/IERC721NonTransferable.sol";
 import "../lib/RLPDecode.sol";
@@ -21,25 +22,8 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
     using RLPEncode for *;
     using RLPDecode for *;
 
-    /*----------------- struct -----------------*/
-    // BSC to GNFD
-    struct CreateSynPackage {
-        address creator;
-        string name;
-        VisibilityType visibility;
-        address paymentAddress;
-        address primarySpAddress;
-        uint256 primarySpApprovalExpiredHeight;
-        bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
-        uint256 readQuota;
-        bytes extraData; // rlp encode of ExtraData
-    }
-
-    enum VisibilityType {
-        PublicRead,
-        Private,
-        Default // If the bucket Visibility is default, it's finally set to private.
-    }
+    // package type
+    bytes32 public constant CREATE_BUCKET_SYN = keccak256("CREATE_BUCKET_SYN");
 
     /*----------------- external function -----------------*/
 
@@ -91,7 +75,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
      *
      * @param synPkg Package containing information of the bucket to be created
      */
-    function createBucket(CreateSynPackage memory synPkg) external payable returns (bool) {
+    function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
@@ -108,7 +92,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            _encodeCreateSynPackage(synPkg),
+            _encodeCreateBucketSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -126,7 +110,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
      * It will be reset as the `msg.sender` all the time.
      */
     function createBucket(
-        CreateSynPackage memory synPkg,
+        CreateBucketSynPackage memory synPkg,
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
@@ -157,7 +141,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            _encodeCreateSynPackage(synPkg),
+            _encodeCreateBucketSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -255,8 +239,54 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         return true;
     }
 
+    function retryPackage() external {
+        CallbackPackage memory callbackPkg = getRetryPackage(msg.sender);
+        if (callbackPkg.isFailAck) {
+            if (callbackPkg.pkgType == CREATE_BUCKET_SYN) {
+                (CreateBucketSynPackage memory synPkg, bool success) =
+                    _decodeCreateBucketSynPackage(callbackPkg.msgBytes);
+                require(success, "decode create bucket fail ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else if (callbackPkg.pkgType == CMN_DELETE_SYN) {
+                (CmnDeleteSynPackage memory synPkg, bool success) = _decodeCmnDeleteSynPackage(callbackPkg.msgBytes);
+                require(success, "decode delete bucket fail ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else {
+                revert("invalid callback package type");
+            }
+        } else {
+            if (callbackPkg.pkgType == CMN_CREATE_ACK) {
+                (CmnCreateAckPackage memory ackPkg, bool success) = _decodeCmnCreateAckPackage(callbackPkg.msgBytes);
+                require(success, "decode create bucket ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else if (callbackPkg.pkgType == CMN_DELETE_ACK) {
+                (CmnDeleteAckPackage memory ackPkg, bool success) = _decodeCmnDeleteAckPackage(callbackPkg.msgBytes);
+                require(success, "decode delete bucket ack package failed");
+
+                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
+
+                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
+                delete packageMap[pkgHash];
+            } else {
+                revert("invalid callback package type");
+            }
+        }
+    }
+
     /*----------------- internal function -----------------*/
-    function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
+    function _encodeCreateBucketSynPackage(CreateBucketSynPackage memory synPkg) internal pure returns (bytes memory) {
         bytes[] memory elements = new bytes[](9);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();
@@ -265,7 +295,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         elements[4] = synPkg.primarySpAddress.encodeAddress();
         elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();
         elements[6] = synPkg.primarySpSignature.encodeBytes();
-        elements[7] = synPkg.readQuota.encodeUint();
+        elements[7] = uint256(synPkg.chargedReadQuota).encodeUint();
         elements[8] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }
@@ -276,5 +306,41 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         elements[1] = synPkg.id.encodeUint();
         elements[2] = synPkg.extraData.encodeBytes();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
+    }
+
+    function _decodeCreateBucketSynPackage(bytes memory pkgBytes)
+        internal
+        pure
+        returns (CreateBucketSynPackage memory synPkg, bool success)
+    {
+        RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
+
+        uint256 idx;
+        while (iter.hasNext()) {
+            if (idx == 0) {
+                synPkg.creator = iter.next().toAddress();
+            } else if (idx == 1) {
+                synPkg.name = string(iter.next().toBytes());
+            } else if (idx == 2) {
+                synPkg.visibility = BucketVisibilityType(iter.next().toUint());
+            } else if (idx == 3) {
+                synPkg.paymentAddress = iter.next().toAddress();
+            } else if (idx == 4) {
+                synPkg.primarySpAddress = iter.next().toAddress();
+            } else if (idx == 5) {
+                synPkg.primarySpApprovalExpiredHeight = iter.next().toUint();
+            } else if (idx == 6) {
+                synPkg.primarySpSignature = iter.next().toBytes();
+            } else if (idx == 7) {
+                synPkg.chargedReadQuota = uint64(iter.next().toUint());
+            } else if (idx == 8) {
+                synPkg.extraData = iter.next().toBytes();
+                success = true;
+            } else {
+                break;
+            }
+            idx++;
+        }
+        return (synPkg, success);
     }
 }
