@@ -145,11 +145,9 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
     event UnexpectedPackage(uint8 indexed channelId, bytes msgBytes);
     event ParamChange(string key, bytes value);
 
-    function _decodeCmnCreateAckPackage(bytes memory pkgBytes)
-        internal
-        pure
-        returns (CmnCreateAckPackage memory, bool)
-    {
+    function _decodeCmnCreateAckPackage(
+        bytes memory pkgBytes
+    ) internal pure returns (CmnCreateAckPackage memory, bool) {
         CmnCreateAckPackage memory ackPkg;
         RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
 
@@ -173,11 +171,9 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
         return (ackPkg, success);
     }
 
-    function _decodeCmnDeleteSynPackage(bytes memory pkgBytes)
-        internal
-        pure
-        returns (CmnDeleteSynPackage memory, bool success)
-    {
+    function _decodeCmnDeleteSynPackage(
+        bytes memory pkgBytes
+    ) internal pure returns (CmnDeleteSynPackage memory, bool success) {
         CmnDeleteSynPackage memory synPkg;
         RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
 
@@ -198,11 +194,9 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
         return (synPkg, success);
     }
 
-    function _decodeCmnDeleteAckPackage(bytes memory pkgBytes)
-        internal
-        pure
-        returns (CmnDeleteAckPackage memory, bool success)
-    {
+    function _decodeCmnDeleteAckPackage(
+        bytes memory pkgBytes
+    ) internal pure returns (CmnDeleteAckPackage memory, bool success) {
         CmnDeleteAckPackage memory ackPkg;
         RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
 

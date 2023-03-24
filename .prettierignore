@@ -1,3 +1,9 @@
 artifacts
 cache
+lib
 node_modules
+typechain-types
+
+# foundry
+out
+broadcast

@@ -180,9 +180,13 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
-                    channelId, synPkg, extraData.callbackData
-                ) {} catch Error(string memory error) {
+                try
+                    IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
+                        channelId,
+                        synPkg,
+                        extraData.callbackData
+                    )
+                {} catch Error(string memory error) {
                     reason = bytes(error);
                     failed = true;
                 } catch (bytes memory lowLevelData) {
@@ -190,8 +194,9 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
                     failed = true;
                 }
 
-                remainingGas =
-                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
@@ -199,7 +204,12 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, CREATE_BUCKET_SYN, pkgBytes, extraData.callbackData, true, reason
+                            extraData.appAddress,
+                            CREATE_BUCKET_SYN,
+                            pkgBytes,
+                            extraData.callbackData,
+                            true,
+                            reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }

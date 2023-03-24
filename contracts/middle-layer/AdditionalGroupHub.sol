@@ -363,7 +363,9 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         CallbackPackage memory callbackPkg = getRetryPackage(msg.sender);
         if (callbackPkg.isFailAck) {
             if (callbackPkg.pkgType == CREATE_GROUP_SYN) {
-                (CreateGroupSynPackage memory synPkg, bool success) = _decodeCreateGroupSynPackage(callbackPkg.msgBytes);
+                (CreateGroupSynPackage memory synPkg, bool success) = _decodeCreateGroupSynPackage(
+                    callbackPkg.msgBytes
+                );
                 require(success, "decode create group fail ack package failed");
 
                 IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
@@ -379,7 +381,9 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
                 bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
                 delete packageMap[pkgHash];
             } else if (callbackPkg.pkgType == UPDATE_GROUP_SYN) {
-                (UpdateGroupSynPackage memory synPkg, bool success) = _decodeUpdateGroupSynPackage(callbackPkg.msgBytes);
+                (UpdateGroupSynPackage memory synPkg, bool success) = _decodeUpdateGroupSynPackage(
+                    callbackPkg.msgBytes
+                );
                 require(success, "decode update group fail ack package failed");
 
                 IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
@@ -407,7 +411,9 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
                 bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
                 delete packageMap[pkgHash];
             } else if (callbackPkg.pkgType == CMN_DELETE_ACK) {
-                (UpdateGroupAckPackage memory ackPkg, bool success) = _decodeUpdateGroupAckPackage(callbackPkg.msgBytes);
+                (UpdateGroupAckPackage memory ackPkg, bool success) = _decodeUpdateGroupAckPackage(
+                    callbackPkg.msgBytes
+                );
                 require(success, "decode update group ack package failed");
 
                 IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
@@ -452,11 +458,9 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         return _RLPEncode(TYPE_UPDATE, elements.encodeList());
     }
 
-    function _decodeCreateGroupSynPackage(bytes memory pkgBytes)
-        internal
-        pure
-        returns (CreateGroupSynPackage memory synPkg, bool success)
-    {
+    function _decodeCreateGroupSynPackage(
+        bytes memory pkgBytes
+    ) internal pure returns (CreateGroupSynPackage memory synPkg, bool success) {
         RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
 
         uint256 idx;
@@ -476,11 +480,9 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         return (synPkg, success);
     }
 
-    function _decodeUpdateGroupSynPackage(bytes memory pkgBytes)
-        internal
-        pure
-        returns (UpdateGroupSynPackage memory synPkg, bool success)
-    {
+    function _decodeUpdateGroupSynPackage(
+        bytes memory pkgBytes
+    ) internal pure returns (UpdateGroupSynPackage memory synPkg, bool success) {
         RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
 
         uint256 idx;
@@ -509,11 +511,9 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         return (synPkg, success);
     }
 
-    function _decodeUpdateGroupAckPackage(bytes memory pkgBytes)
-        internal
-        pure
-        returns (UpdateGroupAckPackage memory, bool)
-    {
+    function _decodeUpdateGroupAckPackage(
+        bytes memory pkgBytes
+    ) internal pure returns (UpdateGroupAckPackage memory, bool) {
         UpdateGroupAckPackage memory ackPkg;
         RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
 

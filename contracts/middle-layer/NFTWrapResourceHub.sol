@@ -92,9 +92,13 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
-                    channelId, ackPkg, extraData.callbackData
-                ) {} catch Error(string memory error) {
+                try
+                    IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
+                        channelId,
+                        ackPkg,
+                        extraData.callbackData
+                    )
+                {} catch Error(string memory error) {
                     reason = bytes(error);
                     failed = true;
                 } catch (bytes memory lowLevelData) {
@@ -102,8 +106,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                     failed = true;
                 }
 
-                remainingGas =
-                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
@@ -111,7 +116,12 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, CMN_CREATE_ACK, pkgBytes, extraData.callbackData, false, reason
+                            extraData.appAddress,
+                            CMN_CREATE_ACK,
+                            pkgBytes,
+                            extraData.callbackData,
+                            false,
+                            reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -150,9 +160,13 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
-                    channelId, ackPkg, extraData.callbackData
-                ) {} catch Error(string memory error) {
+                try
+                    IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
+                        channelId,
+                        ackPkg,
+                        extraData.callbackData
+                    )
+                {} catch Error(string memory error) {
                     reason = bytes(error);
                     failed = true;
                 } catch (bytes memory lowLevelData) {
@@ -160,8 +174,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                     failed = true;
                 }
 
-                remainingGas =
-                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
@@ -169,7 +184,12 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, CMN_DELETE_ACK, pkgBytes, extraData.callbackData, false, reason
+                            extraData.appAddress,
+                            CMN_DELETE_ACK,
+                            pkgBytes,
+                            extraData.callbackData,
+                            false,
+                            reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -231,9 +251,7 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
     }
 
     function _doMirror(CmnMirrorSynPackage memory synPkg) internal virtual returns (uint32) {
-        try IERC721NonTransferable(ERC721Token).mint(
-            synPkg.owner, synPkg.id
-        ) {} catch Error(string memory error) {
+        try IERC721NonTransferable(ERC721Token).mint(synPkg.owner, synPkg.id) {} catch Error(string memory error) {
             emit MirrorFailed(synPkg.id, synPkg.owner, bytes(error));
             return STATUS_FAILED;
         } catch (bytes memory lowLevelData) {
@@ -261,9 +279,13 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
-                    channelId, synPkg, extraData.callbackData
-                ) {} catch Error(string memory error) {
+                try
+                    IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
+                        channelId,
+                        synPkg,
+                        extraData.callbackData
+                    )
+                {} catch Error(string memory error) {
                     reason = bytes(error);
                     failed = true;
                 } catch (bytes memory lowLevelData) {
@@ -271,8 +293,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                     failed = true;
                 }
 
-                remainingGas =
-                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
@@ -280,7 +303,12 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, CMN_DELETE_SYN, pkgBytes, extraData.callbackData, true, reason
+                            extraData.appAddress,
+                            CMN_DELETE_SYN,
+                            pkgBytes,
+                            extraData.callbackData,
+                            true,
+                            reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -289,11 +317,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         }
     }
 
-    function _bytesToExtraData(bytes memory _extraDataBytes)
-        internal
-        pure
-        returns (ExtraData memory _extraData, bool success)
-    {
+    function _bytesToExtraData(
+        bytes memory _extraDataBytes
+    ) internal pure returns (ExtraData memory _extraData, bool success) {
         RLPDecode.Iterator memory iter = _extraDataBytes.toRLPItem().iterator();
 
         uint256 idx;

@@ -243,8 +243,9 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         CallbackPackage memory callbackPkg = getRetryPackage(msg.sender);
         if (callbackPkg.isFailAck) {
             if (callbackPkg.pkgType == CREATE_BUCKET_SYN) {
-                (CreateBucketSynPackage memory synPkg, bool success) =
-                    _decodeCreateBucketSynPackage(callbackPkg.msgBytes);
+                (CreateBucketSynPackage memory synPkg, bool success) = _decodeCreateBucketSynPackage(
+                    callbackPkg.msgBytes
+                );
                 require(success, "decode create bucket fail ack package failed");
 
                 IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
@@ -308,11 +309,9 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 
-    function _decodeCreateBucketSynPackage(bytes memory pkgBytes)
-        internal
-        pure
-        returns (CreateBucketSynPackage memory synPkg, bool success)
-    {
+    function _decodeCreateBucketSynPackage(
+        bytes memory pkgBytes
+    ) internal pure returns (CreateBucketSynPackage memory synPkg, bool success) {
         RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
 
         uint256 idx;

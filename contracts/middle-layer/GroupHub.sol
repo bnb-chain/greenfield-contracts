@@ -210,10 +210,11 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         return (ackPkg, success);
     }
 
-    function _handleUpdateGroupAckPackage(bytes memory pkgBytes, uint64 sequence, uint256 callbackGasLimit)
-        internal
-        returns (uint256 remainingGas, address refundAddress)
-    {
+    function _handleUpdateGroupAckPackage(
+        bytes memory pkgBytes,
+        uint64 sequence,
+        uint256 callbackGasLimit
+    ) internal returns (uint256 remainingGas, address refundAddress) {
         (UpdateGroupAckPackage memory ackPkg, bool success) = _decodeUpdateGroupAckPackage(pkgBytes);
         require(success, "unrecognized update ack package");
 
@@ -234,9 +235,13 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
-                    channelId, ackPkg, extraData.callbackData
-                ) {} catch Error(string memory error) {
+                try
+                    IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
+                        channelId,
+                        ackPkg,
+                        extraData.callbackData
+                    )
+                {} catch Error(string memory error) {
                     reason = bytes(error);
                     failed = true;
                 } catch (bytes memory lowLevelData) {
@@ -244,8 +249,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     failed = true;
                 }
 
-                remainingGas =
-                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
@@ -253,7 +259,12 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, UPDATE_GROUP_ACK, pkgBytes, extraData.callbackData, false, reason
+                            extraData.appAddress,
+                            UPDATE_GROUP_ACK,
+                            pkgBytes,
+                            extraData.callbackData,
+                            false,
+                            reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -303,10 +314,11 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         return (synPkg, success);
     }
 
-    function _handleCreateFailAckPackage(bytes memory pkgBytes, uint64 sequence, uint256 callbackGasLimit)
-        internal
-        returns (uint256 remainingGas, address refundAddress)
-    {
+    function _handleCreateFailAckPackage(
+        bytes memory pkgBytes,
+        uint64 sequence,
+        uint256 callbackGasLimit
+    ) internal returns (uint256 remainingGas, address refundAddress) {
         (CreateGroupSynPackage memory synPkg, bool success) = _decodeCreateGroupSynPackage(pkgBytes);
         require(success, "unrecognized create group fail ack package");
 
@@ -319,9 +331,13 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
-                    channelId, synPkg, extraData.callbackData
-                ) {} catch Error(string memory error) {
+                try
+                    IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
+                        channelId,
+                        synPkg,
+                        extraData.callbackData
+                    )
+                {} catch Error(string memory error) {
                     reason = bytes(error);
                     failed = true;
                 } catch (bytes memory lowLevelData) {
@@ -329,8 +345,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     failed = true;
                 }
 
-                remainingGas =
-                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
@@ -338,7 +355,12 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, CREATE_GROUP_SYN, pkgBytes, extraData.callbackData, true, reason
+                            extraData.appAddress,
+                            CREATE_GROUP_SYN,
+                            pkgBytes,
+                            extraData.callbackData,
+                            true,
+                            reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -347,11 +369,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         }
     }
 
-    function _decodeUpdateGroupSynPackage(bytes memory pkgBytes)
-        internal
-        pure
-        returns (UpdateGroupSynPackage memory synPkg, bool success)
-    {
+    function _decodeUpdateGroupSynPackage(
+        bytes memory pkgBytes
+    ) internal pure returns (UpdateGroupSynPackage memory synPkg, bool success) {
         RLPDecode.Iterator memory iter = pkgBytes.toRLPItem().iterator();
 
         uint256 idx;
@@ -380,10 +400,11 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
         return (synPkg, success);
     }
 
-    function _handleUpdateFailAckPackage(bytes memory pkgBytes, uint64 sequence, uint256 callbackGasLimit)
-        internal
-        returns (uint256 remainingGas, address refundAddress)
-    {
+    function _handleUpdateFailAckPackage(
+        bytes memory pkgBytes,
+        uint64 sequence,
+        uint256 callbackGasLimit
+    ) internal returns (uint256 remainingGas, address refundAddress) {
         (UpdateGroupSynPackage memory synPkg, bool success) = _decodeUpdateGroupSynPackage(pkgBytes);
         require(success, "unrecognized create group fail ack package");
 
@@ -396,9 +417,13 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
-                    channelId, synPkg, extraData.callbackData
-                ) {} catch Error(string memory error) {
+                try
+                    IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
+                        channelId,
+                        synPkg,
+                        extraData.callbackData
+                    )
+                {} catch Error(string memory error) {
                     reason = bytes(error);
                     failed = true;
                 } catch (bytes memory lowLevelData) {
@@ -406,8 +431,9 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     failed = true;
                 }
 
-                remainingGas =
-                    callbackGasLimit > (gasBefore - gasleft()) ? callbackGasLimit - (gasBefore - gasleft()) : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
@@ -415,7 +441,12 @@ contract GroupHub is NFTWrapResourceHub, AccessControl {
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
-                            extraData.appAddress, UPDATE_GROUP_SYN, pkgBytes, extraData.callbackData, true, reason
+                            extraData.appAddress,
+                            UPDATE_GROUP_SYN,
+                            pkgBytes,
+                            extraData.callbackData,
+                            true,
+                            reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
