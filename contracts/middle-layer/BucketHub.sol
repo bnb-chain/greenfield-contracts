@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
@@ -20,13 +20,19 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     struct CreateSynPackage {
         address creator;
         string name;
-        bool isPublic;
+        VisibilityType visibility;
         address paymentAddress;
         address primarySpAddress;
         uint256 primarySpApprovalExpiredHeight;
         bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
         uint256 readQuota;
         bytes extraData; // rlp encode of ExtraData
+    }
+
+    enum VisibilityType {
+        PublicRead,
+        Private,
+        Default // If the bucket Visibility is default, it's finally set to private.
     }
 
     function initialize(address _ERC721_token, address _additional) public initializer {
@@ -54,12 +60,12 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      * @param callbackGasLimit The gas limit for callback
      */
-    function handleAckPackage(uint8, uint64 sequence, bytes calldata msgBytes, uint256 callbackGasLimit)
-        external
-        override
-        onlyCrossChain
-        returns (uint256 remainingGas, address refundAddress)
-    {
+    function handleAckPackage(
+        uint8,
+        uint64 sequence,
+        bytes calldata msgBytes,
+        uint256 callbackGasLimit
+    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(msgIter.next().toUint());
@@ -83,9 +89,13 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
             bytes memory reason;
             bool failed;
             uint256 gasBefore = gasleft();
-            try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
-                channelId, msgBytes, extraData.callbackData
-            ) {} catch Error(string memory error) {
+            try
+                IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
+                    channelId,
+                    msgBytes,
+                    extraData.callbackData
+                )
+            {} catch Error(string memory error) {
                 reason = bytes(error);
                 failed = true;
             } catch (bytes memory lowLevelData) {
@@ -100,8 +110,13 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
                 bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                 emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                 if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                    packageMap[pkgHash] =
-                        CallbackPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
+                    packageMap[pkgHash] = CallbackPackage(
+                        extraData.appAddress,
+                        msgBytes,
+                        extraData.callbackData,
+                        true,
+                        reason
+                    );
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
@@ -115,12 +130,12 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      * @param callbackGasLimit The gas limit for callback
      */
-    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256 callbackGasLimit)
-        external
-        override
-        onlyCrossChain
-        returns (uint256 remainingGas, address refundAddress)
-    {
+    function handleFailAckPackage(
+        uint8 channelId,
+        uint64 sequence,
+        bytes calldata msgBytes,
+        uint256 callbackGasLimit
+    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         (ExtraData memory extraData, bool success) = _decodeFailAckPackage(msgBytes);
         require(success, "decode fail ack package failed");
 
@@ -128,9 +143,13 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
             bytes memory reason;
             bool failed;
             uint256 gasBefore = gasleft();
-            try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
-                channelId, msgBytes, extraData.callbackData
-            ) {} catch Error(string memory error) {
+            try
+                IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
+                    channelId,
+                    msgBytes,
+                    extraData.callbackData
+                )
+            {} catch Error(string memory error) {
                 reason = bytes(error);
                 failed = true;
             } catch (bytes memory lowLevelData) {
@@ -145,8 +164,13 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
                 bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                 emit AppHandleFailAckPkgFailed(extraData.appAddress, pkgHash, reason);
                 if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                    packageMap[pkgHash] =
-                        CallbackPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
+                    packageMap[pkgHash] = CallbackPackage(
+                        extraData.appAddress,
+                        msgBytes,
+                        extraData.callbackData,
+                        true,
+                        reason
+                    );
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
@@ -182,11 +206,9 @@ contract BucketHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- internal function -----------------*/
-    function _decodeFailAckPackage(bytes memory msgBytes)
-        internal
-        pure
-        returns (ExtraData memory extraData, bool success)
-    {
+    function _decodeFailAckPackage(
+        bytes memory msgBytes
+    ) internal pure returns (ExtraData memory extraData, bool success) {
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(msgIter.next().toUint());

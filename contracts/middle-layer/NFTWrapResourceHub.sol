@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
@@ -27,11 +27,12 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
     // need to be implemented in child contract
     function handleSynPackage(uint8 channelId, bytes calldata callbackData) external virtual returns (bytes memory) {}
 
-    function handleAckPackage(uint8 channelId, uint64 sequence, bytes calldata callbackData, uint256 callbackGasLimit)
-        external
-        virtual
-        returns (uint256 remainingGas, address refundAddress)
-    {}
+    function handleAckPackage(
+        uint8 channelId,
+        uint64 sequence,
+        bytes calldata callbackData,
+        uint256 callbackGasLimit
+    ) external virtual returns (uint256 remainingGas, address refundAddress) {}
 
     function handleFailAckPackage(
         uint8 channelId,
@@ -60,11 +61,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
     }
 
     /*----------------- internal function -----------------*/
-    function _decodeCmnCreateAckPackage(RLPDecode.Iterator memory iter)
-        internal
-        pure
-        returns (CmnCreateAckPackage memory, bool)
-    {
+    function _decodeCmnCreateAckPackage(
+        RLPDecode.Iterator memory iter
+    ) internal pure returns (CmnCreateAckPackage memory, bool) {
         CmnCreateAckPackage memory ackPkg;
 
         bool success;
@@ -76,9 +75,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                 ackPkg.id = iter.next().toUint();
             } else if (idx == 2) {
                 ackPkg.creator = iter.next().toAddress();
-                success = true; // extraData is optional
             } else if (idx == 3) {
                 ackPkg.extraData = iter.next().toBytes();
+                success = true;
             } else {
                 break;
             }
@@ -87,11 +86,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         return (ackPkg, success);
     }
 
-    function _handleCreateAckPackage(RLPDecode.Iterator memory iter)
-        internal
-        virtual
-        returns (ExtraData memory _extraData)
-    {
+    function _handleCreateAckPackage(
+        RLPDecode.Iterator memory iter
+    ) internal virtual returns (ExtraData memory _extraData) {
         (CmnCreateAckPackage memory ackPkg, bool success) = _decodeCmnCreateAckPackage(iter);
         require(success, "unrecognized create ack package");
 
@@ -114,11 +111,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         emit CreateSuccess(creator, id);
     }
 
-    function _decodeCmnDeleteAckPackage(RLPDecode.Iterator memory iter)
-        internal
-        pure
-        returns (CmnDeleteAckPackage memory, bool)
-    {
+    function _decodeCmnDeleteAckPackage(
+        RLPDecode.Iterator memory iter
+    ) internal pure returns (CmnDeleteAckPackage memory, bool) {
         CmnDeleteAckPackage memory ackPkg;
 
         bool success;
@@ -128,9 +123,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                 ackPkg.status = uint32(iter.next().toUint());
             } else if (idx == 1) {
                 ackPkg.id = iter.next().toUint();
-                success = true; // extraData is optional
             } else if (idx == 2) {
                 ackPkg.extraData = iter.next().toBytes();
+                success = true;
             } else {
                 break;
             }
@@ -139,11 +134,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         return (ackPkg, success);
     }
 
-    function _handleDeleteAckPackage(RLPDecode.Iterator memory iter)
-        internal
-        virtual
-        returns (ExtraData memory _extraData)
-    {
+    function _handleDeleteAckPackage(
+        RLPDecode.Iterator memory iter
+    ) internal virtual returns (ExtraData memory _extraData) {
         (CmnDeleteAckPackage memory ackPkg, bool success) = _decodeCmnDeleteAckPackage(iter);
         require(success, "unrecognized delete ack package");
 
@@ -166,11 +159,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         emit DeleteSuccess(id);
     }
 
-    function _decodeCmnMirrorSynPackage(bytes memory msgBytes)
-        internal
-        pure
-        returns (CmnMirrorSynPackage memory, bool)
-    {
+    function _decodeCmnMirrorSynPackage(
+        bytes memory msgBytes
+    ) internal pure returns (CmnMirrorSynPackage memory, bool) {
         CmnMirrorSynPackage memory synPkg;
 
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
@@ -212,13 +203,12 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         require(success, "unrecognized mirror package");
 
         uint32 status = _doMirror(synPkg);
-        CmnMirrorAckPackage memory mirrorAckPkg = CmnMirrorAckPackage({status: status, id: synPkg.id});
+        CmnMirrorAckPackage memory mirrorAckPkg = CmnMirrorAckPackage({ status: status, id: synPkg.id });
         return _encodeCmnMirrorAckPackage(mirrorAckPkg);
     }
 
     function _doMirror(CmnMirrorSynPackage memory synPkg) internal virtual returns (uint32) {
-        try IERC721NonTransferable(ERC721Token).mint(synPkg.owner, synPkg.id) {}
-        catch (bytes memory reason) {
+        try IERC721NonTransferable(ERC721Token).mint(synPkg.owner, synPkg.id) {} catch (bytes memory reason) {
             emit MirrorFailed(synPkg.id, synPkg.owner, reason);
             return STATUS_FAILED;
         }
@@ -226,11 +216,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
         return STATUS_SUCCESS;
     }
 
-    function _bytesToExtraData(bytes memory _extraDataBytes)
-        internal
-        pure
-        returns (ExtraData memory _extraData, bool success)
-    {
+    function _bytesToExtraData(
+        bytes memory _extraDataBytes
+    ) internal pure returns (ExtraData memory _extraData, bool success) {
         RLPDecode.Iterator memory iter = _extraDataBytes.toRLPItem().iterator();
 
         uint256 idx;
@@ -241,9 +229,9 @@ abstract contract NFTWrapResourceHub is NFTWrapResourceStorage, Initializable {
                 _extraData.refundAddress = iter.next().toAddress();
             } else if (idx == 2) {
                 _extraData.failureHandleStrategy = FailureHandleStrategy(uint8(iter.next().toUint()));
-                success = true; // the call back data can be empty
             } else if (idx == 3) {
                 _extraData.callbackData = iter.next().toBytes();
+                success = true;
             } else {
                 break;
             }
