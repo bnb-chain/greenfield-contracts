@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
@@ -16,7 +16,11 @@ interface IERC1155NonTransferable {
      * transfers.
      */
     event TransferBatch(
-        address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values
+        address indexed operator,
+        address indexed from,
+        address indexed to,
+        uint256[] ids,
+        uint256[] values
     );
 
     /**
@@ -50,10 +54,10 @@ interface IERC1155NonTransferable {
      *
      * - `accounts` and `ids` must have the same length.
      */
-    function balanceOfBatch(address[] calldata accounts, uint256[] calldata ids)
-        external
-        view
-        returns (uint256[] memory);
+    function balanceOfBatch(
+        address[] calldata accounts,
+        uint256[] calldata ids
+    ) external view returns (uint256[] memory);
 
     function mint(address to, uint256 id, uint256 value, bytes memory data) external;
 

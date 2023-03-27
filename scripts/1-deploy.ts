@@ -169,7 +169,16 @@ const main = async () => {
     const memberToken = await deployContract('ERC1155NonTransferable', 'member', proxyGroupHub);
     log('deploy member token success', memberToken.address);
 
-    await memberToken.deployTransaction.wait(5);
+    const bucketRlp = await deployContract('BucketRlp');
+    log('deploy bucketRlp success', bucketRlp.address);
+
+    const objectRlp = await deployContract('ObjectRlp');
+    log('deploy objectRlp success', objectRlp.address);
+
+    const groupRlp = await deployContract('GroupRlp');
+    log('deploy groupRlp success', groupRlp.address);
+
+    await groupRlp.deployTransaction.wait(5);
 
     let tx = await deployer.init([
         implGovHub.address,
@@ -187,6 +196,9 @@ const main = async () => {
         objectToken.address,
         groupToken.address,
         memberToken.address,
+        bucketRlp.address,
+        objectRlp.address,
+        groupRlp.address
     ]);
     log('deployer init success');
 

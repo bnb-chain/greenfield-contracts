@@ -1,18 +1,18 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/CrossChain.sol";
-import "../contracts/GnfdProxy.sol";
-import "../contracts/GnfdProxyAdmin.sol";
-import "../contracts/GnfdLightClient.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/TokenHub.sol";
+import "contracts/CrossChain.sol";
+import "contracts/GnfdProxy.sol";
+import "contracts/GnfdProxyAdmin.sol";
+import "contracts/GnfdLightClient.sol";
+import "contracts/middle-layer/GovHub.sol";
+import "contracts/middle-layer/TokenHub.sol";
 
-import "../contracts/lib/RLPEncode.sol";
-import "../contracts/lib/RLPDecode.sol";
+import "contracts/lib/RLPEncode.sol";
+import "contracts/lib/RLPDecode.sol";
 
 contract TokenHubTest is Test, TokenHub {
     using RLPEncode for *;

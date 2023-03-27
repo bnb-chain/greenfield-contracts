@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
@@ -12,9 +12,9 @@ import "./CrossChain.sol";
 import "./RelayerHub.sol";
 import "./middle-layer/GovHub.sol";
 import "./middle-layer/TokenHub.sol";
-import "./middle-layer/BucketHub.sol";
-import "./middle-layer/ObjectHub.sol";
-import "./middle-layer/GroupHub.sol";
+import "./middle-layer/resource-mirror/BucketHub.sol";
+import "./middle-layer/resource-mirror/ObjectHub.sol";
+import "./middle-layer/resource-mirror/GroupHub.sol";
 
 contract Deployer {
     uint16 public immutable gnfdChainId;
@@ -45,6 +45,9 @@ contract Deployer {
     address public objectToken;
     address public groupToken;
     address public memberToken;
+    address public bucketRlp;
+    address public objectRlp;
+    address public groupRlp;
 
     bool public initialized;
     bool public deployed;
@@ -78,23 +81,26 @@ contract Deployer {
         initialized = true;
 
         // use address list to avoid stack too deep
-        require(addrs.length == 15, "invalid addrs length");
+        require(addrs.length == 18, "invalid addrs length");
 
-        require(_isContract(addrs[0]), "invalid _implGovHub");
-        require(_isContract(addrs[1]), "invalid _implCrossChain");
-        require(_isContract(addrs[2]), "invalid _implTokenHub");
-        require(_isContract(addrs[3]), "invalid _implLightClient");
-        require(_isContract(addrs[4]), "invalid _implRelayerHub");
-        require(_isContract(addrs[5]), "invalid _implBucketHub");
-        require(_isContract(addrs[6]), "invalid _implObjectHub");
-        require(_isContract(addrs[7]), "invalid _implGroupHub");
-        require(_isContract(addrs[8]), "invalid _addBucketHub");
-        require(_isContract(addrs[9]), "invalid _addObjectHub");
-        require(_isContract(addrs[10]), "invalid _addGroupHub");
-        require(_isContract(addrs[11]), "invalid _bucketToken");
-        require(_isContract(addrs[12]), "invalid _objectToken");
-        require(_isContract(addrs[13]), "invalid _groupToken");
-        require(_isContract(addrs[14]), "invalid _memberToken");
+        require(_isContract(addrs[0]), "invalid implGovHub");
+        require(_isContract(addrs[1]), "invalid implCrossChain");
+        require(_isContract(addrs[2]), "invalid implTokenHub");
+        require(_isContract(addrs[3]), "invalid implLightClient");
+        require(_isContract(addrs[4]), "invalid implRelayerHub");
+        require(_isContract(addrs[5]), "invalid implBucketHub");
+        require(_isContract(addrs[6]), "invalid implObjectHub");
+        require(_isContract(addrs[7]), "invalid implGroupHub");
+        require(_isContract(addrs[8]), "invalid addBucketHub");
+        require(_isContract(addrs[9]), "invalid addObjectHub");
+        require(_isContract(addrs[10]), "invalid addGroupHub");
+        require(_isContract(addrs[11]), "invalid bucketToken");
+        require(_isContract(addrs[12]), "invalid objectToken");
+        require(_isContract(addrs[13]), "invalid groupToken");
+        require(_isContract(addrs[14]), "invalid memberToken");
+        require(_isContract(addrs[15]), "invalid bucketRlp");
+        require(_isContract(addrs[16]), "invalid objectRlp");
+        require(_isContract(addrs[17]), "invalid groupRlp");
 
         implGovHub = addrs[0];
         implCrossChain = addrs[1];
@@ -111,6 +117,9 @@ contract Deployer {
         objectToken = addrs[12];
         groupToken = addrs[13];
         memberToken = addrs[14];
+        bucketRlp = addrs[15];
+        objectRlp = addrs[16];
+        groupRlp = addrs[17];
     }
 
     function deploy(bytes calldata _initConsensusStateBytes) public {
@@ -160,9 +169,9 @@ contract Deployer {
         TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
         RelayerHub(payable(proxyRelayerHub)).initialize();
-        BucketHub(payable(proxyBucketHub)).initialize(bucketToken, addBucketHub);
-        ObjectHub(payable(proxyObjectHub)).initialize(objectToken, addObjectHub);
-        GroupHub(payable(proxyGroupHub)).initialize(groupToken, memberToken, addGroupHub);
+        BucketHub(payable(proxyBucketHub)).initialize(bucketToken, addBucketHub, bucketRlp);
+        ObjectHub(payable(proxyObjectHub)).initialize(objectToken, addObjectHub, objectRlp);
+        GroupHub(payable(proxyGroupHub)).initialize(groupToken, memberToken, addGroupHub, groupRlp);
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
@@ -170,7 +179,10 @@ contract Deployer {
             Config(deployedProxyCrossChain).CROSS_CHAIN() == proxyCrossChain,
             "invalid proxyCrossChain address on Config"
         );
-        require(Config(deployedProxyCrossChain).TOKEN_HUB() == proxyTokenHub, "invalid proxyTokenHub address on Config");
+        require(
+            Config(deployedProxyCrossChain).TOKEN_HUB() == proxyTokenHub,
+            "invalid proxyTokenHub address on Config"
+        );
         require(
             Config(deployedProxyCrossChain).LIGHT_CLIENT() == proxyLightClient,
             "invalid proxyLightClient address on Config"

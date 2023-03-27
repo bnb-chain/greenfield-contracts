@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
 import "./TestDeployer.sol";
-import "../contracts/Deployer.sol";
-import "../contracts/CrossChain.sol";
-import "../contracts/GnfdProxy.sol";
-import "../contracts/GnfdLightClient.sol";
+import "contracts/Deployer.sol";
+import "contracts/CrossChain.sol";
+import "contracts/GnfdProxy.sol";
+import "contracts/GnfdLightClient.sol";
 
 contract DeployerTest is TestDeployer {
     Deployer deployer;
@@ -19,7 +19,8 @@ contract DeployerTest is TestDeployer {
         testDeployer.deploy();
         for (uint256 i = 0; i < 5; i++) {
             assertEq(
-                testDeployer.deployedAddressSet(i), deployer.calcCreateAddress(address(testDeployer), uint8(i + 1))
+                testDeployer.deployedAddressSet(i),
+                deployer.calcCreateAddress(address(testDeployer), uint8(i + 1))
             );
         }
     }

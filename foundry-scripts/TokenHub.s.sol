@@ -22,7 +22,7 @@ contract TokenHubScript is Script {
         console.log("developer", developer, developer.balance);
 
         vm.startBroadcast();
-        tokenHub.transferOut{value: amount + 1 ether}(receipt, amount);
+        tokenHub.transferOut{ value: amount + 1 ether }(receipt, amount);
         vm.stopBroadcast();
     }
 }

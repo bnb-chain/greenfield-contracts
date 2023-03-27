@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./interface/IApplication.sol";
+import "../../../interface/IApplication.sol";
 
 contract PackageQueue {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
@@ -15,6 +15,9 @@ contract PackageQueue {
     mapping(address => DoubleEndedQueueUpgradeable.Bytes32Deque) public retryQueue;
     // app retry package hash => retry package
     mapping(bytes32 => CallbackPackage) public packageMap;
+
+    // PlaceHolder reserve for future usage
+    uint256[50] public PkgQueueSlots;
 
     /*
      * This enum provides different strategies for handling a failed ACK package.
@@ -27,39 +30,31 @@ contract PackageQueue {
 
     struct CallbackPackage {
         address appAddress;
-        bytes msgBytes;
+        uint32 status;
+        uint8 operationType;
+        uint256 resourceId;
         bytes callbackData;
-        bool isFailAck;
         bytes failReason;
     }
 
     event AppHandleAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
     event AppHandleFailAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
 
-    // PlaceHolder reserve for future usage
-    uint256[50] public PkgQueueSlots;
-
-    modifier checkCaller() {
-        address appAddress = msg.sender;
-        bytes32 pkgHash = retryQueue[appAddress].front();
-        require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
-        _;
-    }
-
-    function retryPackage() external checkCaller {
+    function retryPackage() external {
         address appAddress = msg.sender;
         bytes32 pkgHash = retryQueue[appAddress].popFront();
-        bytes memory _msgBytes = packageMap[pkgHash].msgBytes;
-        bytes memory _callbackData = packageMap[pkgHash].callbackData;
-        if (packageMap[pkgHash].isFailAck) {
-            IApplication(appAddress).handleFailAckPackage(channelId, _msgBytes, _callbackData);
-        } else {
-            IApplication(appAddress).handleAckPackage(channelId, _msgBytes, _callbackData);
-        }
+        CallbackPackage memory callbackPkg = packageMap[pkgHash];
+        IApplication(callbackPkg.appAddress).greenfieldCall(
+            callbackPkg.status,
+            channelId,
+            callbackPkg.operationType,
+            callbackPkg.resourceId,
+            callbackPkg.callbackData
+        );
         delete packageMap[pkgHash];
     }
 
-    function skipPackage() external checkCaller {
+    function skipPackage() external {
         address appAddress = msg.sender;
         bytes32 pkgHash = retryQueue[appAddress].popFront();
         delete packageMap[pkgHash];

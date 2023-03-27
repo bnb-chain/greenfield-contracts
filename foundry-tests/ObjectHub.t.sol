@@ -1,15 +1,16 @@
-// SPDX-License-Identifier: Apache-2.0.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/CrossChain.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/ObjectHub.sol";
-import "../contracts/tokens/ERC721NonTransferable.sol";
-import "../contracts/lib/RLPDecode.sol";
-import "../contracts/lib/RLPEncode.sol";
+import "contracts/CrossChain.sol";
+import "contracts/middle-layer/GovHub.sol";
+import "contracts/middle-layer/resource-mirror/ObjectHub.sol";
+import "contracts/tokens/ERC721NonTransferable.sol";
+import "contracts/lib/RLPDecode.sol";
+import "contracts/lib/RLPEncode.sol";
+import "contracts/interface/IObjectRlp.sol";
 
 contract ObjectHubTest is Test, ObjectHub {
     using RLPEncode for *;
@@ -22,8 +23,7 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-    event ReceivedAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
-    event ReceivedFailAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
+    event GreenfieldCall(uint32 indexed status, uint8 channelId, uint8 indexed operationType, uint256 indexed resourceId, bytes callbackData);
 
     ERC721NonTransferable public objectToken;
     ObjectHub public objectHub;
@@ -39,6 +39,7 @@ contract ObjectHubTest is Test, ObjectHub {
         crossChain = CrossChain(CROSS_CHAIN);
         objectHub = ObjectHub(OBJECT_HUB);
         objectToken = ERC721NonTransferable(objectHub.ERC721Token());
+        rlp = objectHub.rlp();
 
         vm.label(GOV_HUB, "govHub");
         vm.label(OBJECT_HUB, "objectHub");
@@ -66,7 +67,7 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     function testMirror(uint256 id) public {
-        CmnMirrorSynPackage memory mirrorSynPkg = CmnMirrorSynPackage({id: id, owner: msg.sender});
+        CmnMirrorSynPackage memory mirrorSynPkg = CmnMirrorSynPackage({ id: id, owner: msg.sender });
         bytes memory msgBytes = _encodeMirrorSynPackage(mirrorSynPkg);
 
         vm.expectEmit(true, true, true, true, address(objectToken));
@@ -82,7 +83,7 @@ contract ObjectHubTest is Test, ObjectHub {
 
         vm.expectEmit(true, true, true, true, address(objectHub));
         emit DeleteSubmitted(address(this), address(this), id);
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{ value: 4e15 }(id);
 
         bytes memory msgBytes = _encodeDeleteAckPackage(0, id);
 
@@ -102,7 +103,7 @@ contract ObjectHubTest is Test, ObjectHub {
         vm.prank(OBJECT_HUB);
         objectToken.mint(granter, id);
         vm.expectRevert(bytes("no permission to delete"));
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{ value: 4e15 }(id);
 
         // wrong auth code
         uint256 expireTime = block.timestamp + 1 days;
@@ -119,7 +120,7 @@ contract ObjectHubTest is Test, ObjectHub {
         // delete success
         vm.expectEmit(true, true, true, true, address(objectHub));
         emit DeleteSubmitted(granter, operator, id);
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{ value: 4e15 }(id);
 
         // grant expire
         id = id + 1;
@@ -128,13 +129,13 @@ contract ObjectHubTest is Test, ObjectHub {
 
         vm.warp(expireTime + 1);
         vm.expectRevert(bytes("no permission to delete"));
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{ value: 4e15 }(id);
 
         // revoke and delete failed
         expireTime = block.timestamp + 1 days;
         vm.prank(msg.sender);
         objectHub.grant(operator, authCode, expireTime);
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{ value: 4e15 }(id);
 
         vm.prank(msg.sender);
         objectHub.revoke(operator, authCode);
@@ -143,18 +144,18 @@ contract ObjectHubTest is Test, ObjectHub {
         vm.prank(OBJECT_HUB);
         objectToken.mint(granter, id);
         vm.expectRevert(bytes("no permission to delete"));
-        objectHub.deleteObject{value: 4e15}(id);
+        objectHub.deleteObject{ value: 4e15 }(id);
     }
 
-    function testCallback() public {
+    function testCallback(uint256 tokenId) public {
         vm.prank(OBJECT_HUB);
         objectToken.mint(address(this), 0);
 
-        bytes memory msgBytes = _encodeDeleteAckPackage(0, 0, address(this), FailureHandleStrategy.BlockOnFail);
+        bytes memory msgBytes = _encodeDeleteAckPackage(STATUS_SUCCESS, tokenId, address(this), FailureHandleStrategy.BlockOnFail);
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
 
-        vm.expectEmit(false, false, false, false, address(this));
-        emit ReceivedAckPkg(OBJECT_CHANNEL_ID, msgBytes, "");
+        vm.expectEmit(true, true, true, false, address(this));
+        emit GreenfieldCall(STATUS_SUCCESS, OBJECT_CHANNEL_ID, TYPE_DELETE, tokenId, "");
         vm.prank(CROSS_CHAIN);
         objectHub.handleAckPackage(OBJECT_CHANNEL_ID, sequence, msgBytes, 5000);
     }
@@ -169,13 +170,16 @@ contract ObjectHubTest is Test, ObjectHub {
             failureHandleStrategy: FailureHandleStrategy.BlockOnFail,
             callbackData: ""
         });
-        CmnDeleteSynPackage memory synPkg =
-            CmnDeleteSynPackage({operator: address(this), id: 0, extraData: _extraDataToBytes(extraData)});
-        bytes memory msgBytes = _encodeCmnDeleteSynPackage(synPkg);
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
+            operator: address(this),
+            id: 0,
+            extraData: IObjectRlp(rlp).encodeExtraData(extraData)
+        });
+        bytes memory msgBytes = IObjectRlp(rlp).encodeCmnDeleteSynPackage(synPkg);
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
 
-        vm.expectEmit(false, false, false, false, address(this));
-        emit ReceivedFailAckPkg(OBJECT_CHANNEL_ID, msgBytes, "");
+        vm.expectEmit(true, true, true, false, address(this));
+        emit GreenfieldCall(STATUS_UNEXPECTED, OBJECT_CHANNEL_ID, TYPE_DELETE, 0, "");
         vm.prank(CROSS_CHAIN);
         objectHub.handleFailAckPackage(OBJECT_CHANNEL_ID, sequence, msgBytes, 5000);
     }
@@ -204,11 +208,11 @@ contract ObjectHubTest is Test, ObjectHub {
             callbackData: ""
         });
         vm.expectRevert(bytes("retry queue is not empty"));
-        objectHub.deleteObject{value: 4e15}(0, 0, extraData);
+        objectHub.deleteObject{ value: 4e15 }(0, 0, extraData);
 
         // retry pkg
         objectHub.retryPackage();
-        objectHub.deleteObject{value: 4e15}(0, 0, extraData);
+        objectHub.deleteObject{ value: 4e15 }(0, 0, extraData);
 
         // skip on fail
         msgBytes = _encodeDeleteAckPackage(0, 0, address(this), FailureHandleStrategy.SkipOnFail);
@@ -223,14 +227,9 @@ contract ObjectHubTest is Test, ObjectHub {
         objectHub.retryPackage();
     }
 
-    /*----------------- middle-layer app function -----------------*/
-    // override the function in GroupHub
-    function handleAckPackage(uint8 channelId, bytes calldata ackPkg, bytes calldata callbackData) external {
-        emit ReceivedAckPkg(channelId, ackPkg, callbackData);
-    }
-
-    function handleFailAckPackage(uint8 channelId, bytes calldata failPkg, bytes calldata callbackData) external {
-        emit ReceivedFailAckPkg(channelId, failPkg, callbackData);
+    /*----------------- dApp function -----------------*/
+    function greenfieldCall(uint32 status, uint8 channelId, uint8 operationType, uint256 resourceId, bytes memory callbackData) external {
+        emit GreenfieldCall(status, channelId, operationType, resourceId, callbackData);
     }
 
     /*----------------- Internal function -----------------*/
@@ -242,25 +241,27 @@ contract ObjectHubTest is Test, ObjectHub {
         return elements.encodeList();
     }
 
-    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal pure returns (bytes memory) {
+    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
         bytes[] memory elements = new bytes[](2);
         elements[0] = synPkg.id.encodeUint();
         elements[1] = synPkg.owner.encodeAddress();
-        return _RLPEncode(TYPE_MIRROR, elements.encodeList());
+        return IObjectRlp(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
     }
 
-    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
+    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
+        bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
+        elements[2] = "".encodeBytes();
+        return IObjectRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 
-    function _encodeDeleteAckPackage(uint32 status, uint256 id, address refundAddr, FailureHandleStrategy failStrategy)
-        internal
-        view
-        returns (bytes memory)
-    {
+    function _encodeDeleteAckPackage(
+        uint32 status,
+        uint256 id,
+        address refundAddr,
+        FailureHandleStrategy failStrategy
+    ) internal view returns (bytes memory) {
         ExtraData memory extraData = ExtraData({
             appAddress: address(this),
             refundAddress: refundAddr,
@@ -271,15 +272,7 @@ contract ObjectHubTest is Test, ObjectHub {
         bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        elements[2] = _extraDataToBytes(extraData).encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
-    }
-
-    function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        elements[2] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
+        elements[2] = IObjectRlp(rlp).encodeExtraData(extraData).encodeBytes();
+        return IObjectRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 }
