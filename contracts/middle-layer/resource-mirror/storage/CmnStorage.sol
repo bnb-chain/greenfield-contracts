@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import "../utils/PackageQueue.sol";
-import "../../../Config.sol";
+import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-contract CmnStorage is Config, PackageQueue {
+contract CmnStorage {
+    using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
+
     /*----------------- constants -----------------*/
     // status of cross-chain package
     uint32 public constant STATUS_SUCCESS = 0;
@@ -26,27 +27,33 @@ contract CmnStorage is Config, PackageQueue {
     bytes32 public constant ROLE_CREATE = keccak256("ROLE_CREATE");
     bytes32 public constant ROLE_DELETE = keccak256("ROLE_DELETE");
 
-    // package type
-    bytes32 public constant CMN_CREATE_ACK = keccak256("CMN_CREATE_ACK");
-    bytes32 public constant CMN_DELETE_SYN = keccak256("CMN_DELETE_SYN");
-    bytes32 public constant CMN_DELETE_ACK = keccak256("CMN_DELETE_ACK");
-
     /*----------------- storage -----------------*/
+    uint8 public channelId;
+
     address public ERC721Token;
     address public additional;
     address public rlp;
 
+    // app address => retry queue of package hash
+    mapping(address => DoubleEndedQueueUpgradeable.Bytes32Deque) public retryQueue;
+    // app retry package hash => retry package
+    mapping(bytes32 => RetryPackage) public packageMap;
+
     // PlaceHolder reserve for future use
     uint256[25] public CmnStorageSlots;
 
-    // dApp info
-    struct ExtraData {
+    /*----------------- structs -----------------*/
+    // retry package info
+    struct RetryPackage {
         address appAddress;
-        address refundAddress;
-        FailureHandleStrategy failureHandleStrategy;
+        uint32 status;
+        uint8 operationType;
+        uint256 resourceId;
         bytes callbackData;
+        bytes failReason;
     }
 
+    // cross-chain package
     // GNFD to BSC
     struct CmnCreateAckPackage {
         uint32 status;
@@ -81,6 +88,20 @@ contract CmnStorage is Config, PackageQueue {
         uint256 id;
     }
 
+    struct ExtraData {
+        address appAddress;
+        address refundAddress;
+        FailureHandleStrategy failureHandleStrategy;
+        bytes callbackData;
+    }
+
+    enum FailureHandleStrategy {
+        BlockOnFail, // If a package fails, the subsequent SYN packages will be blocked until the failed ACK packages are handled in the order they were received.
+        CacheOnFail, // When a package fails, it is cached for later handling. New SYN packages will continue to be handled normally.
+        SkipOnFail // Failed ACK packages are ignored and will not affect subsequent SYN packages.
+    }
+
+    /*----------------- events -----------------*/
     event MirrorSuccess(uint256 indexed id, address indexed owner);
     event MirrorFailed(uint256 indexed id, address indexed owner, bytes failReason);
     event CreateSubmitted(address indexed owner, address indexed operator, string name);
@@ -91,5 +112,7 @@ contract CmnStorage is Config, PackageQueue {
     event DeleteFailed(uint256 indexed id);
     event FailAckPkgReceived(uint8 indexed channelId, bytes msgBytes);
     event UnexpectedPackage(uint8 indexed channelId, bytes msgBytes);
+    event AppHandleAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
+    event AppHandleFailAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
     event ParamChange(string key, bytes value);
 }

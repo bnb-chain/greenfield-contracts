@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgrad
 
 import "./storage/BucketStorage.sol";
 import "./utils/AccessControl.sol";
+import "../../Config.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/IBucketRlp.sol";
 import "../../interface/ICrossChain.sol";
@@ -16,7 +17,7 @@ import "../../interface/IERC721NonTransferable.sol";
 // which means same state variables and same order of state variables.
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as BucketHub.
-contract AdditionalBucketHub is BucketStorage, AccessControl {
+contract AdditionalBucketHub is Config, CmnStorage, Initializable, BucketStorage, AccessControl {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     /*----------------- external function -----------------*/

@@ -20,7 +20,13 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-    event GreenfieldCall(uint32 indexed status, uint8 channelId, uint8 indexed operationType, uint256 indexed resourceId, bytes callbackData);
+    event GreenfieldCall(
+        uint32 indexed status,
+        uint8 channelId,
+        uint8 indexed operationType,
+        uint256 indexed resourceId,
+        bytes callbackData
+    );
 
     ERC721NonTransferable public bucketToken;
     BucketHub public bucketHub;
@@ -282,7 +288,13 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     /*----------------- dApp function -----------------*/
-    function greenfieldCall(uint32 status, uint8 channelId, uint8 operationType, uint256 resourceId, bytes memory callbackData) external {
+    function greenfieldCall(
+        uint32 status,
+        uint8 channelId,
+        uint8 operationType,
+        uint256 resourceId,
+        bytes memory callbackData
+    ) external {
         emit GreenfieldCall(status, channelId, operationType, resourceId, callbackData);
     }
 
