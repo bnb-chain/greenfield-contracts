@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 pragma solidity ^0.8.0;
 
@@ -42,12 +42,12 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      * @param callbackGasLimit The gas limit for callback
      */
-    function handleAckPackage(
-        uint8,
-        uint64 sequence,
-        bytes calldata msgBytes,
-        uint256 callbackGasLimit
-    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    function handleAckPackage(uint8, uint64 sequence, bytes calldata msgBytes, uint256 callbackGasLimit)
+        external
+        override
+        onlyCrossChain
+        returns (uint256 remainingGas, address refundAddress)
+    {
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(msgIter.next().toUint());
@@ -69,13 +69,9 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
             bytes memory reason;
             bool failed;
             uint256 gasBefore = gasleft();
-            try
-                IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
-                    channelId,
-                    msgBytes,
-                    extraData.callbackData
-                )
-            {} catch Error(string memory error) {
+            try IApplication(extraData.appAddress).handleAckPackage{gas: callbackGasLimit}(
+                channelId, msgBytes, extraData.callbackData
+            ) {} catch Error(string memory error) {
                 reason = bytes(error);
                 failed = true;
             } catch (bytes memory lowLevelData) {
@@ -90,13 +86,8 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
                 bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                 emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                 if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                    packageMap[pkgHash] = CallbackPackage(
-                        extraData.appAddress,
-                        msgBytes,
-                        extraData.callbackData,
-                        true,
-                        reason
-                    );
+                    packageMap[pkgHash] =
+                        CallbackPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
@@ -110,12 +101,12 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
      * @param msgBytes The rlp encoded message bytes sent from GNFD
      * @param callbackGasLimit The gas limit for callback
      */
-    function handleFailAckPackage(
-        uint8 channelId,
-        uint64 sequence,
-        bytes calldata msgBytes,
-        uint256 callbackGasLimit
-    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    function handleFailAckPackage(uint8 channelId, uint64 sequence, bytes calldata msgBytes, uint256 callbackGasLimit)
+        external
+        override
+        onlyCrossChain
+        returns (uint256 remainingGas, address refundAddress)
+    {
         (ExtraData memory extraData, bool success) = _decodeFailAckPackage(msgBytes);
         require(success, "decode fail ack package failed");
 
@@ -123,13 +114,9 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
             bytes memory reason;
             bool failed;
             uint256 gasBefore = gasleft();
-            try
-                IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
-                    channelId,
-                    msgBytes,
-                    extraData.callbackData
-                )
-            {} catch Error(string memory error) {
+            try IApplication(extraData.appAddress).handleFailAckPackage{gas: callbackGasLimit}(
+                channelId, msgBytes, extraData.callbackData
+            ) {} catch Error(string memory error) {
                 reason = bytes(error);
                 failed = true;
             } catch (bytes memory lowLevelData) {
@@ -144,13 +131,8 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
                 bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                 emit AppHandleFailAckPkgFailed(extraData.appAddress, pkgHash, reason);
                 if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                    packageMap[pkgHash] = CallbackPackage(
-                        extraData.appAddress,
-                        msgBytes,
-                        extraData.callbackData,
-                        true,
-                        reason
-                    );
+                    packageMap[pkgHash] =
+                        CallbackPackage(extraData.appAddress, msgBytes, extraData.callbackData, true, reason);
                     retryQueue[extraData.appAddress].pushBack(pkgHash);
                 }
             }
@@ -178,9 +160,11 @@ contract ObjectHub is NFTWrapResourceHub, AccessControl {
     }
 
     /*----------------- internal function -----------------*/
-    function _decodeFailAckPackage(
-        bytes memory msgBytes
-    ) internal pure returns (ExtraData memory extraData, bool success) {
+    function _decodeFailAckPackage(bytes memory msgBytes)
+        internal
+        pure
+        returns (ExtraData memory extraData, bool success)
+    {
         RLPDecode.Iterator memory msgIter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(msgIter.next().toUint());

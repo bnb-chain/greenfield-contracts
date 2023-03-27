@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 pragma solidity ^0.8.0;
 
@@ -170,10 +170,7 @@ contract Deployer {
             Config(deployedProxyCrossChain).CROSS_CHAIN() == proxyCrossChain,
             "invalid proxyCrossChain address on Config"
         );
-        require(
-            Config(deployedProxyCrossChain).TOKEN_HUB() == proxyTokenHub,
-            "invalid proxyTokenHub address on Config"
-        );
+        require(Config(deployedProxyCrossChain).TOKEN_HUB() == proxyTokenHub, "invalid proxyTokenHub address on Config");
         require(
             Config(deployedProxyCrossChain).LIGHT_CLIENT() == proxyLightClient,
             "invalid proxyLightClient address on Config"

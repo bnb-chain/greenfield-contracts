@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 pragma solidity ^0.8.0;
 
@@ -250,10 +250,9 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
+        bytes[] memory elements = new bytes[](2);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        elements[2] = "".encodeBytes();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 

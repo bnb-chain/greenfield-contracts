@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 pragma solidity ^0.8.0;
 
@@ -300,8 +300,7 @@ contract ERC721NonTransferable is Context, ERC165, IERC721NonTransferable {
     function _safeMint(address to, uint256 tokenId, bytes memory data) internal {
         _mint(to, tokenId);
         require(
-            _checkOnERC721Received(address(0), to, tokenId, data),
-            "ERC721: transfer to non ERC721Receiver implementer"
+            _checkOnERC721Received(address(0), to, tokenId, data), "ERC721: transfer to non ERC721Receiver implementer"
         );
     }
 
@@ -513,12 +512,10 @@ contract ERC721NonTransferable is Context, ERC165, IERC721NonTransferable {
      * @param data bytes optional data to send along with the call
      * @return bool whether the call correctly returned the expected magic value
      */
-    function _checkOnERC721Received(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) private returns (bool) {
+    function _checkOnERC721Received(address from, address to, uint256 tokenId, bytes memory data)
+        private
+        returns (bool)
+    {
         if (to.isContract()) {
             try IERC721Receiver(to).onERC721Received(_msgSender(), from, tokenId, data) returns (bytes4 retval) {
                 return retval == IERC721Receiver.onERC721Received.selector;

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 pragma solidity ^0.8.0;
 
@@ -133,14 +133,10 @@ library RLPEncode {
             // length of the arrays.
             end := add(mc, length)
 
-            for {
-                let cc := add(_postBytes, 0x20)
-            } lt(mc, end) {
+            for { let cc := add(_postBytes, 0x20) } lt(mc, end) {
                 mc := add(mc, 0x20)
                 cc := add(cc, 0x20)
-            } {
-                mstore(mc, mload(cc))
-            }
+            } { mstore(mc, mload(cc)) }
 
             // Update the free-memory pointer by padding our last write location
             // to 32 bytes: add 31 bytes to the end of tempBytes to move to the

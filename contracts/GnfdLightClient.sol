@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 pragma solidity ^0.8.0;
 
@@ -46,7 +46,6 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
 
     uint256 public inTurnRelayerRelayInterval;
     /* --------------------- 3. events ----------------------- */
-
     event InitConsensusState(uint64 height);
     event UpdatedConsensusState(uint64 height, bool validatorSetChanged);
     event ParamChange(string key, bytes value);
@@ -119,11 +118,11 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         return true;
     }
 
-    function verifyPackage(
-        bytes calldata _payload,
-        bytes calldata _blsSignature,
-        uint256 _validatorSetBitMap
-    ) external view returns (bool) {
+    function verifyPackage(bytes calldata _payload, bytes calldata _blsSignature, uint256 _validatorSetBitMap)
+        external
+        view
+        returns (bool)
+    {
         require(_blsSignature.length == BLS_SIGNATURE_LENGTH, "invalid signature length");
 
         uint256 bitCount;
@@ -136,7 +135,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
                 input = abi.encodePacked(input, validatorSet[i].relayerBlsKey);
             }
         }
-        require(bitCount >= (validatorSet.length * 2) / 3, "no majority validators");
+        require(bitCount >= validatorSet.length * 2 / 3, "no majority validators");
 
         (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         return success && result.length > 0;
@@ -166,8 +165,8 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         uint256 totalInterval = inTurnRelayerRelayInterval * relayerSize;
         uint256 curTs = block.timestamp;
         uint256 remainder = curTs % totalInterval;
-        uint256 inTurnRelayerIndex = remainder / inTurnRelayerRelayInterval;
-        uint256 start = curTs - (remainder - inTurnRelayerIndex * inTurnRelayerRelayInterval);
+        uint256 inTurnRelayerIndex  = remainder/inTurnRelayerRelayInterval;
+        uint256 start = curTs - (remainder - inTurnRelayerIndex*inTurnRelayerRelayInterval);
 
         relayer.start = start;
         relayer.end = start + inTurnRelayerRelayInterval;
@@ -270,15 +269,14 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         return (400_001, "GnfdLightClient", "init version");
     }
 
-    function updateParam(string calldata key, bytes calldata value) external onlyGov {
+    function updateParam(string calldata key, bytes calldata value)
+    onlyGov
+    external {
         uint256 valueLength = value.length;
         if (Memory.compareStrings(key, "inTurnRelayerRelayInterval")) {
             require(valueLength == 32, "length of value for inTurnRelayerRelayInterval should be 32");
             uint256 newInTurnRelayerRelayInterval = BytesToTypes.bytesToUint256(valueLength, value);
-            require(
-                newInTurnRelayerRelayInterval >= 300 && newInTurnRelayerRelayInterval <= 1800,
-                "the newInTurnRelayerRelayInterval should be [300, 1800 seconds] "
-            );
+            require(newInTurnRelayerRelayInterval >= 300 && newInTurnRelayerRelayInterval <= 1800, "the newInTurnRelayerRelayInterval should be [300, 1800 seconds] ");
             inTurnRelayerRelayInterval = newInTurnRelayerRelayInterval;
         } else {
             require(false, "unknown param");

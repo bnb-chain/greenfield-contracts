@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 pragma solidity ^0.8.0;
 
@@ -301,11 +301,10 @@ contract GroupHubTest is Test, GroupHub {
     }
 
     function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](4);
+        bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = creator.encodeAddress();
-        elements[3] = "".encodeBytes();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }
 
@@ -332,10 +331,9 @@ contract GroupHubTest is Test, GroupHub {
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
+        bytes[] memory elements = new bytes[](2);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        elements[2] = "".encodeBytes();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 
@@ -364,13 +362,12 @@ contract GroupHubTest is Test, GroupHub {
             members[i] = ackPkg.members[i].encodeAddress();
         }
 
-        bytes[] memory elements = new bytes[](6);
+        bytes[] memory elements = new bytes[](5);
         elements[0] = ackPkg.status.encodeUint();
-        elements[1] = ackPkg.id.encodeUint();
-        elements[2] = ackPkg.operator.encodeAddress();
+        elements[1] = ackPkg.operator.encodeAddress();
+        elements[2] = ackPkg.id.encodeUint();
         elements[3] = ackPkg.opType.encodeUint();
         elements[4] = members.encodeList();
-        elements[5] = "".encodeBytes();
         return _RLPEncode(TYPE_UPDATE, elements.encodeList());
     }
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 pragma solidity ^0.8.0;
 
@@ -77,7 +77,7 @@ contract BucketHubTest is Test, BucketHub {
         CreateSynPackage memory synPkg = CreateSynPackage({
             creator: address(this),
             name: "test",
-            visibility: VisibilityType.PublicRead,
+            isPublic: true,
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
@@ -124,7 +124,7 @@ contract BucketHubTest is Test, BucketHub {
         CreateSynPackage memory synPkg = CreateSynPackage({
             creator: granter,
             name: "test1",
-            visibility: VisibilityType.PublicRead,
+            isPublic: true,
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
@@ -204,7 +204,7 @@ contract BucketHubTest is Test, BucketHub {
         CreateSynPackage memory synPkg = CreateSynPackage({
             creator: address(this),
             name: "test",
-            visibility: VisibilityType.PublicRead,
+            isPublic: true,
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
@@ -242,7 +242,7 @@ contract BucketHubTest is Test, BucketHub {
         CreateSynPackage memory synPkg = CreateSynPackage({
             creator: address(this),
             name: "test",
-            visibility: VisibilityType.PublicRead,
+            isPublic: true,
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
@@ -298,11 +298,10 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](4);
+        bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = creator.encodeAddress();
-        elements[3] = "".encodeBytes();
         return _RLPEncode(TYPE_CREATE, elements.encodeList());
     }
 
@@ -329,10 +328,9 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
+        bytes[] memory elements = new bytes[](2);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        elements[2] = "".encodeBytes();
         return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 
@@ -359,7 +357,7 @@ contract BucketHubTest is Test, BucketHub {
         bytes[] memory elements = new bytes[](9);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = uint256(synPkg.visibility).encodeUint();
+        elements[2] = synPkg.isPublic.encodeBool();
         elements[3] = synPkg.paymentAddress.encodeAddress();
         elements[4] = synPkg.primarySpAddress.encodeAddress();
         elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();

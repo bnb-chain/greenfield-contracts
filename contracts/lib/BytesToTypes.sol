@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 /**
  * @title BytesToTypes
@@ -46,15 +46,9 @@ library BytesToTypes {
             size := mload(add(_input, _offst))
             chunk_count := add(div(size, 32), 1) // chunk_count = size/32 + 1
 
-            if gt(mod(size, 32), 0) {
-                chunk_count := add(chunk_count, 1)
-            } // chunk_count++
+            if gt(mod(size, 32), 0) { chunk_count := add(chunk_count, 1) } // chunk_count++
 
-            for {
-                let index := 0
-            } lt(index, chunk_count) {
-                index := add(index, 1)
-            } {
+            for { let index := 0 } lt(index, chunk_count) { index := add(index, 1) } {
                 mstore(add(_output, mul(index, 32)), mload(add(_input, _offst)))
                 _offst := sub(_offst, 32) // _offst -= 32
             }
