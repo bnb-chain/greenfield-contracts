@@ -6,13 +6,12 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./storage/CmnStorage.sol";
 import "./rlp/CmnRlp.sol";
-import "../../Config.sol";
 import "../../lib/Memory.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
 // DO NOT define any state variables in this contract.
-abstract contract CmnHub is Config, CmnStorage, Initializable {
+abstract contract CmnHub is CmnStorage, Initializable {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     /*----------------- middle-layer function -----------------*/
@@ -42,26 +41,6 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
         delegateAdditional();
     }
 
-    function retryPackage() external {
-        address appAddress = msg.sender;
-        bytes32 pkgHash = retryQueue[appAddress].popFront();
-        RetryPackage memory callbackPkg = packageMap[pkgHash];
-        IApplication(callbackPkg.appAddress).greenfieldCall(
-            callbackPkg.status,
-            channelId,
-            callbackPkg.operationType,
-            callbackPkg.resourceId,
-            callbackPkg.callbackData
-        );
-        delete packageMap[pkgHash];
-    }
-
-    function skipPackage() external {
-        address appAddress = msg.sender;
-        bytes32 pkgHash = retryQueue[appAddress].popFront();
-        delete packageMap[pkgHash];
-    }
-
     /*----------------- update param -----------------*/
     function updateParam(string calldata key, bytes calldata value) external virtual onlyGov {
         if (Memory.compareStrings(key, "BaseURI")) {
@@ -77,7 +56,7 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
         bytes memory pkgBytes,
         uint64 sequence,
         uint256 callbackGasLimit
-    ) internal returns (uint256 remainingGas, address refundAddress) {
+    ) internal virtual returns (uint256 remainingGas, address refundAddress) {
         (CmnCreateAckPackage memory ackPkg, bool success) = CmnRlp(rlp).decodeCmnCreateAckPackage(pkgBytes);
         require(success, "unrecognized create ack package");
 
@@ -114,15 +93,16 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
                     failed = true;
                 }
 
-                uint256 gasUsed = gasBefore - gasleft();
-                remainingGas = callbackGasLimit > gasUsed ? callbackGasLimit - gasUsed : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
                     bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                        packageMap[pkgHash] = RetryPackage(
+                        packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
                             ackPkg.status,
                             TYPE_CREATE,
@@ -137,7 +117,7 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
         }
     }
 
-    function _doCreate(address creator, uint256 id) internal {
+    function _doCreate(address creator, uint256 id) internal virtual {
         IERC721NonTransferable(ERC721Token).mint(creator, id);
         emit CreateSuccess(creator, id);
     }
@@ -146,7 +126,7 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
         bytes memory pkgBytes,
         uint64 sequence,
         uint256 callbackGasLimit
-    ) internal returns (uint256 remainingGas, address refundAddress) {
+    ) internal virtual returns (uint256 remainingGas, address refundAddress) {
         (CmnDeleteAckPackage memory ackPkg, bool success) = CmnRlp(rlp).decodeCmnDeleteAckPackage(pkgBytes);
         require(success, "unrecognized delete ack package");
 
@@ -183,15 +163,16 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
                     failed = true;
                 }
 
-                uint256 gasUsed = gasBefore - gasleft();
-                remainingGas = callbackGasLimit > gasUsed ? callbackGasLimit - gasUsed : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
                     bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                        packageMap[pkgHash] = RetryPackage(
+                        packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
                             ackPkg.status,
                             TYPE_DELETE,
@@ -206,12 +187,12 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
         }
     }
 
-    function _doDelete(uint256 id) internal {
+    function _doDelete(uint256 id) internal virtual {
         IERC721NonTransferable(ERC721Token).burn(id);
         emit DeleteSuccess(id);
     }
 
-    function _handleMirrorSynPackage(bytes memory msgBytes) internal returns (bytes memory) {
+    function _handleMirrorSynPackage(bytes memory msgBytes) internal virtual returns (bytes memory) {
         (CmnMirrorSynPackage memory synPkg, bool success) = CmnRlp(rlp).decodeCmnMirrorSynPackage(msgBytes);
         require(success, "unrecognized mirror package");
 
@@ -220,7 +201,7 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
         return CmnRlp(rlp).encodeCmnMirrorAckPackage(mirrorAckPkg);
     }
 
-    function _doMirror(CmnMirrorSynPackage memory synPkg) internal returns (uint32) {
+    function _doMirror(CmnMirrorSynPackage memory synPkg) internal virtual returns (uint32) {
         try IERC721NonTransferable(ERC721Token).mint(synPkg.owner, synPkg.id) {} catch Error(string memory error) {
             emit MirrorFailed(synPkg.id, synPkg.owner, bytes(error));
             return STATUS_FAILED;
@@ -236,7 +217,7 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
         bytes memory pkgBytes,
         uint64 sequence,
         uint256 callbackGasLimit
-    ) internal returns (uint256 remainingGas, address refundAddress) {
+    ) internal virtual returns (uint256 remainingGas, address refundAddress) {
         (CmnDeleteSynPackage memory synPkg, bool success) = CmnRlp(rlp).decodeCmnDeleteSynPackage(pkgBytes);
         require(success, "unrecognized delete fail ack package");
 
@@ -265,15 +246,16 @@ abstract contract CmnHub is Config, CmnStorage, Initializable {
                     failed = true;
                 }
 
-                uint256 gasUsed = gasBefore - gasleft();
-                remainingGas = callbackGasLimit > gasUsed ? callbackGasLimit - gasUsed : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
                     bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                        packageMap[pkgHash] = RetryPackage(
+                        packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
                             STATUS_UNEXPECTED,
                             TYPE_DELETE,

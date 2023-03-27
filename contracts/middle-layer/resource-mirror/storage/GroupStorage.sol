@@ -19,6 +19,11 @@ contract GroupStorage is CmnStorage {
     // role
     bytes32 public constant ROLE_UPDATE = keccak256("ROLE_UPDATE");
 
+    // package type
+    bytes32 public constant CREATE_GROUP_SYN = keccak256("CREATE_GROUP_SYN");
+    bytes32 public constant UPDATE_GROUP_SYN = keccak256("UPDATE_GROUP_SYN");
+    bytes32 public constant UPDATE_GROUP_ACK = keccak256("UPDATE_GROUP_ACK");
+
     /*----------------- storage -----------------*/
     address public ERC1155Token;
 

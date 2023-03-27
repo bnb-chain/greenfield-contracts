@@ -5,6 +5,10 @@ pragma solidity ^0.8.0;
 import "./CmnStorage.sol";
 
 contract BucketStorage is CmnStorage {
+    /*----------------- constants -----------------*/
+    // package type
+    bytes32 public constant CREATE_BUCKET_SYN = keccak256("CREATE_BUCKET_SYN");
+
     /*----------------- storage -----------------*/
     // PlaceHolder reserve for future use
     uint256[25] public BucketStorageSlots;
@@ -23,9 +27,8 @@ contract BucketStorage is CmnStorage {
     }
 
     enum BucketVisibilityType {
-        Unspecified,
         PublicRead,
         Private,
-        Inherit // If the bucket Visibility is inherit, it's finally set to private.
+        Default // If the bucket Visibility is default, it's finally set to private.
     }
 }

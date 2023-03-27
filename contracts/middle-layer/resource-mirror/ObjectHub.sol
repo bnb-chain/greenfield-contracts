@@ -9,7 +9,7 @@ import "./storage/ObjectStorage.sol";
 import "./utils/AccessControl.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
-contract ObjectHub is CmnHub, ObjectStorage, AccessControl {
+contract ObjectHub is ObjectStorage, AccessControl, CmnHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;

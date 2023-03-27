@@ -11,7 +11,7 @@ import "../../interface/IERC1155NonTransferable.sol";
 import "../../interface/IERC721NonTransferable.sol";
 import "../../interface/IGroupRlp.sol";
 
-contract GroupHub is CmnHub, GroupStorage, AccessControl {
+contract GroupHub is GroupStorage, AccessControl, CmnHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
@@ -198,15 +198,16 @@ contract GroupHub is CmnHub, GroupStorage, AccessControl {
                     failed = true;
                 }
 
-                uint256 gasUsed = gasBefore - gasleft();
-                remainingGas = callbackGasLimit > gasUsed ? callbackGasLimit - gasUsed : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
                     bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                        packageMap[pkgHash] = RetryPackage(
+                        packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
                             ackPkg.status,
                             TYPE_UPDATE,
@@ -273,15 +274,16 @@ contract GroupHub is CmnHub, GroupStorage, AccessControl {
                     failed = true;
                 }
 
-                uint256 gasUsed = gasBefore - gasleft();
-                remainingGas = callbackGasLimit > gasUsed ? callbackGasLimit - gasUsed : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
                     bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                        packageMap[pkgHash] = RetryPackage(
+                        packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
                             STATUS_UNEXPECTED,
                             TYPE_CREATE,
@@ -329,15 +331,16 @@ contract GroupHub is CmnHub, GroupStorage, AccessControl {
                     failed = true;
                 }
 
-                uint256 gasUsed = gasBefore - gasleft();
-                remainingGas = callbackGasLimit > gasUsed ? callbackGasLimit - gasUsed : 0;
+                remainingGas = callbackGasLimit > (gasBefore - gasleft())
+                    ? callbackGasLimit - (gasBefore - gasleft())
+                    : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
                     bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                        packageMap[pkgHash] = RetryPackage(
+                        packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
                             STATUS_UNEXPECTED,
                             TYPE_UPDATE,

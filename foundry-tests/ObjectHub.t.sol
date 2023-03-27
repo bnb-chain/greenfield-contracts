@@ -23,13 +23,7 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-    event GreenfieldCall(
-        uint32 indexed status,
-        uint8 channelId,
-        uint8 indexed operationType,
-        uint256 indexed resourceId,
-        bytes callbackData
-    );
+    event GreenfieldCall(uint32 indexed status, uint8 channelId, uint8 indexed operationType, uint256 indexed resourceId, bytes callbackData);
 
     ERC721NonTransferable public objectToken;
     ObjectHub public objectHub;
@@ -157,12 +151,7 @@ contract ObjectHubTest is Test, ObjectHub {
         vm.prank(OBJECT_HUB);
         objectToken.mint(address(this), 0);
 
-        bytes memory msgBytes = _encodeDeleteAckPackage(
-            STATUS_SUCCESS,
-            tokenId,
-            address(this),
-            FailureHandleStrategy.BlockOnFail
-        );
+        bytes memory msgBytes = _encodeDeleteAckPackage(STATUS_SUCCESS, tokenId, address(this), FailureHandleStrategy.BlockOnFail);
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
 
         vm.expectEmit(true, true, true, false, address(this));
@@ -239,13 +228,7 @@ contract ObjectHubTest is Test, ObjectHub {
     }
 
     /*----------------- dApp function -----------------*/
-    function greenfieldCall(
-        uint32 status,
-        uint8 channelId,
-        uint8 operationType,
-        uint256 resourceId,
-        bytes memory callbackData
-    ) external {
+    function greenfieldCall(uint32 status, uint8 channelId, uint8 operationType, uint256 resourceId, bytes memory callbackData) external {
         emit GreenfieldCall(status, channelId, operationType, resourceId, callbackData);
     }
 
