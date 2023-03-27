@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0.
 
 pragma solidity ^0.8.0;
 
@@ -21,15 +21,6 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
     using RLPEncode for *;
     using RLPDecode for *;
 
-    /*----------------- external function -----------------*/
-
-    /**
-     * @dev grant some authorization to an account
-     *
-     * @param account The address of the account to be granted
-     * @param acCode The authorization code
-     * @param expireTime The expiration time of the authorization
-     */
     function grant(address account, uint32 acCode, uint256 expireTime) external {
         if (expireTime == 0) {
             expireTime = block.timestamp + 30 days; // 30 days in default
@@ -43,12 +34,6 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
         require(acCode == 0, "invalid authorization code");
     }
 
-    /**
-     * @dev revoke some authorization from an account
-     *
-     * @param account The address of the account to be revoked
-     * @param acCode The authorization code
-     */
     function revoke(address account, uint32 acCode) external {
         if (acCode & AUTH_CODE_DELETE != 0) {
             acCode = acCode & ~AUTH_CODE_DELETE;
@@ -72,21 +57,19 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
         if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
+            !(
+                msg.sender == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender
+                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender)
+            )
         ) {
             require(hasRole(ROLE_DELETE, owner, msg.sender), "no permission to delete");
         }
 
         // make sure the extra data is as expected
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({operator: owner, id: id, extraData: ""});
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
-            OBJECT_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
-            relayFee,
-            _ackRelayFee
+            OBJECT_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
@@ -101,11 +84,11 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time
      */
-    function deleteObject(
-        uint256 id,
-        uint256 callbackGasLimit,
-        ExtraData memory extraData
-    ) external payable returns (bool) {
+    function deleteObject(uint256 id, uint256 callbackGasLimit, ExtraData memory extraData)
+        external
+        payable
+        returns (bool)
+    {
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
@@ -120,30 +103,25 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
         if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
+            !(
+                msg.sender == owner || IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender
+                    || IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender)
+            )
         ) {
             require(hasRole(ROLE_DELETE, owner, msg.sender), "no permission to delete");
         }
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
-            operator: owner,
-            id: id,
-            extraData: _extraDataToBytes(extraData)
-        });
+        CmnDeleteSynPackage memory synPkg =
+            CmnDeleteSynPackage({operator: owner, id: id, extraData: _extraDataToBytes(extraData)});
 
         // check refund address
-        (bool success, ) = extraData.refundAddress.call("");
+        (bool success,) = extraData.refundAddress.call("");
         require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
-            OBJECT_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
-            relayFee,
-            _ackRelayFee
+            OBJECT_CHANNEL_ID, _encodeCmnDeleteSynPackage(synPkg), relayFee, _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
