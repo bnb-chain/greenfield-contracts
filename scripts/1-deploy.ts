@@ -170,13 +170,13 @@ const main = async () => {
     log('deploy member token success', memberToken.address);
 
     const bucketRlp = await deployContract('BucketRlp');
-    log('deploy member token success', bucketRlp.address);
+    log('deploy bucketRlp success', bucketRlp.address);
 
     const objectRlp = await deployContract('ObjectRlp');
-    log('deploy member token success', objectRlp.address);
+    log('deploy objectRlp success', objectRlp.address);
 
     const groupRlp = await deployContract('GroupRlp');
-    log('deploy member token success', groupRlp.address);
+    log('deploy groupRlp success', groupRlp.address);
 
     await groupRlp.deployTransaction.wait(5);
 

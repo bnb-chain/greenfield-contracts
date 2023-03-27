@@ -36,11 +36,12 @@ contract GnfdLightClientTest is Test {
 
         assertEq(lightClient.gnfdHeight(), uint64(1));
         assertEq(
-            lightClient.nextValidatorSetHash(), hex"a08cee315201a7feb401ba9f312ec3027857b3580f15045f425f44b77bbfc81c"
+            lightClient.nextValidatorSetHash(),
+            hex"a08cee315201a7feb401ba9f312ec3027857b3580f15045f425f44b77bbfc81c"
         );
 
-        (bytes32 pubKey, int64 votingPower, address relayerAddress, bytes memory relayerBlsKey) =
-            lightClient.validatorSet(0);
+        (bytes32 pubKey, int64 votingPower, address relayerAddress, bytes memory relayerBlsKey) = lightClient
+            .validatorSet(0);
 
         assertEq(pubKey, hex"b26884f23fb9b226f5f06f8d01018402b3798555359997fcbb9c08b062dcce98");
         assertEq(votingPower, int64(10000));

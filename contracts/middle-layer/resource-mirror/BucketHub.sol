@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./AccessControl.sol";
 import "./CmnHub.sol";
 import "./storage/BucketStorage.sol";
+import "./utils/AccessControl.sol";
 import "../../interface/IBucketRlp.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
@@ -144,9 +144,11 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub {
                 bool failed;
                 uint256 gasBefore = gasleft();
                 try
-                    IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
+                    IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
+                        STATUS_UNEXPECTED,
                         channelId,
-                        synPkg,
+                        TYPE_CREATE,
+                        0,
                         extraData.callbackData
                     )
                 {} catch Error(string memory error) {
@@ -168,10 +170,10 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub {
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
-                            CREATE_BUCKET_SYN,
-                            pkgBytes,
+                            STATUS_UNEXPECTED,
+                            TYPE_CREATE,
+                            0,
                             extraData.callbackData,
-                            true,
                             reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);

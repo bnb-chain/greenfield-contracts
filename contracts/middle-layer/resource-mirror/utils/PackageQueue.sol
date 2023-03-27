@@ -4,13 +4,20 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
+import "../../../interface/IApplication.sol";
+
 contract PackageQueue {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
+
+    uint8 public channelId;
 
     // app address => retry queue of package hash
     mapping(address => DoubleEndedQueueUpgradeable.Bytes32Deque) public retryQueue;
     // app retry package hash => retry package
     mapping(bytes32 => CallbackPackage) public packageMap;
+
+    // PlaceHolder reserve for future usage
+    uint256[50] public PkgQueueSlots;
 
     /*
      * This enum provides different strategies for handling a failed ACK package.
@@ -23,32 +30,31 @@ contract PackageQueue {
 
     struct CallbackPackage {
         address appAddress;
-        bytes32 pkgType;
-        bytes msgBytes;
+        uint32 status;
+        uint8 operationType;
+        uint256 resourceId;
         bytes callbackData;
-        bool isFailAck;
         bytes failReason;
     }
 
     event AppHandleAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
     event AppHandleFailAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);
 
-    // PlaceHolder reserve for future usage
-    uint256[50] public PkgQueueSlots;
-
-    modifier checkCaller(address appAddress) {
-        bytes32 pkgHash = retryQueue[appAddress].front();
-        require(packageMap[pkgHash].appAddress == appAddress, "invalid caller");
-        _;
-    }
-
-    function getRetryPackage(address appAddress) public view checkCaller(appAddress) returns (CallbackPackage memory) {
-        bytes32 pkgHash = retryQueue[appAddress].front();
+    function retryPackage() external {
+        address appAddress = msg.sender;
+        bytes32 pkgHash = retryQueue[appAddress].popFront();
         CallbackPackage memory callbackPkg = packageMap[pkgHash];
-        return callbackPkg;
+        IApplication(callbackPkg.appAddress).greenfieldCall(
+            callbackPkg.status,
+            channelId,
+            callbackPkg.operationType,
+            callbackPkg.resourceId,
+            callbackPkg.callbackData
+        );
+        delete packageMap[pkgHash];
     }
 
-    function skipPackage() external checkCaller(msg.sender) {
+    function skipPackage() external {
         address appAddress = msg.sender;
         bytes32 pkgHash = retryQueue[appAddress].popFront();
         delete packageMap[pkgHash];

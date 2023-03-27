@@ -5,8 +5,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./AccessControl.sol";
 import "./storage/GroupStorage.sol";
+import "./utils/AccessControl.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICrossChain.sol";
 import "../../interface/IERC721NonTransferable.sol";
@@ -125,7 +125,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -211,7 +211,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -302,7 +302,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -331,78 +331,5 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
         );
         emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
         return true;
-    }
-
-    function retryPackage() external {
-        CallbackPackage memory callbackPkg = getRetryPackage(msg.sender);
-        if (callbackPkg.isFailAck) {
-            if (callbackPkg.pkgType == CREATE_GROUP_SYN) {
-                (CreateGroupSynPackage memory synPkg, bool success) = IGroupRlp(rlp).decodeCreateGroupSynPackage(
-                    callbackPkg.msgBytes
-                );
-                require(success, "decode create group fail ack package failed");
-
-                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
-
-                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
-                delete packageMap[pkgHash];
-            } else if (callbackPkg.pkgType == CMN_DELETE_SYN) {
-                (CmnDeleteSynPackage memory synPkg, bool success) = IGroupRlp(rlp).decodeCmnDeleteSynPackage(
-                    callbackPkg.msgBytes
-                );
-                require(success, "decode delete group fail ack package failed");
-
-                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
-
-                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
-                delete packageMap[pkgHash];
-            } else if (callbackPkg.pkgType == UPDATE_GROUP_SYN) {
-                (UpdateGroupSynPackage memory synPkg, bool success) = IGroupRlp(rlp).decodeUpdateGroupSynPackage(
-                    callbackPkg.msgBytes
-                );
-                require(success, "decode update group fail ack package failed");
-
-                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
-
-                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
-                delete packageMap[pkgHash];
-            } else {
-                revert("invalid callback package type");
-            }
-        } else {
-            if (callbackPkg.pkgType == CMN_CREATE_ACK) {
-                (CmnCreateAckPackage memory ackPkg, bool success) = IGroupRlp(rlp).decodeCmnCreateAckPackage(
-                    callbackPkg.msgBytes
-                );
-                require(success, "decode create group ack package failed");
-
-                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
-
-                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
-                delete packageMap[pkgHash];
-            } else if (callbackPkg.pkgType == CMN_DELETE_ACK) {
-                (CmnDeleteAckPackage memory ackPkg, bool success) = IGroupRlp(rlp).decodeCmnDeleteAckPackage(
-                    callbackPkg.msgBytes
-                );
-                require(success, "decode delete group ack package failed");
-
-                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
-
-                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
-                delete packageMap[pkgHash];
-            } else if (callbackPkg.pkgType == CMN_DELETE_ACK) {
-                (UpdateGroupAckPackage memory ackPkg, bool success) = IGroupRlp(rlp).decodeUpdateGroupAckPackage(
-                    callbackPkg.msgBytes
-                );
-                require(success, "decode update group ack package failed");
-
-                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
-
-                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
-                delete packageMap[pkgHash];
-            } else {
-                revert("invalid callback package type");
-            }
-        }
     }
 }

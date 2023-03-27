@@ -19,7 +19,8 @@ contract DeployerTest is TestDeployer {
         testDeployer.deploy();
         for (uint256 i = 0; i < 5; i++) {
             assertEq(
-                testDeployer.deployedAddressSet(i), deployer.calcCreateAddress(address(testDeployer), uint8(i + 1))
+                testDeployer.deployedAddressSet(i),
+                deployer.calcCreateAddress(address(testDeployer), uint8(i + 1))
             );
         }
     }

@@ -2,14 +2,15 @@
 
 pragma solidity ^0.8.0;
 
+import "../utils/PackageQueue.sol";
 import "../../../Config.sol";
-import "../../../PackageQueue.sol";
 
 contract CmnStorage is Config, PackageQueue {
     /*----------------- constants -----------------*/
     // status of cross-chain package
     uint32 public constant STATUS_SUCCESS = 0;
     uint32 public constant STATUS_FAILED = 1;
+    uint32 public constant STATUS_UNEXPECTED = 2;
 
     // operation type
     uint8 public constant TYPE_MIRROR = 1;
@@ -31,8 +32,6 @@ contract CmnStorage is Config, PackageQueue {
     bytes32 public constant CMN_DELETE_ACK = keccak256("CMN_DELETE_ACK");
 
     /*----------------- storage -----------------*/
-    uint8 public channelId;
-
     address public ERC721Token;
     address public additional;
     address public rlp;

@@ -5,8 +5,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./AccessControl.sol";
 import "./storage/ObjectStorage.sol";
+import "./utils/AccessControl.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICrossChain.sol";
 import "../../interface/IERC721NonTransferable.sol";
@@ -111,7 +111,7 @@ contract AdditionalObjectHub is ObjectStorage, AccessControl {
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -144,38 +144,5 @@ contract AdditionalObjectHub is ObjectStorage, AccessControl {
         );
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
-    }
-
-    function retryPackage() external {
-        CallbackPackage memory callbackPkg = getRetryPackage(msg.sender);
-        if (callbackPkg.isFailAck) {
-            if (callbackPkg.pkgType == CMN_DELETE_SYN) {
-                (CmnDeleteSynPackage memory synPkg, bool success) = IObjectRlp(rlp).decodeCmnDeleteSynPackage(
-                    callbackPkg.msgBytes
-                );
-                require(success, "decode delete object fail ack package failed");
-
-                IApplication(callbackPkg.appAddress).handleFailAckPackage(channelId, synPkg, callbackPkg.callbackData);
-
-                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
-                delete packageMap[pkgHash];
-            } else {
-                revert("invalid callback package type");
-            }
-        } else {
-            if (callbackPkg.pkgType == CMN_DELETE_ACK) {
-                (CmnDeleteAckPackage memory ackPkg, bool success) = IObjectRlp(rlp).decodeCmnDeleteAckPackage(
-                    callbackPkg.msgBytes
-                );
-                require(success, "decode delete object ack package failed");
-
-                IApplication(callbackPkg.appAddress).handleAckPackage(channelId, ackPkg, callbackPkg.callbackData);
-
-                bytes32 pkgHash = retryQueue[callbackPkg.appAddress].popFront();
-                delete packageMap[pkgHash];
-            } else {
-                revert("invalid callback package type");
-            }
-        }
     }
 }

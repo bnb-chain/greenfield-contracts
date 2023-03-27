@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./AccessControl.sol";
 import "./CmnHub.sol";
 import "./storage/ObjectStorage.sol";
+import "./utils/AccessControl.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
 contract ObjectHub is ObjectStorage, AccessControl, CmnHub {

@@ -31,7 +31,15 @@ contract genPayloadScript is Script {
         bytes memory packageLoad = hex"1234567890";
 
         bytes memory payload = abi.encodePacked(
-            srcChainid, dstChainid, channelId, sequence, packageType, time, relayFee, ackRelayFee, packageLoad
+            srcChainid,
+            dstChainid,
+            channelId,
+            sequence,
+            packageType,
+            time,
+            relayFee,
+            ackRelayFee,
+            packageLoad
         );
         return payload;
     }
@@ -40,7 +48,9 @@ contract genPayloadScript is Script {
         _checkPayload(payload);
     }
 
-    function _checkPayload(bytes calldata payload)
+    function _checkPayload(
+        bytes calldata payload
+    )
         internal
         view
         returns (

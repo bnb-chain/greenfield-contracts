@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./AccessControl.sol";
 import "./CmnHub.sol";
 import "./storage/GroupStorage.sol";
+import "./utils/AccessControl.sol";
 import "../../interface/IERC1155NonTransferable.sol";
 import "../../interface/IERC721NonTransferable.sol";
 import "../../interface/IGroupRlp.sol";
@@ -183,9 +183,11 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
                 bool failed;
                 uint256 gasBefore = gasleft();
                 try
-                    IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
+                    IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
+                        ackPkg.status,
                         channelId,
-                        ackPkg,
+                        TYPE_UPDATE,
+                        ackPkg.id,
                         extraData.callbackData
                     )
                 {} catch Error(string memory error) {
@@ -207,10 +209,10 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
-                            UPDATE_GROUP_ACK,
-                            pkgBytes,
+                            ackPkg.status,
+                            TYPE_UPDATE,
+                            ackPkg.id,
                             extraData.callbackData,
-                            false,
                             reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
@@ -257,9 +259,11 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
                 bool failed;
                 uint256 gasBefore = gasleft();
                 try
-                    IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
+                    IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
+                        STATUS_UNEXPECTED,
                         channelId,
-                        synPkg,
+                        TYPE_CREATE,
+                        0,
                         extraData.callbackData
                     )
                 {} catch Error(string memory error) {
@@ -281,10 +285,10 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
-                            CREATE_GROUP_SYN,
-                            pkgBytes,
+                            STATUS_UNEXPECTED,
+                            TYPE_CREATE,
+                            0,
                             extraData.callbackData,
-                            true,
                             reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
@@ -312,9 +316,11 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
                 bool failed;
                 uint256 gasBefore = gasleft();
                 try
-                    IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
+                    IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
+                        STATUS_UNEXPECTED,
                         channelId,
-                        synPkg,
+                        TYPE_UPDATE,
+                        synPkg.id,
                         extraData.callbackData
                     )
                 {} catch Error(string memory error) {
@@ -336,10 +342,10 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
-                            UPDATE_GROUP_SYN,
-                            pkgBytes,
+                            STATUS_UNEXPECTED,
+                            TYPE_UPDATE,
+                            synPkg.id,
                             extraData.callbackData,
-                            true,
                             reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);

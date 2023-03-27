@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./storage/CmnStorage.sol";
 import "./rlp/CmnRlp.sol";
 import "../../lib/Memory.sol";
-import "../../interface/IAccessControl.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
@@ -39,10 +38,6 @@ abstract contract CmnHub is CmnStorage, Initializable {
     }
 
     function revoke(address, uint32) external {
-        delegateAdditional();
-    }
-
-    function retryPackage() external {
         delegateAdditional();
     }
 
@@ -83,9 +78,11 @@ abstract contract CmnHub is CmnStorage, Initializable {
                 bool failed;
                 uint256 gasBefore = gasleft();
                 try
-                    IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
+                    IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
+                        ackPkg.status,
                         channelId,
-                        ackPkg,
+                        TYPE_CREATE,
+                        ackPkg.id,
                         extraData.callbackData
                     )
                 {} catch Error(string memory error) {
@@ -107,10 +104,10 @@ abstract contract CmnHub is CmnStorage, Initializable {
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
-                            CMN_CREATE_ACK,
-                            pkgBytes,
+                            ackPkg.status,
+                            TYPE_CREATE,
+                            ackPkg.id,
                             extraData.callbackData,
-                            false,
                             reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
@@ -151,9 +148,11 @@ abstract contract CmnHub is CmnStorage, Initializable {
                 bool failed;
                 uint256 gasBefore = gasleft();
                 try
-                    IApplication(extraData.appAddress).handleAckPackage{ gas: callbackGasLimit }(
+                    IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
+                        ackPkg.status,
                         channelId,
-                        ackPkg,
+                        TYPE_DELETE,
+                        ackPkg.id,
                         extraData.callbackData
                     )
                 {} catch Error(string memory error) {
@@ -175,10 +174,10 @@ abstract contract CmnHub is CmnStorage, Initializable {
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
-                            CMN_DELETE_ACK,
-                            pkgBytes,
+                            ackPkg.status,
+                            TYPE_DELETE,
+                            ackPkg.id,
                             extraData.callbackData,
-                            false,
                             reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
@@ -232,9 +231,11 @@ abstract contract CmnHub is CmnStorage, Initializable {
                 bool failed;
                 uint256 gasBefore = gasleft();
                 try
-                    IApplication(extraData.appAddress).handleFailAckPackage{ gas: callbackGasLimit }(
+                    IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
+                        STATUS_UNEXPECTED,
                         channelId,
-                        synPkg,
+                        TYPE_DELETE,
+                        synPkg.id,
                         extraData.callbackData
                     )
                 {} catch Error(string memory error) {
@@ -256,10 +257,10 @@ abstract contract CmnHub is CmnStorage, Initializable {
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
                         packageMap[pkgHash] = CallbackPackage(
                             extraData.appAddress,
-                            CMN_DELETE_SYN,
-                            pkgBytes,
+                            STATUS_UNEXPECTED,
+                            TYPE_DELETE,
+                            synPkg.id,
                             extraData.callbackData,
-                            true,
                             reason
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
