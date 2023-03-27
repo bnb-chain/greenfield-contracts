@@ -5,44 +5,21 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./AccessControl.sol";
-import "./NFTWrapResourceStorage.sol";
-import "../interface/ICrossChain.sol";
-import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPDecode.sol";
-import "../lib/RLPEncode.sol";
+import "./storage/BucketStorage.sol";
+import "./utils/AccessControl.sol";
+import "../../interface/IApplication.sol";
+import "../../interface/IBucketRlp.sol";
+import "../../interface/ICrossChain.sol";
+import "../../interface/IERC721NonTransferable.sol";
 
 // Highlight: This contract must have the same storage layout as BucketHub
 // which means same state variables and same order of state variables.
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as BucketHub.
-contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessControl {
+contract AdditionalBucketHub is BucketStorage, AccessControl {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
-    using RLPEncode for *;
-    using RLPDecode for *;
-
-    /*----------------- struct -----------------*/
-    // BSC to GNFD
-    struct CreateSynPackage {
-        address creator;
-        string name;
-        VisibilityType visibility;
-        address paymentAddress;
-        address primarySpAddress;
-        uint256 primarySpApprovalExpiredHeight;
-        bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
-        uint256 readQuota;
-        bytes extraData; // rlp encode of ExtraData
-    }
-
-    enum VisibilityType {
-        PublicRead,
-        Private,
-        Default // If the bucket Visibility is default, it's finally set to private.
-    }
 
     /*----------------- external function -----------------*/
-
     /**
      * @dev grant some authorization to an account
      *
@@ -91,7 +68,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
      *
      * @param synPkg Package containing information of the bucket to be created
      */
-    function createBucket(CreateSynPackage memory synPkg) external payable returns (bool) {
+    function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
@@ -108,7 +85,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            _encodeCreateSynPackage(synPkg),
+            IBucketRlp(rlp).encodeCreateBucketSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -126,7 +103,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
      * It will be reset as the `msg.sender` all the time.
      */
     function createBucket(
-        CreateSynPackage memory synPkg,
+        CreateBucketSynPackage memory synPkg,
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
@@ -149,7 +126,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        synPkg.extraData = _extraDataToBytes(extraData);
+        synPkg.extraData = IBucketRlp(rlp).encodeExtraData(extraData);
 
         // check refund address
         (bool success, ) = extraData.refundAddress.call("");
@@ -157,7 +134,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            _encodeCreateSynPackage(synPkg),
+            IBucketRlp(rlp).encodeCreateBucketSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -190,7 +167,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
+            IBucketRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -220,7 +197,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -238,7 +215,7 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: id,
-            extraData: _extraDataToBytes(extraData)
+            extraData: IBucketRlp(rlp).encodeExtraData(extraData)
         });
 
         // check refund address
@@ -247,34 +224,11 @@ contract AdditionalBucketHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
+            IBucketRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
-    }
-
-    /*----------------- internal function -----------------*/
-    function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](9);
-        elements[0] = synPkg.creator.encodeAddress();
-        elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = uint256(synPkg.visibility).encodeUint();
-        elements[3] = synPkg.paymentAddress.encodeAddress();
-        elements[4] = synPkg.primarySpAddress.encodeAddress();
-        elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();
-        elements[6] = synPkg.primarySpSignature.encodeBytes();
-        elements[7] = synPkg.readQuota.encodeUint();
-        elements[8] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
-    }
-
-    function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        elements[2] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 }

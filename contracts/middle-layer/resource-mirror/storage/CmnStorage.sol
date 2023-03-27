@@ -2,19 +2,15 @@
 
 pragma solidity ^0.8.0;
 
-import "../Config.sol";
-import "../PackageQueue.sol";
-import "../lib/RLPDecode.sol";
-import "../lib/RLPEncode.sol";
+import "../utils/PackageQueue.sol";
+import "../../../Config.sol";
 
-contract NFTWrapResourceStorage is Config, PackageQueue {
-    using RLPEncode for *;
-    using RLPDecode for *;
-
+contract CmnStorage is Config, PackageQueue {
     /*----------------- constants -----------------*/
     // status of cross-chain package
     uint32 public constant STATUS_SUCCESS = 0;
     uint32 public constant STATUS_FAILED = 1;
+    uint32 public constant STATUS_UNEXPECTED = 2;
 
     // operation type
     uint8 public constant TYPE_MIRROR = 1;
@@ -30,9 +26,18 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
     bytes32 public constant ROLE_CREATE = keccak256("ROLE_CREATE");
     bytes32 public constant ROLE_DELETE = keccak256("ROLE_DELETE");
 
+    // package type
+    bytes32 public constant CMN_CREATE_ACK = keccak256("CMN_CREATE_ACK");
+    bytes32 public constant CMN_DELETE_SYN = keccak256("CMN_DELETE_SYN");
+    bytes32 public constant CMN_DELETE_ACK = keccak256("CMN_DELETE_ACK");
+
     /*----------------- storage -----------------*/
     address public ERC721Token;
     address public additional;
+    address public rlp;
+
+    // PlaceHolder reserve for future use
+    uint256[25] public CmnStorageSlots;
 
     // dApp info
     struct ExtraData {
@@ -41,8 +46,6 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
         FailureHandleStrategy failureHandleStrategy;
         bytes callbackData;
     }
-
-    // struct CreateSynPackage should be defined in child contract
 
     // GNFD to BSC
     struct CmnCreateAckPackage {
@@ -78,9 +81,6 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
         uint256 id;
     }
 
-    // PlaceHolder reserve for future use
-    uint256[50] public NFTWrapResourceStorageSlots;
-
     event MirrorSuccess(uint256 indexed id, address indexed owner);
     event MirrorFailed(uint256 indexed id, address indexed owner, bytes failReason);
     event CreateSubmitted(address indexed owner, address indexed operator, string name);
@@ -92,20 +92,4 @@ contract NFTWrapResourceStorage is Config, PackageQueue {
     event FailAckPkgReceived(uint8 indexed channelId, bytes msgBytes);
     event UnexpectedPackage(uint8 indexed channelId, bytes msgBytes);
     event ParamChange(string key, bytes value);
-
-    function _extraDataToBytes(ExtraData memory _extraData) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](4);
-        elements[0] = _extraData.appAddress.encodeAddress();
-        elements[1] = _extraData.refundAddress.encodeAddress();
-        elements[2] = uint256(_extraData.failureHandleStrategy).encodeUint();
-        elements[3] = _extraData.callbackData.encodeBytes();
-        return elements.encodeList();
-    }
-
-    function _RLPEncode(uint8 opType, bytes memory msgBytes) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = opType.encodeUint();
-        elements[1] = msgBytes.encodeBytes();
-        return elements.encodeList();
-    }
 }

@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/CrossChain.sol";
-import "../contracts/middle-layer/BucketHub.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/tokens/ERC721NonTransferable.sol";
+import "contracts/CrossChain.sol";
+import "contracts/middle-layer/GovHub.sol";
+import "contracts/middle-layer/resource-mirror/BucketHub.sol";
+import "contracts/tokens/ERC721NonTransferable.sol";
 
 contract BucketHubTest is Test, BucketHub {
     using RLPEncode for *;
@@ -20,8 +20,7 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-    event ReceivedAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
-    event ReceivedFailAckPkg(uint8 channelId, bytes msgData, bytes callbackData);
+    event GreenfieldCall(uint32 indexed status, uint8 channelId, uint8 indexed operationType, uint256 indexed resourceId, bytes callbackData);
 
     ERC721NonTransferable public bucketToken;
     BucketHub public bucketHub;
@@ -37,6 +36,7 @@ contract BucketHubTest is Test, BucketHub {
         crossChain = CrossChain(CROSS_CHAIN);
         bucketHub = BucketHub(BUCKET_HUB);
         bucketToken = ERC721NonTransferable(bucketHub.ERC721Token());
+        rlp = bucketHub.rlp();
 
         vm.label(GOV_HUB, "govHub");
         vm.label(BUCKET_HUB, "bucketHub");
@@ -64,7 +64,7 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     function testMirror(uint256 id) public {
-        CmnMirrorSynPackage memory mirrorSynPkg = CmnMirrorSynPackage({id: id, owner: address(this)});
+        CmnMirrorSynPackage memory mirrorSynPkg = CmnMirrorSynPackage({ id: id, owner: address(this) });
         bytes memory msgBytes = _encodeMirrorSynPackage(mirrorSynPkg);
 
         vm.expectEmit(true, true, true, true, address(bucketToken));
@@ -74,21 +74,21 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     function testCreate(uint256 id) public {
-        CreateSynPackage memory synPkg = CreateSynPackage({
+        CreateBucketSynPackage memory synPkg = CreateBucketSynPackage({
             creator: address(this),
             name: "test",
-            visibility: VisibilityType.PublicRead,
+            visibility: BucketVisibilityType.PublicRead,
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
-            readQuota: 0,
+            chargedReadQuota: 0,
             extraData: ""
         });
 
         vm.expectEmit(true, true, true, true, address(bucketHub));
         emit CreateSubmitted(address(this), address(this), "test");
-        bucketHub.createBucket{value: 4e15}(synPkg);
+        bucketHub.createBucket{ value: 4e15 }(synPkg);
 
         bytes memory msgBytes = _encodeCreateAckPackage(0, id, address(this));
 
@@ -106,7 +106,7 @@ contract BucketHubTest is Test, BucketHub {
 
         vm.expectEmit(true, true, true, true, address(bucketHub));
         emit DeleteSubmitted(address(this), address(this), id);
-        bucketHub.deleteBucket{value: 4e15}(id);
+        bucketHub.deleteBucket{ value: 4e15 }(id);
 
         bytes memory msgBytes = _encodeDeleteAckPackage(0, id);
 
@@ -121,21 +121,21 @@ contract BucketHubTest is Test, BucketHub {
         address granter = msg.sender;
         address operator = address(this);
 
-        CreateSynPackage memory synPkg = CreateSynPackage({
+        CreateBucketSynPackage memory synPkg = CreateBucketSynPackage({
             creator: granter,
             name: "test1",
-            visibility: VisibilityType.PublicRead,
+            visibility: BucketVisibilityType.PublicRead,
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
-            readQuota: 0,
+            chargedReadQuota: 0,
             extraData: ""
         });
 
         // failed without authorization
         vm.expectRevert(bytes("no permission to create"));
-        bucketHub.createBucket{value: 4e15}(synPkg);
+        bucketHub.createBucket{ value: 4e15 }(synPkg);
 
         // wrong auth code
         uint256 expireTime = block.timestamp + 1 days;
@@ -152,7 +152,7 @@ contract BucketHubTest is Test, BucketHub {
         // create success
         vm.expectEmit(true, true, true, true, address(bucketHub));
         emit CreateSubmitted(granter, operator, "test1");
-        bucketHub.createBucket{value: 4e15}(synPkg);
+        bucketHub.createBucket{ value: 4e15 }(synPkg);
 
         // delete success
         uint256 tokenId = 0;
@@ -161,35 +161,40 @@ contract BucketHubTest is Test, BucketHub {
 
         vm.expectEmit(true, true, true, true, address(bucketHub));
         emit DeleteSubmitted(granter, operator, tokenId);
-        bucketHub.deleteBucket{value: 4e15}(tokenId);
+        bucketHub.deleteBucket{ value: 4e15 }(tokenId);
 
         // grant expire
         vm.warp(expireTime + 1);
         synPkg.name = "test2";
         vm.expectRevert(bytes("no permission to create"));
-        bucketHub.createBucket{value: 4e15}(synPkg);
+        bucketHub.createBucket{ value: 4e15 }(synPkg);
 
         // revoke and create failed
         expireTime = block.timestamp + 1 days;
         vm.prank(msg.sender);
         bucketHub.grant(operator, AUTH_CODE_CREATE, expireTime);
-        bucketHub.createBucket{value: 4e15}(synPkg);
+        bucketHub.createBucket{ value: 4e15 }(synPkg);
 
         vm.prank(msg.sender);
         bucketHub.revoke(operator, AUTH_CODE_CREATE);
 
         synPkg.name = "test3";
         vm.expectRevert(bytes("no permission to create"));
-        bucketHub.createBucket{value: 4e15}(synPkg);
+        bucketHub.createBucket{ value: 4e15 }(synPkg);
     }
 
-    function testCallback() public {
-        bytes memory msgBytes =
-            _encodeCreateAckPackage(0, 0, address(this), address(this), FailureHandleStrategy.BlockOnFail);
+    function testCallback(uint256 tokenId) public {
+        bytes memory msgBytes = _encodeCreateAckPackage(
+            STATUS_SUCCESS,
+            tokenId,
+            address(this),
+            address(this),
+            FailureHandleStrategy.BlockOnFail
+        );
         uint64 sequence = crossChain.channelReceiveSequenceMap(BUCKET_CHANNEL_ID);
 
-        vm.expectEmit(false, false, false, false, address(this));
-        emit ReceivedAckPkg(BUCKET_CHANNEL_ID, msgBytes, "");
+        vm.expectEmit(true, true, true, false, address(this));
+        emit GreenfieldCall(STATUS_SUCCESS, BUCKET_CHANNEL_ID, TYPE_CREATE, tokenId, "");
         vm.prank(CROSS_CHAIN);
         bucketHub.handleAckPackage(BUCKET_CHANNEL_ID, sequence, msgBytes, 5000);
     }
@@ -201,30 +206,35 @@ contract BucketHubTest is Test, BucketHub {
             failureHandleStrategy: FailureHandleStrategy.BlockOnFail,
             callbackData: ""
         });
-        CreateSynPackage memory synPkg = CreateSynPackage({
+        CreateBucketSynPackage memory synPkg = CreateBucketSynPackage({
             creator: address(this),
             name: "test",
-            visibility: VisibilityType.PublicRead,
+            visibility: BucketVisibilityType.PublicRead,
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
-            readQuota: 0,
-            extraData: _extraDataToBytes(extraData)
+            chargedReadQuota: 0,
+            extraData: IBucketRlp(rlp).encodeExtraData(extraData)
         });
-        bytes memory msgBytes = _encodeCreateSynPackage(synPkg);
+        bytes memory msgBytes = IBucketRlp(rlp).encodeCreateBucketSynPackage(synPkg);
         uint64 sequence = crossChain.channelReceiveSequenceMap(BUCKET_CHANNEL_ID);
 
-        vm.expectEmit(false, false, false, false, address(this));
-        emit ReceivedFailAckPkg(BUCKET_CHANNEL_ID, msgBytes, "");
+        vm.expectEmit(true, true, true, false, address(this));
+        emit GreenfieldCall(STATUS_UNEXPECTED, BUCKET_CHANNEL_ID, TYPE_CREATE, 0, "");
         vm.prank(CROSS_CHAIN);
         bucketHub.handleFailAckPackage(BUCKET_CHANNEL_ID, sequence, msgBytes, 5000);
     }
 
     function testRetryPkg() public {
         // callback failed(out of gas)
-        bytes memory msgBytes =
-            _encodeCreateAckPackage(1, 0, address(this), address(this), FailureHandleStrategy.BlockOnFail);
+        bytes memory msgBytes = _encodeCreateAckPackage(
+            1,
+            0,
+            address(this),
+            address(this),
+            FailureHandleStrategy.BlockOnFail
+        );
         uint64 sequence = crossChain.channelReceiveSequenceMap(BUCKET_CHANNEL_ID);
 
         vm.expectEmit(true, false, false, false, address(bucketHub));
@@ -239,24 +249,24 @@ contract BucketHubTest is Test, BucketHub {
             failureHandleStrategy: FailureHandleStrategy.BlockOnFail,
             callbackData: ""
         });
-        CreateSynPackage memory synPkg = CreateSynPackage({
+        CreateBucketSynPackage memory synPkg = CreateBucketSynPackage({
             creator: address(this),
             name: "test",
-            visibility: VisibilityType.PublicRead,
+            visibility: BucketVisibilityType.PublicRead,
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
-            readQuota: 0,
+            chargedReadQuota: 0,
             extraData: ""
         });
 
         vm.expectRevert(bytes("retry queue is not empty"));
-        bucketHub.createBucket{value: 4e15}(synPkg, 0, extraData);
+        bucketHub.createBucket{ value: 4e15 }(synPkg, 0, extraData);
 
         // retry pkg
         bucketHub.retryPackage();
-        bucketHub.createBucket{value: 4e15}(synPkg, 0, extraData);
+        bucketHub.createBucket{ value: 4e15 }(synPkg, 0, extraData);
 
         // skip on fail
         msgBytes = _encodeCreateAckPackage(1, 0, address(this), address(this), FailureHandleStrategy.SkipOnFail);
@@ -271,14 +281,9 @@ contract BucketHubTest is Test, BucketHub {
         bucketHub.retryPackage();
     }
 
-    /*----------------- middle-layer app function -----------------*/
-    // override the function in BucketHub
-    function handleAckPackage(uint8 channelId, bytes calldata ackPkg, bytes calldata callbackData) external {
-        emit ReceivedAckPkg(channelId, ackPkg, callbackData);
-    }
-
-    function handleFailAckPackage(uint8 channelId, bytes calldata failPkg, bytes calldata callbackData) external {
-        emit ReceivedFailAckPkg(channelId, failPkg, callbackData);
+    /*----------------- dApp function -----------------*/
+    function greenfieldCall(uint32 status, uint8 channelId, uint8 operationType, uint256 resourceId, bytes memory callbackData) external {
+        emit GreenfieldCall(status, channelId, operationType, resourceId, callbackData);
     }
 
     /*----------------- Internal function -----------------*/
@@ -290,20 +295,20 @@ contract BucketHubTest is Test, BucketHub {
         return elements.encodeList();
     }
 
-    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal pure returns (bytes memory) {
+    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
         bytes[] memory elements = new bytes[](32);
         elements[0] = synPkg.id.encodeUint();
         elements[1] = synPkg.owner.encodeAddress();
-        return _RLPEncode(TYPE_MIRROR, elements.encodeList());
+        return IBucketRlp(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
     }
 
-    function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal pure returns (bytes memory) {
+    function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal view returns (bytes memory) {
         bytes[] memory elements = new bytes[](4);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = creator.encodeAddress();
         elements[3] = "".encodeBytes();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
+        return IBucketRlp(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
     }
 
     function _encodeCreateAckPackage(
@@ -324,23 +329,24 @@ contract BucketHubTest is Test, BucketHub {
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = creator.encodeAddress();
-        elements[3] = _extraDataToBytes(extraData).encodeBytes();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
+        elements[3] = IBucketRlp(rlp).encodeExtraData(extraData).encodeBytes();
+        return IBucketRlp(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
     }
 
-    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
+    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
         bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = "".encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
+        return IBucketRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 
-    function _encodeDeleteAckPackage(uint32 status, uint256 id, address refundAddr, FailureHandleStrategy failStrategy)
-        internal
-        view
-        returns (bytes memory)
-    {
+    function _encodeDeleteAckPackage(
+        uint32 status,
+        uint256 id,
+        address refundAddr,
+        FailureHandleStrategy failStrategy
+    ) internal view returns (bytes memory) {
         ExtraData memory extraData = ExtraData({
             appAddress: address(this),
             refundAddress: refundAddr,
@@ -351,21 +357,7 @@ contract BucketHubTest is Test, BucketHub {
         bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        elements[2] = _extraDataToBytes(extraData).encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
-    }
-
-    function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](9);
-        elements[0] = synPkg.creator.encodeAddress();
-        elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = uint256(synPkg.visibility).encodeUint();
-        elements[3] = synPkg.paymentAddress.encodeAddress();
-        elements[4] = synPkg.primarySpAddress.encodeAddress();
-        elements[5] = synPkg.primarySpApprovalExpiredHeight.encodeUint();
-        elements[6] = synPkg.primarySpSignature.encodeBytes();
-        elements[7] = synPkg.readQuota.encodeUint();
-        elements[8] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
+        elements[2] = IBucketRlp(rlp).encodeExtraData(extraData).encodeBytes();
+        return IBucketRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 }

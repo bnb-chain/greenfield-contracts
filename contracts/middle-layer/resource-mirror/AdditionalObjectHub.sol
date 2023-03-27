@@ -5,24 +5,21 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./AccessControl.sol";
-import "./NFTWrapResourceStorage.sol";
-import "../interface/ICrossChain.sol";
-import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPDecode.sol";
-import "../lib/RLPEncode.sol";
+import "./storage/ObjectStorage.sol";
+import "./utils/AccessControl.sol";
+import "../../interface/IApplication.sol";
+import "../../interface/ICrossChain.sol";
+import "../../interface/IERC721NonTransferable.sol";
+import "../../interface/IObjectRlp.sol";
 
 // Highlight: This contract must have the same storage layout as ObjectHub
 // which means same state variables and same order of state variables.
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as ObjectHub.
-contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessControl {
+contract AdditionalObjectHub is ObjectStorage, AccessControl {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
-    using RLPEncode for *;
-    using RLPDecode for *;
 
     /*----------------- external function -----------------*/
-
     /**
      * @dev grant some authorization to an account
      *
@@ -84,7 +81,7 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
+            IObjectRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -114,7 +111,7 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -132,7 +129,7 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: id,
-            extraData: _extraDataToBytes(extraData)
+            extraData: IObjectRlp(rlp).encodeExtraData(extraData)
         });
 
         // check refund address
@@ -141,20 +138,11 @@ contract AdditionalObjectHub is NFTWrapResourceStorage, Initializable, AccessCon
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
+            IObjectRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
-    }
-
-    /*----------------- internal function -----------------*/
-    function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        elements[2] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
     }
 }

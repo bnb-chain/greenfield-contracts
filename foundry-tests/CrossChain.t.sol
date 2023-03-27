@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 
-import "../contracts/Deployer.sol";
-import "../contracts/CrossChain.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/TokenHub.sol";
+import "contracts/Deployer.sol";
+import "contracts/CrossChain.sol";
+import "contracts/middle-layer/GovHub.sol";
+import "contracts/middle-layer/TokenHub.sol";
 import "./TestDeployer.sol";
 
 contract CrossChainTest is TestDeployer {
@@ -36,12 +36,12 @@ contract CrossChainTest is TestDeployer {
     function test_transferOut() public {
         address receipt = user1;
         uint256 amount = 1 ether;
-        tokenHub.transferOut{value: amount + 1 ether}(receipt, amount);
+        tokenHub.transferOut{ value: amount + 1 ether }(receipt, amount);
     }
 
     function test_decode() public view {
-        bytes memory _payload =
-            hex"eb0a94fa1a93d8fe3834d33a6e79f795859367ca1229669450e3f659803ffdf09813bdef9be4a14ad85f31f8";
+        bytes
+            memory _payload = hex"eb0a94fa1a93d8fe3834d33a6e79f795859367ca1229669450e3f659803ffdf09813bdef9be4a14ad85f31f8";
         this._checkPayload(_payload);
     }
 
@@ -65,7 +65,9 @@ contract CrossChainTest is TestDeployer {
     | SrcChainId | DestChainId | ChannelId | Sequence | PackageType | Timestamp | RelayerFee |  CallbackGasPrice |PackageLoad |
     | 2 bytes    |  2 bytes    |  1 byte   |  8 bytes |  1 byte     |  8 bytes  | 32 bytes   |  32 bytes         |  len bytes |
     */
-    function _checkPayload(bytes calldata payload)
+    function _checkPayload(
+        bytes calldata payload
+    )
         public
         view
         returns (

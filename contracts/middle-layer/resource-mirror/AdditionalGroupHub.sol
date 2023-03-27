@@ -5,71 +5,21 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
-import "./AccessControl.sol";
-import "./NFTWrapResourceStorage.sol";
-import "../interface/ICrossChain.sol";
-import "../interface/IERC721NonTransferable.sol";
-import "../lib/RLPDecode.sol";
-import "../lib/RLPEncode.sol";
+import "./storage/GroupStorage.sol";
+import "./utils/AccessControl.sol";
+import "../../interface/IApplication.sol";
+import "../../interface/ICrossChain.sol";
+import "../../interface/IERC721NonTransferable.sol";
+import "../../interface/IGroupRlp.sol";
 
 // Highlight: This contract must have the same storage layout as GroupHub
 // which means same state variables and same order of state variables.
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as GroupHub.
-contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessControl {
+contract AdditionalGroupHub is GroupStorage, AccessControl {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
-    using RLPEncode for *;
-    using RLPDecode for *;
-
-    /*----------------- constants -----------------*/
-    // operation type
-    uint8 public constant TYPE_UPDATE = 4;
-
-    // update type
-    uint8 public constant UPDATE_ADD = 1;
-    uint8 public constant UPDATE_DELETE = 2;
-
-    // authorization code
-    uint32 public constant AUTH_CODE_UPDATE = 4; // 0100
-
-    // role
-    bytes32 public constant ROLE_UPDATE = keccak256("ROLE_UPDATE");
-
-    // ERC1155 token contract
-    address public ERC1155Token;
-
-    /*----------------- struct / event -----------------*/
-    // BSC to GNFD
-    struct CreateSynPackage {
-        address creator;
-        string name;
-        bytes extraData; // rlp encode of ExtraData
-    }
-
-    struct UpdateSynPackage {
-        address operator;
-        uint256 id; // group id
-        uint8 opType; // add/remove members
-        address[] members;
-        bytes extraData; // rlp encode of ExtraData
-    }
-
-    // GNFD to BSC
-    struct UpdateAckPackage {
-        uint32 status;
-        uint256 id; // group id
-        address operator;
-        uint8 opType; // add/remove members
-        address[] members;
-        bytes extraData; // rlp encode of ExtraData
-    }
-
-    event UpdateSubmitted(address owner, address operator, uint256 id, uint8 opType, address[] members);
-    event UpdateSuccess(address indexed operator, uint256 indexed id, uint8 opType);
-    event UpdateFailed(address indexed operator, uint256 indexed id, uint8 opType);
 
     /*----------------- external function -----------------*/
-
     /**
      * @dev grant some authorization to an account
      *
@@ -139,11 +89,11 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         }
 
         // make sure the extra data is as expected
-        CreateSynPackage memory synPkg = CreateSynPackage({ creator: owner, name: name, extraData: "" });
+        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({ creator: owner, name: name, extraData: "" });
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeCreateSynPackage(synPkg),
+            IGroupRlp(rlp).encodeCreateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -175,7 +125,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -185,10 +135,10 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        CreateSynPackage memory synPkg = CreateSynPackage({
+        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
             creator: owner,
             name: name,
-            extraData: _extraDataToBytes(extraData)
+            extraData: IGroupRlp(rlp).encodeExtraData(extraData)
         });
 
         // check refund address
@@ -197,7 +147,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeCreateSynPackage(synPkg),
+            IGroupRlp(rlp).encodeCreateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -231,7 +181,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
+            IGroupRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -261,7 +211,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -279,7 +229,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: id,
-            extraData: _extraDataToBytes(extraData)
+            extraData: IGroupRlp(rlp).encodeExtraData(extraData)
         });
 
         // check refund address
@@ -288,7 +238,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeCmnDeleteSynPackage(synPkg),
+            IGroupRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -301,7 +251,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
      *
      * @param synPkg Package containing information of the group to be updated
      */
-    function updateGroup(UpdateSynPackage memory synPkg) external payable returns (bool) {
+    function updateGroup(UpdateGroupSynPackage memory synPkg) external payable returns (bool) {
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
@@ -322,7 +272,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeUpdateSynPackage(synPkg),
+            IGroupRlp(rlp).encodeUpdateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -340,7 +290,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
      * It will be reset as the `msg.sender` all the time.
      */
     function updateGroup(
-        UpdateSynPackage memory synPkg,
+        UpdateGroupSynPackage memory synPkg,
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
@@ -352,7 +302,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].length() == 0, "retry queue is not empty");
+            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
@@ -367,7 +317,7 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        synPkg.extraData = _extraDataToBytes(extraData);
+        synPkg.extraData = IGroupRlp(rlp).encodeExtraData(extraData);
 
         // check refund address
         (bool success, ) = extraData.refundAddress.call("");
@@ -375,43 +325,11 @@ contract AdditionalGroupHub is NFTWrapResourceStorage, Initializable, AccessCont
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            _encodeUpdateSynPackage(synPkg),
+            IGroupRlp(rlp).encodeUpdateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
         emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
         return true;
-    }
-
-    /*----------------- internal function -----------------*/
-    function _encodeCreateSynPackage(CreateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = synPkg.creator.encodeAddress();
-        elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_CREATE, elements.encodeList());
-    }
-
-    function _encodeCmnDeleteSynPackage(CmnDeleteSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        elements[2] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_DELETE, elements.encodeList());
-    }
-
-    function _encodeUpdateSynPackage(UpdateSynPackage memory synPkg) internal pure returns (bytes memory) {
-        bytes[] memory members = new bytes[](synPkg.members.length);
-        for (uint256 i; i < synPkg.members.length; ++i) {
-            members[i] = synPkg.members[i].encodeAddress();
-        }
-
-        bytes[] memory elements = new bytes[](5);
-        elements[0] = synPkg.operator.encodeAddress();
-        elements[1] = synPkg.id.encodeUint();
-        elements[2] = uint256(synPkg.opType).encodeUint();
-        elements[3] = members.encodeList();
-        elements[4] = synPkg.extraData.encodeBytes();
-        return _RLPEncode(TYPE_UPDATE, elements.encodeList());
     }
 }
