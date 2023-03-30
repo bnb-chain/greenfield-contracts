@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Config.sol";
+import "./interface/ILightClient.sol";
 import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./lib/BytesLib.sol";

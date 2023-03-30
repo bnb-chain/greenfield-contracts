@@ -59,6 +59,10 @@ interface IERC1155NonTransferable {
         uint256[] calldata ids
     ) external view returns (uint256[] memory);
 
+    function baseURI() external view returns (string memory);
+
+    function uri(uint256 id) external view returns (string memory);
+
     function mint(address to, uint256 id, uint256 value, bytes memory data) external;
 
     function mintBatch(address to, uint256[] memory ids, uint256[] memory values, bytes memory data) external;

@@ -159,16 +159,15 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub {
                     failed = true;
                 }
 
-                remainingGas = callbackGasLimit > (gasBefore - gasleft())
-                    ? callbackGasLimit - (gasBefore - gasleft())
-                    : 0;
+                uint256 gasUsed = gasBefore - gasleft();
+                remainingGas = callbackGasLimit > gasUsed ? callbackGasLimit - gasUsed : 0;
                 refundAddress = extraData.refundAddress;
 
                 if (failed) {
                     bytes32 pkgHash = keccak256(abi.encodePacked(channelId, sequence));
                     emit AppHandleAckPkgFailed(extraData.appAddress, pkgHash, reason);
                     if (extraData.failureHandleStrategy != FailureHandleStrategy.SkipOnFail) {
-                        packageMap[pkgHash] = CallbackPackage(
+                        packageMap[pkgHash] = RetryPackage(
                             extraData.appAddress,
                             STATUS_UNEXPECTED,
                             TYPE_CREATE,
