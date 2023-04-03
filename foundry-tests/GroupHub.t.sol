@@ -137,20 +137,20 @@ contract GroupHubTest is Test, GroupHub {
         UpdateGroupSynPackage memory synPkg = UpdateGroupSynPackage({
             operator: address(this),
             id: id,
-            opType: UPDATE_ADD,
+            opType: UpdateGroupOpType.AddMembers,
             members: newMembers,
             extraData: ""
         });
 
         vm.expectEmit(true, true, true, true, address(groupHub));
-        emit UpdateSubmitted(address(this), address(this), id, UPDATE_ADD, newMembers);
+        emit UpdateSubmitted(address(this), address(this), id, uint8(UpdateGroupOpType.AddMembers), newMembers);
         groupHub.updateGroup{ value: 4e15 }(synPkg);
 
         UpdateGroupAckPackage memory updateAckPkg = UpdateGroupAckPackage({
             status: STATUS_SUCCESS,
             operator: address(this),
             id: id,
-            opType: UPDATE_ADD,
+            opType: UpdateGroupOpType.AddMembers,
             members: newMembers,
             extraData: ""
         });
@@ -394,7 +394,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[0] = ackPkg.status.encodeUint();
         elements[1] = ackPkg.id.encodeUint();
         elements[2] = ackPkg.operator.encodeAddress();
-        elements[3] = ackPkg.opType.encodeUint();
+        elements[3] = uint256(ackPkg.opType).encodeUint();
         elements[4] = members.encodeList();
         elements[5] = "".encodeBytes();
         return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
@@ -421,7 +421,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[0] = ackPkg.status.encodeUint();
         elements[1] = ackPkg.id.encodeUint();
         elements[2] = ackPkg.operator.encodeAddress();
-        elements[3] = ackPkg.opType.encodeUint();
+        elements[3] = uint256(ackPkg.opType).encodeUint();
         elements[4] = members.encodeList();
         elements[5] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
         return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());

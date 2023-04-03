@@ -9,10 +9,6 @@ contract GroupStorage is CmnStorage {
     // operation type
     uint8 public constant TYPE_UPDATE = 4;
 
-    // update type
-    uint8 public constant UPDATE_ADD = 1;
-    uint8 public constant UPDATE_DELETE = 2;
-
     // authorization code
     uint32 public constant AUTH_CODE_UPDATE = 4; // 0100
 
@@ -35,7 +31,7 @@ contract GroupStorage is CmnStorage {
     struct UpdateGroupSynPackage {
         address operator;
         uint256 id; // group id
-        uint8 opType; // add/remove members
+        UpdateGroupOpType opType;
         address[] members;
         bytes extraData; // rlp encode of ExtraData
     }
@@ -45,9 +41,14 @@ contract GroupStorage is CmnStorage {
         uint32 status;
         uint256 id; // group id
         address operator;
-        uint8 opType; // add/remove members
+        UpdateGroupOpType opType;
         address[] members;
         bytes extraData; // rlp encode of ExtraData
+    }
+
+    enum UpdateGroupOpType {
+        AddMembers,
+        RemoveMembers
     }
 
     event UpdateSubmitted(address owner, address operator, uint256 id, uint8 opType, address[] members);

@@ -168,7 +168,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
         if (ackPkg.status == STATUS_SUCCESS) {
             _doUpdate(ackPkg);
         } else if (ackPkg.status == STATUS_FAILED) {
-            emit UpdateFailed(ackPkg.operator, ackPkg.id, ackPkg.opType);
+            emit UpdateFailed(ackPkg.operator, ackPkg.id, uint8(ackPkg.opType));
         } else {
             revert("unexpected status code");
         }
@@ -222,11 +222,11 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
     }
 
     function _doUpdate(UpdateGroupAckPackage memory ackPkg) internal {
-        if (ackPkg.opType == UPDATE_ADD) {
+        if (ackPkg.opType == UpdateGroupOpType.AddMembers) {
             for (uint256 i; i < ackPkg.members.length; ++i) {
                 IERC1155NonTransferable(ERC1155Token).mint(ackPkg.members[i], ackPkg.id, 1, "");
             }
-        } else if (ackPkg.opType == UPDATE_DELETE) {
+        } else if (ackPkg.opType == UpdateGroupOpType.RemoveMembers) {
             for (uint256 i; i < ackPkg.members.length; ++i) {
                 // skip if the member has no token
                 if (IERC1155NonTransferable(ERC1155Token).balanceOf(ackPkg.members[i], ackPkg.id) == 0) {
@@ -237,7 +237,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
         } else {
             revert("unexpected update operation");
         }
-        emit UpdateSuccess(ackPkg.operator, ackPkg.id, ackPkg.opType);
+        emit UpdateSuccess(ackPkg.operator, ackPkg.id, uint8(ackPkg.opType));
     }
 
     function _handleCreateFailAckPackage(
