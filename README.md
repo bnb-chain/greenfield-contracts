@@ -77,4 +77,5 @@ parties and streamline the review and merge process.
 
 ## License
 The greenfield contracts (i.e. all code inside the `contracts` directory) are licensed under the
-[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
+[GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.en.html), also
+included in our repository in the `COPYING` file.
