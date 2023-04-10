@@ -131,8 +131,8 @@ contract CrossChain is Config, Initializable {
         require(OBJECT_HUB != address(0), "zero OBJECT_HUB");
         require(GROUP_HUB != address(0), "zero GROUP_HUB");
 
-        relayFee = 2e15;
-        minAckRelayFee = 2e15;
+        relayFee = 25 * 1e13;
+        minAckRelayFee = 25 * 1e13;
 
         chainId = uint16(block.chainid);
         gnfdChainId = _gnfdChainId;
