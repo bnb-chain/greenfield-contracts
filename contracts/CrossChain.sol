@@ -81,7 +81,6 @@ contract CrossChain is Config, Initializable {
     event ParamChange(string key, bytes value);
     event EnableOrDisableChannel(uint8 indexed channelId, bool isEnable);
     event AddChannel(uint8 indexed channelId, address indexed contractAddr);
-    event RefundFeeTooLow(address indexed refundAddress, uint256 refundAmount);
 
     modifier onlyRegisteredContractChannel(uint8 channelId) {
         require(
@@ -293,13 +292,7 @@ contract CrossChain is Config, Initializable {
             }
 
             if (_refundAddress != address(0)) {
-                if (_refundFee <= 2300 * callbackGasPrice) {
-                    // Refund cost is larger than the refund fee. Just ignore it and add to relayer reward
-                    _refundFee = 0;
-                    emit RefundFeeTooLow(_refundAddress, _refundFee);
-                } else {
-                    ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
-                }
+                ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
             } else {
                 _refundFee = 0;
             }

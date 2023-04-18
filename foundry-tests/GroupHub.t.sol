@@ -24,7 +24,13 @@ contract GroupHubTest is Test, GroupHub {
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
     event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
-    event GreenfieldCall(uint32 indexed status, uint8 channelId, uint8 indexed operationType, uint256 indexed resourceId, bytes callbackData);
+    event GreenfieldCall(
+        uint32 indexed status,
+        uint8 channelId,
+        uint8 indexed operationType,
+        uint256 indexed resourceId,
+        bytes callbackData
+    );
 
     ERC721NonTransferable public groupToken;
     ERC1155NonTransferable public memberToken;
@@ -131,20 +137,20 @@ contract GroupHubTest is Test, GroupHub {
         UpdateGroupSynPackage memory synPkg = UpdateGroupSynPackage({
             operator: address(this),
             id: id,
-            opType: UPDATE_ADD,
+            opType: UpdateGroupOpType.AddMembers,
             members: newMembers,
             extraData: ""
         });
 
         vm.expectEmit(true, true, true, true, address(groupHub));
-        emit UpdateSubmitted(address(this), address(this), id, UPDATE_ADD, newMembers);
+        emit UpdateSubmitted(address(this), address(this), id, uint8(UpdateGroupOpType.AddMembers), newMembers);
         groupHub.updateGroup{ value: 4e15 }(synPkg);
 
         UpdateGroupAckPackage memory updateAckPkg = UpdateGroupAckPackage({
             status: STATUS_SUCCESS,
             operator: address(this),
             id: id,
-            opType: UPDATE_ADD,
+            opType: UpdateGroupOpType.AddMembers,
             members: newMembers,
             extraData: ""
         });
@@ -293,7 +299,13 @@ contract GroupHubTest is Test, GroupHub {
     }
 
     /*----------------- dApp function -----------------*/
-    function greenfieldCall(uint32 status, uint8 channelId, uint8 operationType, uint256 resourceId, bytes memory callbackData) external {
+    function greenfieldCall(
+        uint32 status,
+        uint8 channelId,
+        uint8 operationType,
+        uint256 resourceId,
+        bytes memory callbackData
+    ) external {
         emit GreenfieldCall(status, channelId, operationType, resourceId, callbackData);
     }
 
@@ -382,7 +394,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[0] = ackPkg.status.encodeUint();
         elements[1] = ackPkg.id.encodeUint();
         elements[2] = ackPkg.operator.encodeAddress();
-        elements[3] = ackPkg.opType.encodeUint();
+        elements[3] = uint256(ackPkg.opType).encodeUint();
         elements[4] = members.encodeList();
         elements[5] = "".encodeBytes();
         return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
@@ -409,7 +421,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[0] = ackPkg.status.encodeUint();
         elements[1] = ackPkg.id.encodeUint();
         elements[2] = ackPkg.operator.encodeAddress();
-        elements[3] = ackPkg.opType.encodeUint();
+        elements[3] = uint256(ackPkg.opType).encodeUint();
         elements[4] = members.encodeList();
         elements[5] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
         return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
