@@ -68,7 +68,7 @@ contract GroupRlp is GroupStorage, CmnRlp {
             } else if (idx == 1) {
                 synPkg.id = iter.next().toUint();
             } else if (idx == 2) {
-                synPkg.opType = uint8(iter.next().toUint());
+                synPkg.opType = UpdateGroupOpType(iter.next().toUint());
             } else if (idx == 3) {
                 RLPDecode.RLPItem[] memory membersIter = iter.next().toList();
                 address[] memory members = new address[](membersIter.length);
@@ -103,7 +103,7 @@ contract GroupRlp is GroupStorage, CmnRlp {
             } else if (idx == 2) {
                 ackPkg.operator = iter.next().toAddress();
             } else if (idx == 3) {
-                ackPkg.opType = uint8(iter.next().toUint());
+                ackPkg.opType = UpdateGroupOpType(iter.next().toUint());
             } else if (idx == 4) {
                 RLPDecode.RLPItem[] memory membersIter = iter.next().toList();
                 address[] memory members = new address[](membersIter.length);

@@ -276,7 +276,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
             relayFee,
             _ackRelayFee
         );
-        emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
+        emit UpdateSubmitted(owner, msg.sender, synPkg.id, uint8(synPkg.opType), synPkg.members);
         return true;
     }
 
@@ -329,7 +329,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
             relayFee,
             _ackRelayFee
         );
-        emit UpdateSubmitted(owner, msg.sender, synPkg.id, synPkg.opType, synPkg.members);
+        emit UpdateSubmitted(owner, msg.sender, synPkg.id, uint8(synPkg.opType), synPkg.members);
         return true;
     }
 }

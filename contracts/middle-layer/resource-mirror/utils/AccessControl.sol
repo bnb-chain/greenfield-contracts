@@ -4,13 +4,13 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import "../../../interface/IAccessControl.sol";
-
-contract AccessControl is Context, IAccessControl, ERC165 {
+contract AccessControl is Context {
     // Role => Granter => Operator => ExpireTime
     mapping(bytes32 => mapping(address => mapping(address => uint256))) private _roles;
+
+    event RoleGranted(bytes32 indexed role, address indexed account, address indexed granter, uint256 expireTime);
+    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed granter);
 
     /**
      * @dev Modifier that checks that an account has a specific grant. Reverts
@@ -24,18 +24,6 @@ contract AccessControl is Context, IAccessControl, ERC165 {
     modifier onlyRole(bytes32 role, address granter) {
         _checkRole(role, granter);
         _;
-    }
-
-    /**
-     * @dev Returns true if this contract implements the interface defined by
-     * `interfaceId`. See the corresponding
-     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
-     * to learn more about how these ids are created.
-     *
-     * This function call must use less than 30 000 gas.
-     */
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return interfaceId == type(IAccessControl).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /**
@@ -65,11 +53,11 @@ contract AccessControl is Context, IAccessControl, ERC165 {
      *
      * May emit a {RoleRevoked} event.
      */
-    function revokeRole(bytes32 role, address account) public virtual override {
+    function revokeRole(bytes32 role, address account) public virtual {
         _revokeRole(role, _msgSender(), account);
     }
 
-    function renounceRole(bytes32 role, address granter) public virtual override {
+    function renounceRole(bytes32 role, address granter) public virtual {
         _revokeRole(role, granter, _msgSender());
     }
 

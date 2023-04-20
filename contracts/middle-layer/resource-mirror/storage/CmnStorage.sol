@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "../utils/PackageQueue.sol";
+import "./PackageQueue.sol";
 import "../../../Config.sol";
 
 contract CmnStorage is Config, PackageQueue {
@@ -26,12 +26,9 @@ contract CmnStorage is Config, PackageQueue {
     bytes32 public constant ROLE_CREATE = keccak256("ROLE_CREATE");
     bytes32 public constant ROLE_DELETE = keccak256("ROLE_DELETE");
 
-    // package type
-    bytes32 public constant CMN_CREATE_ACK = keccak256("CMN_CREATE_ACK");
-    bytes32 public constant CMN_DELETE_SYN = keccak256("CMN_DELETE_SYN");
-    bytes32 public constant CMN_DELETE_ACK = keccak256("CMN_DELETE_ACK");
-
     /*----------------- storage -----------------*/
+    uint8 public channelId;
+
     address public ERC721Token;
     address public additional;
     address public rlp;
@@ -39,14 +36,8 @@ contract CmnStorage is Config, PackageQueue {
     // PlaceHolder reserve for future use
     uint256[25] public CmnStorageSlots;
 
-    // dApp info
-    struct ExtraData {
-        address appAddress;
-        address refundAddress;
-        FailureHandleStrategy failureHandleStrategy;
-        bytes callbackData;
-    }
-
+    /*----------------- structs -----------------*/
+    // cross-chain package
     // GNFD to BSC
     struct CmnCreateAckPackage {
         uint32 status;
@@ -81,6 +72,15 @@ contract CmnStorage is Config, PackageQueue {
         uint256 id;
     }
 
+    // extra data for callback
+    struct ExtraData {
+        address appAddress;
+        address refundAddress;
+        FailureHandleStrategy failureHandleStrategy;
+        bytes callbackData;
+    }
+
+    /*----------------- events -----------------*/
     event MirrorSuccess(uint256 indexed id, address indexed owner);
     event MirrorFailed(uint256 indexed id, address indexed owner, bytes failReason);
     event CreateSubmitted(address indexed owner, address indexed operator, string name);
