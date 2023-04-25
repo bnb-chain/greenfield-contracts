@@ -12,7 +12,9 @@
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
+    "@ethersproject/bytes": "^5.4.7",
     "@ethersproject/providers": "^5.4.7",
+    "@ethersproject/abstract-provider": "^5.4.7",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",

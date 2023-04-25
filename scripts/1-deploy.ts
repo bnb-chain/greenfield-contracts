@@ -198,7 +198,7 @@ const main = async () => {
         memberToken.address,
         bucketRlp.address,
         objectRlp.address,
-        groupRlp.address
+        groupRlp.address,
     ]);
     log('deployer init success');
 

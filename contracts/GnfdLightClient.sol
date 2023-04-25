@@ -95,6 +95,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         bytes memory tmpBlock = _lightBlock;
         input = abi.encodePacked(input, tmpBlock);
         (bool success, bytes memory result) = HEADER_VALIDATE_CONTRACT.staticcall(input);
+        // TODO
         require(success && result.length > 0, "header validate failed");
 
         uint256 ptr = Memory.dataPtr(result);
@@ -138,7 +139,8 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         }
         require(bitCount >= (validatorSet.length * 2) / 3, "no majority validators");
 
-        return true;
+        // TODO REMOVE THIS LINE
+        //        return true;
 
         (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         return success && result.length > 0;

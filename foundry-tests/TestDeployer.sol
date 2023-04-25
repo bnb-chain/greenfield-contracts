@@ -4,8 +4,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "forge-std/Test.sol";
+import "../contracts/Config.sol";
 
-contract TestDeployer is Test {
+contract TestDeployer is Test, Config {
     function _deployOnTestChain() internal returns (address deployer) {
         string[] memory inputs = new string[](3);
         inputs[0] = "npm";

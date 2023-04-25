@@ -21,22 +21,20 @@ contract CrossChainTest is TestDeployer {
     address private user1 = 0x1000000000000000000000000000000012345678;
 
     function setUp() public {
-        address _deployer = _deployOnTestChain();
-        deployer = Deployer(_deployer);
-        assert(deployer.deployed());
-
-        govHub = GovHub(payable(deployer.proxyGovHub()));
-        crossChain = CrossChain(payable(deployer.proxyCrossChain()));
-        tokenHub = TokenHub(payable(deployer.proxyTokenHub()));
-        lightClient = GnfdLightClient(payable(deployer.proxyLightClient()));
-
+        vm.createSelectFork('test');
+        govHub = GovHub(payable(GOV_HUB));
+        crossChain = CrossChain(payable(CROSS_CHAIN));
+        tokenHub = TokenHub(payable(TOKEN_HUB));
+        lightClient = GnfdLightClient(payable(LIGHT_CLIENT));
         vm.deal(developer, 10000 ether);
     }
 
     function test_transferOut() public {
+        vm.startPrank(developer);
         address receipt = user1;
         uint256 amount = 1 ether;
         tokenHub.transferOut{ value: amount + 1 ether }(receipt, amount);
+        vm.stopPrank();
     }
 
     function test_decode() public view {

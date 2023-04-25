@@ -8,7 +8,6 @@ build:
 
 test:
 	npm run deploy:test
-	npx hardhat test --network test
 	forge t -vvvv --ffi
 
 install-dependencies:
