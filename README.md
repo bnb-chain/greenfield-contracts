@@ -1,17 +1,68 @@
 # Greenfield Contracts
 Greenfield Contracts is the bridge between Greenfield and BSC for cross-chain communication.
 
-## Key Features
-1. **CrossChain**. The underlying cross-chain communication protocol. This contract is responsible for handling 
-all aspects of cross-chain communication packages, including their sending, handling, encoding, and decoding.
+## Overview
+The Greenfield Blockchain provides a comprehensive set of resources that can be mirrored on the BNB Smart Chain (BSC).
+This includes buckets, objects, and groups, which can be stored and managed on the BSC as non-fungible tokens (NFTs)
+conforming to the ERC-721 standard.
 
+A bucket is a logical container for storing objects in Greenfield. An object, on the other hand, is a fundamental unit
+of storage in Greenfield that represents a file consisting of data and its associated metadata.
+Lastly, a group is a collection of accounts with the same permissions.
+
+These resources can be mirrored on the BSC as ERC-721 NFTs, along with the members within a group, which represent
+permissions to specify resources, that can be mirrored as ERC-1155 token. At present, the NFTs are not transferable,
+but the transferability feature will be added in the near future.
+
+Once these resources are mirrored on BSC, they can be directly managed by smart contracts on BSC.
+These operations will directly affect the storage format, access permissions, and other aspects of the data on greenfield.
+In other words, any changes made to the decentralized application on BSC will also reflect changes on Greenfield.
+This integration between Greenfield Blockchain and BNB Smart Chain allows for greater flexibility and accessibility
+when it comes to accessing and manipulating data, ultimately leading to a more streamlined and efficient
+data management process.
+
+## Key Contract
+1. **CrossChain**. The underlying cross-chain communication protocol. This contract is responsible for handling 
+all aspects of cross-chain communication packages, including verification, encoding, decoding, routing, reward distribution.
 2. **GovHub**. This contract oversees all aspects of contract upgrades, parameter adjustments, and handles governance
 requests originating from the `Greenfield`. Additionally, it validates and executes governance proposals as required.
-
 3. **TokenHub**. This contract is tasked with handling cross-chain transactions, encompassing both `transferIn` and 
 `transferOut`. Upon initiating a cross-chain transfer from the `Greenfield` to the BSC, tokens are initially locked within 
-the `TokenHub`, subsequently triggering a cross-chain transfer event. Awaiting a relayer to facilitate the event, 
-the transaction is relayed to the `Greenfield`. 
+the `TokenHub`, subsequently triggering a cross-chain transfer event.
+4. **GroupHub**. This contract is responsible for managing the `Greenfield` group, 
+including the addition and removal of members.
+5. **BucketHub**. This contract is responsible for managing the `Greenfield` buckets.
+6. **ObjectHub**. This contract is responsible for managing the `Greenfield` objects.
+
+## Resource Operating Primitives
+A number of cross-chain primitives have been defined on BSC to enable developers to manage greenfield resources on the
+BSC directly, without the need for intermediaries.
+
+**BNB**:
+- transfer BNB bidirectionally between BSC and Greenfield
+
+**Bucket**:
+- create a bucket on BSC
+- delete a bucket on BSC
+- mirror bucket from Greenfield to BSC
+
+**Object**:
+- delete an object on BSC
+- mirror object from Greenfield to BSC
+- grant/revoke permissions of objects on BSC to accounts/groups
+- create an object on BSC (pending)
+- copy objects on BSC (pending)
+- Kick off the execution of an object on BSC (pending)
+
+**Group**:
+- create a group on BSC
+- delete a group on BSC
+- change group members on BSC
+- mirror group from Greenfield to BSC
+
+Users can also approve smart contracts to operate the aforementioned resources instead, check the 
+[design](https://greenfield.bnbchain.org/docs/guide/dapp/permisson-control.html) for more details.
+
 
 ## Requirement
 
@@ -21,9 +72,8 @@ set environment
 cp .env.example .env
 # modify the env variable `DeployerPrivateKey` to your own private key
 
-# Launch a local test BSC and modify RPC varialbes in .env as your local config
+# Launch a local test BSC and modify RPC variables in .env as your local config
 # refer to https://github.com/bnb-chain/node-deploy
-# using https://github.com/bnb-chain/bsc-private/tree/ins-precompile as the BSC binary that includes the precompile contracts for BLS features 
 ```
 
 Install foundry:
@@ -50,13 +100,13 @@ make build
 
 ## Deploy
 ```shell
-# make sure built your local BSC
+# make sure setup your local BSC
 npm run deploy:test
 ```
 
 ## Test
 ```shell
-# make sure built your local BSC  
+# make sure setup your local BSC  
 make test
 ```
 
