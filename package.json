@@ -7,7 +7,7 @@
     "build": "npx hardhat compile"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "4.8.2",
+    "@openzeppelin/contracts": "4.8.3",
     "@openzeppelin/contracts-upgradeable": "4.8.2"
   },
   "devDependencies": {
