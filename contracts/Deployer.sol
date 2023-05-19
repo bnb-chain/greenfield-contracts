@@ -49,7 +49,6 @@ contract Deployer {
     address public objectRlp;
     address public groupRlp;
 
-    bool public initialized;
     bool public deployed;
 
     constructor(uint16 _gnfdChainId) {
@@ -76,10 +75,7 @@ contract Deployer {
         require(deployedProxyAdmin == proxyAdmin, "invalid proxyAdmin address");
     }
 
-    function init(address[] memory addrs) public {
-        require(!initialized, "only not initialized");
-        initialized = true;
-
+    function init(address[] memory addrs) internal {
         // use address list to avoid stack too deep
         require(addrs.length == 18, "invalid addrs length");
 
@@ -122,10 +118,11 @@ contract Deployer {
         groupRlp = addrs[17];
     }
 
-    function deploy(bytes calldata _initConsensusStateBytes) public {
+    function deploy(address[] memory addrs, bytes calldata _initConsensusStateBytes) public {
         require(!deployed, "only not deployed");
         deployed = true;
 
+        init(addrs);
         initConsensusStateBytes = _initConsensusStateBytes;
 
         // 2. GovHub, transfer ownership of proxyAdmin to GovHub

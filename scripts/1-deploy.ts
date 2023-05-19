@@ -180,7 +180,7 @@ const main = async () => {
 
     await groupRlp.deployTransaction.wait(5);
 
-    let tx = await deployer.init([
+    const initAddrs = [
         implGovHub.address,
         implCrossChain.address,
         implTokenHub.address,
@@ -199,15 +199,11 @@ const main = async () => {
         bucketRlp.address,
         objectRlp.address,
         groupRlp.address
-    ]);
-    log('deployer init success');
+    ]
 
+    let tx = await deployer.deploy(initAddrs, initConsensusStateBytes);
     await tx.wait(5);
-
-    tx = await deployer.deploy(initConsensusStateBytes);
     log('deploy success');
-
-    await tx.wait(5);
 
     const deployment: any = {
         Deployer: deployer.address,
