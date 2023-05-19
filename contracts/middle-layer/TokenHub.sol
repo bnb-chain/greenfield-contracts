@@ -7,8 +7,9 @@ import "../Config.sol";
 import "../lib/RLPEncode.sol";
 import "../lib/RLPDecode.sol";
 import "../interface/ICrossChain.sol";
+import "../interface/IMiddleLayer.sol";
 
-contract TokenHub is Config, ReentrancyGuardUpgradeable {
+contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
     using RLPEncode for *;
     using RLPDecode for *;
 

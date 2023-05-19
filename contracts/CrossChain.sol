@@ -10,8 +10,9 @@ import "./interface/IRelayerHub.sol";
 import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./Config.sol";
+import "./interface/ICrossChain.sol";
 
-contract CrossChain is Config, Initializable {
+contract CrossChain is Config, Initializable, ICrossChain {
     /*----------------- constants -----------------*/
     uint8 public constant SYN_PACKAGE = 0x00;
     uint8 public constant ACK_PACKAGE = 0x01;

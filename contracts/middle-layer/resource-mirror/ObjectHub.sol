@@ -5,11 +5,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./CmnHub.sol";
-import "./storage/ObjectStorage.sol";
 import "./utils/AccessControl.sol";
 import "../../interface/IERC721NonTransferable.sol";
+import "../../interface/IObjectHub.sol";
 
-contract ObjectHub is ObjectStorage, AccessControl, CmnHub {
+contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
@@ -29,7 +29,10 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub {
      *
      * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
      */
-    function handleSynPackage(uint8, bytes calldata msgBytes) external override onlyCrossChain returns (bytes memory) {
+    function handleSynPackage(
+        uint8,
+        bytes calldata msgBytes
+    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (bytes memory) {
         return _handleMirrorSynPackage(msgBytes);
     }
 
@@ -46,7 +49,7 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());
@@ -76,7 +79,7 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());

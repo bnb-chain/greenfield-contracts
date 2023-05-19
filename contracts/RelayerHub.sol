@@ -6,8 +6,9 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "./Config.sol";
 import "./interface/ITokenHub.sol";
 import "./interface/ILightClient.sol";
+import "./interface/IRelayerHub.sol";
 
-contract RelayerHub is Config, ReentrancyGuardUpgradeable {
+contract RelayerHub is Config, ReentrancyGuardUpgradeable, IRelayerHub {
     uint256 public constant REWARD_RATIO_SCALE = 100;
 
     /*----------------- storage layer -----------------*/

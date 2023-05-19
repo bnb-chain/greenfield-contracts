@@ -12,8 +12,9 @@ import "../lib/CmnPkg.sol";
 
 import "../lib/RLPDecode.sol";
 import "../Config.sol";
+import "../interface/IMiddleLayer.sol";
 
-contract GovHub is Config, Initializable {
+contract GovHub is Config, Initializable, IMiddleLayer {
     using RLPDecode for *;
 
     /*----------------- constants -----------------*/
