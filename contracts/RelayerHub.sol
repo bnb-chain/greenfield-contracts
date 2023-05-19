@@ -17,7 +17,9 @@ contract RelayerHub is Config, ReentrancyGuardUpgradeable {
     event RewardToRelayer(address relayer, uint256 amount);
 
     /*----------------- external function -----------------*/
-    receive() external payable {}
+    receive() external payable {
+        require(msg.sender == TOKEN_HUB, "only receive from token hub");
+    }
 
     function initialize() public initializer {
         __ReentrancyGuard_init();
