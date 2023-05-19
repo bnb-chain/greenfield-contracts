@@ -21,10 +21,7 @@ contract GovHub is Config, Initializable {
 
     uint32 public constant CODE_OK = 0;
     uint32 public constant ERROR_FAIL_DECODE = 100;
-    uint32 public constant ERROR_TARGET_NOT_CONTRACT = 101;
-    uint32 public constant ERROR_TARGET_CONTRACT_FAIL = 102;
-    uint32 public constant ERROR_INVALID_IMPLEMENTATION = 103;
-    uint32 public constant ERROR_UPGRADE_FAIL = 104;
+    uint32 public constant ERROR_TARGET_CONTRACT_FAIL = 101;
 
     bytes32 public constant UPGRADE_KEY_HASH = keccak256(abi.encodePacked("upgrade"));
 
