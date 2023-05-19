@@ -500,9 +500,6 @@ contract CrossChain is Config, Initializable {
             }
             packageLoad = payload[86:];
         } else {
-            if (payload.length < 54) {
-                return (false, 0, 0, 0, 0, 0, 0, "");
-            }
             _ackRelayFee = 0;
             packageLoad = payload[54:];
         }
