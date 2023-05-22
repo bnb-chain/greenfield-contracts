@@ -27,6 +27,4 @@ interface IMiddleLayer {
         bytes calldata msgBytes,
         uint256 _callbackGasLimit
     ) external returns (uint256 remainingGas, address refundAddress);
-
-    function minAckRelayFee() external returns (uint256);
 }

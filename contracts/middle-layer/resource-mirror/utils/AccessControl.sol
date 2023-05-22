@@ -5,7 +5,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract AccessControl is Context {
+import "../../../interface/IAccessControl.sol";
+
+contract AccessControl is Context, IAccessControl {
     // Role => Granter => Operator => ExpireTime
     mapping(bytes32 => mapping(address => mapping(address => uint256))) private _roles;
 

@@ -5,13 +5,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./CmnHub.sol";
-import "./storage/GroupStorage.sol";
 import "./utils/AccessControl.sol";
 import "../../interface/IERC1155NonTransferable.sol";
 import "../../interface/IERC721NonTransferable.sol";
+import "../../interface/IGroupHub.sol";
 import "../../interface/IGroupRlp.sol";
 
-contract GroupHub is GroupStorage, AccessControl, CmnHub {
+contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
     using RLPEncode for *;
     using RLPDecode for *;
@@ -36,7 +36,10 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
      *
      * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
      */
-    function handleSynPackage(uint8, bytes calldata msgBytes) external override onlyCrossChain returns (bytes memory) {
+    function handleSynPackage(
+        uint8,
+        bytes calldata msgBytes
+    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (bytes memory) {
         return _handleMirrorSynPackage(msgBytes);
     }
 
@@ -52,7 +55,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());
@@ -86,7 +89,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());

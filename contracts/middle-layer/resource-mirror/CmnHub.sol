@@ -8,10 +8,11 @@ import "./storage/CmnStorage.sol";
 import "./rlp/CmnRlp.sol";
 import "../../lib/Memory.sol";
 import "../../interface/IApplication.sol";
+import "../../interface/ICmnHub.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
 // DO NOT define any state variables in this contract.
-abstract contract CmnHub is CmnStorage, Initializable {
+abstract contract CmnHub is CmnStorage, Initializable, ICmnHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     /*----------------- middle-layer function -----------------*/

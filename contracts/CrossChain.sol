@@ -10,8 +10,9 @@ import "./interface/IRelayerHub.sol";
 import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./Config.sol";
+import "./interface/ICrossChain.sol";
 
-contract CrossChain is Config, Initializable {
+contract CrossChain is Config, Initializable, ICrossChain {
     /*----------------- constants -----------------*/
     uint8 public constant SYN_PACKAGE = 0x00;
     uint8 public constant ACK_PACKAGE = 0x01;
@@ -500,9 +501,6 @@ contract CrossChain is Config, Initializable {
             }
             packageLoad = payload[86:];
         } else {
-            if (payload.length < 54) {
-                return (false, 0, 0, 0, 0, 0, 0, "");
-            }
             _ackRelayFee = 0;
             packageLoad = payload[54:];
         }
