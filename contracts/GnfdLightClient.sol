@@ -46,7 +46,6 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
 
     uint256 public inTurnRelayerRelayInterval;
     /* --------------------- 3. events ----------------------- */
-
     event InitConsensusState(uint64 height);
     event UpdatedConsensusState(uint64 height, bool validatorSetChanged);
     event ParamChange(string key, bytes value);
@@ -67,56 +66,37 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         _;
     }
 
-    function initialize(bytes calldata _initConsensusStateBytes) public initializer {
+    function initialize(bytes memory _initConsensusStateBytes) public initializer {
         uint256 ptr;
-        uint256 len;
-        bytes32 tmpChainID;
-
-        (ptr, len) = Memory.fromBytes(_initConsensusStateBytes);
         assembly {
-            tmpChainID := mload(ptr)
+            ptr := add(_initConsensusStateBytes, 32)
+            sstore(chainID.slot, mload(ptr))
         }
 
-        chainID = tmpChainID;
-        updateConsensusState(ptr, len, true, 0);
+        updateConsensusState(_initConsensusStateBytes, true, 0);
         consensusStateBytes = _initConsensusStateBytes;
 
         inTurnRelayerRelayInterval = 600 seconds;
-
         emit InitConsensusState(gnfdHeight);
     }
 
-    // TODO we will optimize the gas consumption here.
-    function syncLightBlock(bytes calldata _lightBlock, uint64 _height) external onlyRelayer returns (bool) {
+    function syncLightBlock(bytes memory _lightBlock, uint64 _height) external onlyRelayer returns (bool) {
         require(submitters[_height] == address(0x0), "can't sync duplicated header");
         require(_height > gnfdHeight, "can't sync header before latest height");
 
         bytes memory input = abi.encodePacked(abi.encode(consensusStateBytes.length), consensusStateBytes);
-        bytes memory tmpBlock = _lightBlock;
-        input = abi.encodePacked(input, tmpBlock);
+        input = abi.encodePacked(input, _lightBlock);
         (bool success, bytes memory result) = HEADER_VALIDATE_CONTRACT.staticcall(input);
-        // TODO
         require(success && result.length > 0, "header validate failed");
 
-        uint256 ptr = Memory.dataPtr(result);
-        uint256 tmp;
-        assembly {
-            tmp := mload(ptr)
-        }
-
-        bool validatorSetChanged = (tmp >> 248) != 0x00;
-        uint256 consensusStateLength = tmp & 0xffffffffffffffff;
-        ptr = ptr + CONSENSUS_STATE_BYTES_LENGTH;
-
-        updateConsensusState(ptr, consensusStateLength, validatorSetChanged, _height);
+        (bool validatorSetChanged, bytes memory _consensusStateBytes) = abi.decode(result, (bool, bytes));
+        updateConsensusState(_consensusStateBytes, validatorSetChanged, _height);
 
         submitters[_height] = payable(msg.sender);
         if (validatorSetChanged) {
-            consensusStateBytes = BytesLib.slice(result, 32, consensusStateLength);
+            consensusStateBytes = _consensusStateBytes;
         }
-
         emit UpdatedConsensusState(_height, validatorSetChanged);
-
         return true;
     }
 
@@ -138,9 +118,6 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
             }
         }
         require(bitCount >= (validatorSet.length * 2) / 3, "no majority validators");
-
-        // TODO REMOVE THIS LINE
-        //        return true;
 
         (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         return success && result.length > 0;
@@ -190,13 +167,18 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         return relayer.addr;
     }
 
-    // TODO we will optimize the gas consumption here.
     // input:
     // | chainID   | height   | nextValidatorSetHash | [{validator pubkey, voting power, relayer address, relayer bls pubkey}] |
     // | 32 bytes  | 8 bytes  | 32 bytes             | [{32 bytes, 8 bytes, 20 bytes, 48 bytes}]                               |
-    function updateConsensusState(uint256 ptr, uint256 size, bool validatorSetChanged, uint64 expectHeight) internal {
+    function updateConsensusState(bytes memory csBytes, bool validatorSetChanged, uint64 expectHeight) internal {
+        uint256 size = csBytes.length;
         require(size > CONSENSUS_STATE_BASE_LENGTH, "cs length too short");
         require((size - CONSENSUS_STATE_BASE_LENGTH) % VALIDATOR_BYTES_LENGTH == 0, "invalid cs length");
+
+        uint256 ptr;
+        assembly {
+            ptr := add(csBytes, 32)
+        }
 
         ptr = ptr + HEIGHT_LENGTH;
         uint64 tmpHeight;

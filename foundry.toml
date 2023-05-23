@@ -4,8 +4,7 @@ out = 'out'
 libs = ['lib']
 test = 'foundry-tests'
 script = 'foundry-scripts'
-fs_permissions = [{ access = "read", path = "./deployment/"}]
-fs_permissions = [{ access = "read-write", path = "./out" }]
+gas_reports = ["*"]
 
 [profile.fuzz]
 runs = 10000

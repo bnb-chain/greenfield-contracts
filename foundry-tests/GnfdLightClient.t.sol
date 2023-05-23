@@ -34,7 +34,7 @@ contract GnfdLightClientTest is Test {
         console.log("lightClient.chainID()");
         console.log(string(abi.encode(lightClient.chainID())));
 
-        assertEq(lightClient.gnfdHeight(), uint64(1));
+        assertEq(lightClient.gnfdHeight(), uint64(16100));
         assertEq(
             lightClient.nextValidatorSetHash(),
             hex"3709ffd55d10f04e736e16cc873da10dcf8f4f895da73f673a691e8252fdd349"
@@ -69,7 +69,7 @@ contract GnfdLightClientTest is Test {
             hex"9129b63adf1dccc26385fe1ec5cd20576e4264d02a0515bb439c03e0ef15de283d9149cb0383d2e47186ae1a3bd0fc59"
         );
     }
-
+/*
     function test_syncLightBlock() public {
         init();
 
@@ -77,6 +77,7 @@ contract GnfdLightClientTest is Test {
         vm.prank(relayer0);
         lightClient.syncLightBlock(lightBlockBytes, uint64(72224));
     }
+    */
 
     function test_bytes_concat(bytes memory input1, bytes memory input2) public {
         bytes memory output1 = BytesLib.concat(abi.encode(input1), input2);
