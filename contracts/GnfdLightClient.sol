@@ -73,7 +73,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
             sstore(chainID.slot, mload(ptr))
         }
 
-        updateConsensusState(_initConsensusStateBytes, true, 0);
+        updateConsensusState(_initConsensusStateBytes, 0);
         consensusStateBytes = _initConsensusStateBytes;
 
         inTurnRelayerRelayInterval = 600 seconds;
@@ -89,13 +89,15 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         (bool success, bytes memory result) = HEADER_VALIDATE_CONTRACT.staticcall(input);
         require(success && result.length > 0, "header validate failed");
 
-        (bool validatorSetChanged, bytes memory _consensusStateBytes) = abi.decode(result, (bool, bytes));
-        updateConsensusState(_consensusStateBytes, validatorSetChanged, _height);
-
+        updateConsensusState(result, _height);
         submitters[_height] = payable(msg.sender);
+
+        // validatorSet changed
+        bool validatorSetChanged = result.length > CONSENSUS_STATE_BASE_LENGTH;
         if (validatorSetChanged) {
-            consensusStateBytes = _consensusStateBytes;
+            consensusStateBytes = result;
         }
+
         emit UpdatedConsensusState(_height, validatorSetChanged);
         return true;
     }
@@ -167,12 +169,12 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         return relayer.addr;
     }
 
-    // input:
+    // csBytes:
     // | chainID   | height   | nextValidatorSetHash | [{validator pubkey, voting power, relayer address, relayer bls pubkey}] |
     // | 32 bytes  | 8 bytes  | 32 bytes             | [{32 bytes, 8 bytes, 20 bytes, 48 bytes}]                               |
-    function updateConsensusState(bytes memory csBytes, bool validatorSetChanged, uint64 expectHeight) internal {
+    function updateConsensusState(bytes memory csBytes, uint64 expectHeight) internal {
         uint256 size = csBytes.length;
-        require(size > CONSENSUS_STATE_BASE_LENGTH, "cs length too short");
+        require(size >= CONSENSUS_STATE_BASE_LENGTH, "cs length too short");
         require((size - CONSENSUS_STATE_BASE_LENGTH) % VALIDATOR_BYTES_LENGTH == 0, "invalid cs length");
 
         uint256 ptr;
@@ -196,7 +198,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
             sstore(nextValidatorSetHash.slot, mload(ptr))
         }
 
-        if (!validatorSetChanged) {
+        if (size == CONSENSUS_STATE_BASE_LENGTH) {
             return;
         }
 
