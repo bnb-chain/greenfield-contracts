@@ -11,10 +11,11 @@ contract GroupRlp is GroupStorage, CmnRlp {
 
     /*----------------- encode -----------------*/
     function encodeCreateGroupSynPackage(CreateGroupSynPackage calldata synPkg) external pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
+        bytes[] memory elements = new bytes[](4);
         elements[0] = synPkg.creator.encodeAddress();
         elements[1] = bytes(synPkg.name).encodeBytes();
-        elements[2] = synPkg.extraData.encodeBytes();
+        elements[2] = bytes(synPkg.extra).encodeBytes();
+        elements[3] = synPkg.extraData.encodeBytes();
         return wrapEncode(TYPE_CREATE, elements.encodeList());
     }
 
@@ -24,12 +25,13 @@ contract GroupRlp is GroupStorage, CmnRlp {
             members[i] = synPkg.members[i].encodeAddress();
         }
 
-        bytes[] memory elements = new bytes[](5);
+        bytes[] memory elements = new bytes[](6);
         elements[0] = synPkg.operator.encodeAddress();
         elements[1] = synPkg.id.encodeUint();
         elements[2] = uint256(synPkg.opType).encodeUint();
         elements[3] = members.encodeList();
-        elements[4] = synPkg.extraData.encodeBytes();
+        elements[4] = bytes(synPkg.extra).encodeBytes();
+        elements[5] = synPkg.extraData.encodeBytes();
         return wrapEncode(TYPE_UPDATE, elements.encodeList());
     }
 
@@ -46,6 +48,8 @@ contract GroupRlp is GroupStorage, CmnRlp {
             } else if (idx == 1) {
                 synPkg.name = string(iter.next().toBytes());
             } else if (idx == 2) {
+                synPkg.extra = string(iter.next().toBytes());
+            } else if (idx == 3) {
                 synPkg.extraData = iter.next().toBytes();
                 success = true;
             } else {
@@ -77,6 +81,8 @@ contract GroupRlp is GroupStorage, CmnRlp {
                 }
                 synPkg.members = members;
             } else if (idx == 4) {
+                synPkg.extra = string(iter.next().toBytes());
+            } else if (idx == 5) {
                 synPkg.extraData = iter.next().toBytes();
                 success = true;
             } else {

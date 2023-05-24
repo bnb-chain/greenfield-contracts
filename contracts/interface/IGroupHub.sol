@@ -6,11 +6,12 @@ import "./ICmnHub.sol";
 import "../middle-layer/resource-mirror/storage/GroupStorage.sol";
 
 interface IGroupHub is ICmnHub {
-    function createGroup(address creator, string memory name) external payable returns (bool);
+    function createGroup(address creator, string memory name, string memory extra) external payable returns (bool);
 
     function createGroup(
         address creator,
         string memory name,
+        string memory extra,
         uint256 callbackGasLimit,
         CmnStorage.ExtraData memory extraData
     ) external payable returns (bool);
