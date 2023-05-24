@@ -10,7 +10,6 @@ import "./interface/IRelayerHub.sol";
 import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./Config.sol";
-import "hardhat/console.sol";
 
 contract CrossChain is Config, Initializable {
     /*----------------- constants -----------------*/
@@ -186,8 +185,6 @@ contract CrossChain is Config, Initializable {
         bytes calldata _blsSignature,
         uint256 _validatorsBitSet
     ) external whenNotSuspended {
-        console.log("handlePackage");
-
         // 1. decode _payload
         // 1-1 check if the chainId is valid
         (

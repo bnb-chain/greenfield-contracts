@@ -12,7 +12,6 @@ import "../lib/CmnPkg.sol";
 
 import "../lib/RLPDecode.sol";
 import "../Config.sol";
-import "hardhat/console.sol";
 
 contract GovHub is Config, Initializable {
     using RLPDecode for *;
@@ -48,14 +47,7 @@ contract GovHub is Config, Initializable {
         uint8,
         bytes calldata msgBytes
     ) external onlyCrossChain returns (bytes memory responsePayload) {
-        console.logBytes(msgBytes);
-
         (ParamChangePackage memory proposal, bool success) = _decodeSynPackage(msgBytes);
-
-        console.log("success", success);
-        console.log("proposal.key", proposal.key);
-        console.logBytes(proposal.targets);
-        console.logBytes(proposal.values);
 
         if (!success) {
             return CmnPkg.encodeCommonAckPackage(ERROR_FAIL_DECODE);
