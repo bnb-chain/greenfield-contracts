@@ -98,7 +98,7 @@ contract GroupHubTest is Test, GroupHub {
     function testCreate(uint256 id) public {
         vm.expectEmit(true, true, true, true, address(groupHub));
         emit CreateSubmitted(address(this), address(this), "test");
-        groupHub.createGroup{ value: 4e15 }(address(this), "test");
+        groupHub.createGroup{ value: 4e15 }(address(this), "test", "test");
 
         bytes memory msgBytes = _encodeCreateAckPackage(0, id, address(this));
 
@@ -139,6 +139,7 @@ contract GroupHubTest is Test, GroupHub {
             id: id,
             opType: UpdateGroupOpType.AddMembers,
             members: newMembers,
+            extra: "test",
             extraData: ""
         });
 
@@ -171,7 +172,7 @@ contract GroupHubTest is Test, GroupHub {
 
         // failed without authorization
         vm.expectRevert(bytes("no permission to create"));
-        groupHub.createGroup{ value: 4e15 }(granter, "test1");
+        groupHub.createGroup{ value: 4e15 }(granter, "test1", "test1");
 
         // wrong auth code
         uint256 expireTime = block.timestamp + 1 days;
@@ -188,7 +189,7 @@ contract GroupHubTest is Test, GroupHub {
         // create success
         vm.expectEmit(true, true, true, true, address(groupHub));
         emit CreateSubmitted(granter, operator, "test1");
-        groupHub.createGroup{ value: 4e15 }(granter, "test1");
+        groupHub.createGroup{ value: 4e15 }(granter, "test1", "test1");
 
         // delete success
         uint256 tokenId = 0;
@@ -202,19 +203,19 @@ contract GroupHubTest is Test, GroupHub {
         // grant expire
         vm.warp(expireTime + 1);
         vm.expectRevert(bytes("no permission to create"));
-        groupHub.createGroup{ value: 4e15 }(granter, "test2");
+        groupHub.createGroup{ value: 4e15 }(granter, "test2", "test2");
 
         // revoke and create failed
         expireTime = block.timestamp + 1 days;
         vm.prank(msg.sender);
         groupHub.grant(operator, AUTH_CODE_CREATE, expireTime);
-        groupHub.createGroup{ value: 4e15 }(granter, "test2");
+        groupHub.createGroup{ value: 4e15 }(granter, "test2", "test2");
 
         vm.prank(msg.sender);
         groupHub.revoke(operator, AUTH_CODE_CREATE);
 
         vm.expectRevert(bytes("no permission to create"));
-        groupHub.createGroup{ value: 4e15 }(granter, "test3");
+        groupHub.createGroup{ value: 4e15 }(granter, "test3", "test3");
     }
 
     function testCallback(uint256 tokenId) public {
@@ -243,6 +244,7 @@ contract GroupHubTest is Test, GroupHub {
         CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
             creator: address(this),
             name: "test",
+            extra: "test",
             extraData: IGroupRlp(rlp).encodeExtraData(extraData)
         });
         bytes memory msgBytes = IGroupRlp(rlp).encodeCreateGroupSynPackage(synPkg);
@@ -279,11 +281,11 @@ contract GroupHubTest is Test, GroupHub {
         });
 
         vm.expectRevert(bytes("retry queue is not empty"));
-        groupHub.createGroup{ value: 4e15 }(address(this), "test", 0, extraData);
+        groupHub.createGroup{ value: 4e15 }(address(this), "test", "test", 0, extraData);
 
         // retry pkg
         groupHub.retryPackage();
-        groupHub.createGroup{ value: 4e15 }(address(this), "test", 0, extraData);
+        groupHub.createGroup{ value: 4e15 }(address(this), "test", "test", 0, extraData);
 
         // skip on fail
         msgBytes = _encodeCreateAckPackage(1, 0, address(this), address(this), FailureHandleStrategy.SkipOnFail);
