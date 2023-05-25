@@ -1,6 +1,7 @@
 import { Deployer } from '../typechain-types';
-import { toHuman } from './helper';
-import fs from "fs";
+import { sleep, toHuman } from './helper';
+import fs from 'fs';
+import { execSync } from 'child_process';
 const { ethers, run } = require('hardhat');
 const log = console.log;
 
@@ -42,6 +43,11 @@ const main = async () => {
         .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
         .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`);
 
+    fs.writeFileSync(__dirname + '/../contracts/Config.sol', newConfig, 'utf8');
+    await sleep(2);
+    execSync('npx hardhat compile');
+    await sleep(2);
+
     log('For verification, Set all contracts from deployment to Config contract locally');
 
     const implGovHub = await deployer.implGovHub();
@@ -63,7 +69,6 @@ const main = async () => {
     const bucketRlp = await deployer.bucketRlp();
     const objectRlp = await deployer.objectRlp();
     const groupRlp = await deployer.groupRlp();
-
 
     try {
         await run('verify:verify', { address: implGovHub });
