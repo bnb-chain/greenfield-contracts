@@ -25,7 +25,6 @@ contract GroupStorage is CmnStorage {
     struct CreateGroupSynPackage {
         address creator;
         string name;
-        string extra; // extra info of group
         bytes extraData; // rlp encode of ExtraData
     }
 
@@ -34,7 +33,6 @@ contract GroupStorage is CmnStorage {
         uint256 id; // group id
         UpdateGroupOpType opType;
         address[] members;
-        string extra; // extra info of group
         bytes extraData; // rlp encode of ExtraData
     }
 

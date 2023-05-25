@@ -123,17 +123,11 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         return (600_001, "GroupHub", "init version");
     }
 
-    function createGroup(address, string memory, string memory) external payable returns (bool) {
+    function createGroup(address, string memory) external payable returns (bool) {
         delegateAdditional();
     }
 
-    function createGroup(
-        address,
-        string memory,
-        string memory,
-        uint256,
-        ExtraData memory
-    ) external payable returns (bool) {
+    function createGroup(address, string memory, uint256, ExtraData memory) external payable returns (bool) {
         delegateAdditional();
     }
 

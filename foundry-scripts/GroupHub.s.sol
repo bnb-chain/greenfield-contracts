@@ -25,7 +25,7 @@ contract GroupHubScript is Script, GroupStorage {
         address[] memory members = new address[](1);
         members[0] = member;
         UpdateGroupSynPackage memory pkg =
-            UpdateGroupSynPackage(operator, groupId, UpdateGroupOpType.AddMembers, members, "", "");
+            UpdateGroupSynPackage(operator, groupId, UpdateGroupOpType.AddMembers, members, "");
 
         vm.startBroadcast();
         groupHub.updateGroup{ value: relayFee }(pkg);

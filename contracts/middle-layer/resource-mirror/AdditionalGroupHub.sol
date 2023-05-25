@@ -76,9 +76,8 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
      *
      * @param owner The group's owner
      * @param name The group's name
-     * @param extra Extra info of group
      */
-    function createGroup(address owner, string memory name, string memory extra) external payable returns (bool) {
+    function createGroup(address owner, string memory name) external payable returns (bool) {
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
@@ -90,12 +89,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
         }
 
         // make sure the extra data is as expected
-        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
-            creator: owner,
-            name: name,
-            extra: extra,
-            extraData: ""
-        });
+        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({ creator: owner, name: name, extraData: "" });
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
@@ -113,7 +107,6 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
      *
      * @param owner The group's owner
      * @param name The group's name
-     * @param extra Extra info of group
      * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
      * It will be reset as the `msg.sender` all the time.
@@ -121,7 +114,6 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
     function createGroup(
         address owner,
         string memory name,
-        string memory extra,
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
@@ -146,7 +138,6 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
         CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
             creator: owner,
             name: name,
-            extra: extra,
             extraData: IGroupRlp(rlp).encodeExtraData(extraData)
         });
 
