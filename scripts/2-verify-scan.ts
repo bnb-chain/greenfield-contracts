@@ -38,6 +38,7 @@ const main = async () => {
         log('verify error', e)
     }
 
+
     const addBucketHub = await deployer.addBucketHub()
     const addObjectHub = await deployer.addObjectHub()
     const addGroupHub = await deployer.addGroupHub()
@@ -63,6 +64,7 @@ const main = async () => {
         log('verify addBucketHub, addObjectHub, addGroupHub, bucketRlp, objectRlp, groupRlp', e)
     }
 
+
     const proxyAdmin = await deployer.proxyAdmin();
     const proxyGovHub = await deployer.proxyGovHub();
     const proxyCrossChain = await deployer.proxyCrossChain();
@@ -77,42 +79,42 @@ const main = async () => {
         await run("verify:verify", {
             address: proxyGovHub,
             constructorArguments: [implGovHub, proxyAdmin, "0x"],
-            contract: "GnfdProxy",
+            contract: "contracts/GnfdProxy.sol:GnfdProxy",
         });
         await run("verify:verify", {
             address: proxyCrossChain,
             constructorArguments: [implCrossChain, proxyAdmin, "0x"],
-            contract: "GnfdProxy",
+            contract: "contracts/GnfdProxy.sol:GnfdProxy",
         });
         await run("verify:verify", {
             address: proxyTokenHub,
             constructorArguments: [implTokenHub, proxyAdmin, "0x"],
-            contract: "GnfdProxy",
+            contract: "contracts/GnfdProxy.sol:GnfdProxy",
         });
         await run("verify:verify", {
             address: proxyLightClient,
             constructorArguments: [implLightClient, proxyAdmin, "0x"],
-            contract: "GnfdProxy",
+            contract: "contracts/GnfdProxy.sol:GnfdProxy",
         });
         await run("verify:verify", {
             address: proxyRelayerHub,
             constructorArguments: [implRelayerHub, proxyAdmin, "0x"],
-            contract: "GnfdProxy",
+            contract: "contracts/GnfdProxy.sol:GnfdProxy",
         });
         await run("verify:verify", {
             address: proxyBucketHub,
             constructorArguments: [implBucketHub, proxyAdmin, "0x"],
-            contract: "GnfdProxy",
+            contract: "contracts/GnfdProxy.sol:GnfdProxy",
         });
         await run("verify:verify", {
             address: proxyObjectHub,
             constructorArguments: [implObjectHub, proxyAdmin, "0x"],
-            contract: "GnfdProxy",
+            contract: "contracts/GnfdProxy.sol:GnfdProxy",
         });
         await run("verify:verify", {
             address: proxyGroupHub,
             constructorArguments: [implGroupHub, proxyAdmin, "0x"],
-            contract: "GnfdProxy",
+            contract: "contracts/GnfdProxy.sol:GnfdProxy",
         });
 
         log('all proxy contracts verified')
@@ -120,6 +122,29 @@ const main = async () => {
         log('verify error', e)
     }
 
+    try {
+        await run("verify:verify", {
+            address: bucketToken,
+            constructorArguments: ['GreenField-Bucket', 'BUCKET', "bucket", proxyBucketHub],
+        });
+        await run("verify:verify", {
+            address: objectToken,
+            constructorArguments: ['GreenField-Object', 'OBJECT', "object", proxyObjectHub],
+        });
+
+        await run("verify:verify", {
+            address: groupToken,
+            constructorArguments: ['GreenField-Group', 'GROUP', "group", proxyGroupHub],
+        });
+        await run("verify:verify", {
+            address: memberToken,
+            constructorArguments: ['member', proxyGroupHub],
+        });
+
+        log('bucketToken, objectToken, groupToken, memberToken verified')
+    } catch (e) {
+        log('verify error, bucketToken, objectToken, groupToken, memberToken', e)
+    }
 };
 
 main()
