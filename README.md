@@ -54,6 +54,12 @@ make build
 npm run deploy:test
 ```
 
+## Verify on BSCScan
+```shell
+npm run deploy:testnet
+npm run deploy:bsc
+```
+
 ## Test
 ```shell
 # make sure built your local BSC  
