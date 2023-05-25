@@ -60,6 +60,16 @@ npm run deploy:testnet
 npm run deploy:bsc
 ```
 
+## Inspect Transactions
+```shell
+# 1. add your txHash to `InspectTxHashes` on `scripts/3-decode-events.ts`
+# 2. run script on BSC testnet
+npx hardhat run scripts/3-decode-events.ts --network bsc-testnet
+
+# run script on BSC
+npx hardhat run scripts/3-decode-events.ts --network bsc
+```
+
 ## Test
 ```shell
 # make sure built your local BSC  

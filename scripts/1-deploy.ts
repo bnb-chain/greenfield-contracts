@@ -198,8 +198,8 @@ const main = async () => {
         memberToken.address,
         bucketRlp.address,
         objectRlp.address,
-        groupRlp.address
-    ]
+        groupRlp.address,
+    ];
 
     let tx = await deployer.deploy(initAddrs, initConsensusStateBytes);
     await tx.wait(5);
