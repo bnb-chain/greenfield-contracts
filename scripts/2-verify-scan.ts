@@ -14,6 +14,10 @@ const main = async () => {
     log('operator.address: ', operator.address, toHuman(balance));
 
     const deployer = (await ethers.getContractAt('Deployer', contracts.Deployer)) as Deployer;
+    await run("verify:verify", {
+        address: contracts.Deployer,
+        constructorArguments: [contracts.gnfdChainId],
+    });
 
     const implGovHub = await deployer.implGovHub();
     const implCrossChain = await deployer.implCrossChain();
