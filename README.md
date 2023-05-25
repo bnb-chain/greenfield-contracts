@@ -60,6 +60,13 @@ npm run verify:testnet
 npm run verify:bsc
 ```
 
+## Cross-Chain Transfer to GreenField
+```shell
+# 1. add private-key, receiver and BNB amount to ./foundry-scripts/transferOut.sh
+# 2. run script below 
+bash -x ./foundry-scripts/transferOut.sh
+```
+
 ## Inspect Transactions
 ```shell
 # 1. add your txHash to `InspectTxHashes` on `scripts/3-decode-events.ts`

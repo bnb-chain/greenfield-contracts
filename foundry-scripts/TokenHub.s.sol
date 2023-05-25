@@ -1,28 +1,36 @@
 pragma solidity ^0.8.0;
 
-import "forge-std/Script.sol";
-
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-
-import "../contracts/GnfdProxy.sol";
-import "../contracts/GnfdProxyAdmin.sol";
-import "../contracts/GnfdLightClient.sol";
+import "../contracts/Deployer.sol";
 import "../contracts/CrossChain.sol";
-import "../contracts/middle-layer/GovHub.sol";
 import "../contracts/middle-layer/TokenHub.sol";
+import "./Helper.sol";
 
-contract TokenHubScript is Script {
+contract TokenHubScript is Helper {
+    Deployer private deployer;
     TokenHub private tokenHub;
+    CrossChain private crossChain;
 
-    function run(address payable proxyTokenHub, address receipt, uint256 amount) public {
-        tokenHub = TokenHub(proxyTokenHub);
-        uint256 privateKey = uint256(vm.envBytes32("DeployerPrivateKey"));
-        address developer = vm.addr(privateKey);
-        console.log("developer", developer, developer.balance);
+    function transferOut(address receiver, uint256 amount) public {
+        deployer = Deployer(getDeployer());
+        crossChain = CrossChain(payable(deployer.proxyCrossChain()));
+        tokenHub = TokenHub(payable(deployer.proxyTokenHub()));
 
+        console.log('sender', tx.origin);
+        console.log('receiver', receiver);
+
+        uint256 relayFee = crossChain.relayFee();
+        uint256 minAckRelayFee = crossChain.minAckRelayFee();
+        console.log('total relay fee', relayFee + minAckRelayFee);
+
+        uint256 totalValue = amount + relayFee + minAckRelayFee;
+        console.log('total value of tx', totalValue);
+
+
+        // start broadcast real tx
         vm.startBroadcast();
-        tokenHub.transferOut{ value: amount + 1 ether }(receipt, amount);
+
+        tokenHub.transferOut{ value: totalValue }(receiver, amount);
+
         vm.stopBroadcast();
     }
 }
