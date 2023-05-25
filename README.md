@@ -56,8 +56,8 @@ npm run deploy:test
 
 ## Verify on BSCScan
 ```shell
-npm run deploy:testnet
-npm run deploy:bsc
+npm run verify:testnet
+npm run verify:bsc
 ```
 
 ## Inspect Transactions
