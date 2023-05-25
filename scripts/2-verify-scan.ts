@@ -1,6 +1,6 @@
-import { BigNumber } from 'ethers';
-import { Deployer, TokenHub } from '../typechain-types';
+import { Deployer } from '../typechain-types';
 import { toHuman } from './helper';
+import fs from "fs";
 const { ethers, run } = require('hardhat');
 const log = console.log;
 
@@ -18,6 +18,31 @@ const main = async () => {
         address: contracts.Deployer,
         constructorArguments: [contracts.gnfdChainId],
     });
+    const proxyAdmin = await deployer.proxyAdmin();
+    const proxyGovHub = await deployer.proxyGovHub();
+    const proxyCrossChain = await deployer.proxyCrossChain();
+    const proxyTokenHub = await deployer.proxyTokenHub();
+    const proxyLightClient = await deployer.proxyLightClient();
+    const proxyRelayerHub = await deployer.proxyRelayerHub();
+    const proxyBucketHub = await deployer.proxyBucketHub();
+    const proxyObjectHub = await deployer.proxyObjectHub();
+    const proxyGroupHub = await deployer.proxyGroupHub();
+
+    const config: string = fs
+        .readFileSync(__dirname + '/../contracts/Config.sol', 'utf8')
+        .toString();
+    const newConfig: string = config
+        .replace(/PROXY_ADMIN = .*/g, `PROXY_ADMIN = ${proxyAdmin};`)
+        .replace(/GOV_HUB = .*/g, `GOV_HUB = ${proxyGovHub};`)
+        .replace(/CROSS_CHAIN = .*/g, `CROSS_CHAIN = ${proxyCrossChain};`)
+        .replace(/TOKEN_HUB = .*/g, `TOKEN_HUB = ${proxyTokenHub};`)
+        .replace(/LIGHT_CLIENT = .*/g, `LIGHT_CLIENT = ${proxyLightClient};`)
+        .replace(/RELAYER_HUB = .*/g, `RELAYER_HUB = ${proxyRelayerHub};`)
+        .replace(/BUCKET_HUB = .*/g, `BUCKET_HUB = ${proxyBucketHub};`)
+        .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
+        .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`);
+
+    log('For verification, Set all contracts from deployment to Config contract locally');
 
     const implGovHub = await deployer.implGovHub();
     const implCrossChain = await deployer.implCrossChain();
@@ -27,6 +52,18 @@ const main = async () => {
     const implBucketHub = await deployer.implBucketHub();
     const implObjectHub = await deployer.implObjectHub();
     const implGroupHub = await deployer.implGroupHub();
+
+    const addBucketHub = await deployer.addBucketHub();
+    const addObjectHub = await deployer.addObjectHub();
+    const addGroupHub = await deployer.addGroupHub();
+    const bucketToken = await deployer.bucketToken();
+    const objectToken = await deployer.objectToken();
+    const groupToken = await deployer.groupToken();
+    const memberToken = await deployer.memberToken();
+    const bucketRlp = await deployer.bucketRlp();
+    const objectRlp = await deployer.objectRlp();
+    const groupRlp = await deployer.groupRlp();
+
 
     try {
         await run('verify:verify', { address: implGovHub });
@@ -42,17 +79,6 @@ const main = async () => {
         log('verify error', e);
     }
 
-    const addBucketHub = await deployer.addBucketHub();
-    const addObjectHub = await deployer.addObjectHub();
-    const addGroupHub = await deployer.addGroupHub();
-    const bucketToken = await deployer.bucketToken();
-    const objectToken = await deployer.objectToken();
-    const groupToken = await deployer.groupToken();
-    const memberToken = await deployer.memberToken();
-    const bucketRlp = await deployer.bucketRlp();
-    const objectRlp = await deployer.objectRlp();
-    const groupRlp = await deployer.groupRlp();
-
     try {
         await run('verify:verify', { address: addBucketHub });
         await run('verify:verify', { address: addObjectHub });
@@ -65,16 +91,6 @@ const main = async () => {
     } catch (e) {
         log('verify addBucketHub, addObjectHub, addGroupHub, bucketRlp, objectRlp, groupRlp', e);
     }
-
-    const proxyAdmin = await deployer.proxyAdmin();
-    const proxyGovHub = await deployer.proxyGovHub();
-    const proxyCrossChain = await deployer.proxyCrossChain();
-    const proxyTokenHub = await deployer.proxyTokenHub();
-    const proxyLightClient = await deployer.proxyLightClient();
-    const proxyRelayerHub = await deployer.proxyRelayerHub();
-    const proxyBucketHub = await deployer.proxyBucketHub();
-    const proxyObjectHub = await deployer.proxyObjectHub();
-    const proxyGroupHub = await deployer.proxyGroupHub();
 
     try {
         await run('verify:verify', {
