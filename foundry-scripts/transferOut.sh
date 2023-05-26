@@ -1,4 +1,4 @@
-# cross-chain transfer 0.2 BNB (10 ^ 17) to your receiver
+# cross-chain transfer 0.2 BNB (amount = 2 * 10 ^ 17) to your receiver
 
 forge script foundry-scripts/TokenHub.s.sol:TokenHubScript \
 --sig "transferOut(address receiver, uint256 amount)" \
