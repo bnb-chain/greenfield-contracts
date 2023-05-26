@@ -1,10 +1,13 @@
 {
   "scripts": {
-    "deploy:test": "npx hardhat run scripts/1-deploy.ts --network test",
+    "deploy:testnet": "npx hardhat run scripts/1-deploy.ts --network bsc-testnet",
+    "deploy:bsc": "npx hardhat run scripts/1-deploy.ts --network bsc",
     "lint:ts": "npx prettier --write scripts/** test/**",
     "lint:check": "npx prettier -c contracts/**",
     "lint:write": "npx prettier --write contracts/**",
-    "build": "npx hardhat compile"
+    "build": "npx hardhat compile",
+    "verify:testnet": "npx hardhat run scripts/2-verify-scan.ts --network bsc-testnet",
+    "verify:bsc": "npx hardhat run scripts/2-verify-scan.ts --network bsc"
   },
   "dependencies": {
     "@openzeppelin/contracts": "4.8.3",
