@@ -118,7 +118,7 @@ npm run verify:bsc
 
 ## Cross-Chain Transfer to GreenField
 ```shell
-# make sure the foundry dependency you have installed 
+# make sure the foundry dependency are installed 
 # 1. add private-key, receiver and BNB amount to ./foundry-scripts/transferOut.sh
 # 2. run shell command 
 # refer to ./foundry-scripts/examples/transferOut.sh
@@ -126,7 +126,7 @@ npm run verify:bsc
 
 ## Cross-Chain Operation to GreenField
 ```shell
-# make sure the foundry dependency you have installed 
+# make sure the foundry dependency are installed 
 # group operation
 # refer to ./foundry-scripts/examples/updateGroup.sh
 
