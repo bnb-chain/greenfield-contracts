@@ -58,7 +58,7 @@ contract AdditionalObjectHub is ObjectStorage, AccessControl {
     /**
      * @dev delete a object and send cross-chain request from BSC to GNFD
      *
-     * @param id The bucket's id
+     * @param id The object id
      */
     function deleteObject(uint256 id) external payable returns (bool) {
         // check relay fee

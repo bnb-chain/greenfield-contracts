@@ -1,8 +1,5 @@
 pragma solidity ^0.8.0;
 
-import "../contracts/Deployer.sol";
-import "../contracts/CrossChain.sol";
-import "../contracts/middle-layer/TokenHub.sol";
 import "./Helper.sol";
 
 contract TokenHubScript is Helper {

@@ -2,11 +2,13 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "../contracts/middle-layer/resource-mirror/GroupHub.sol";
-import "../contracts/Deployer.sol";
 
-contract Helper is Script {
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "../contracts/Deployer.sol";
+import "../contracts/middle-layer/resource-mirror/storage/GroupStorage.sol";
+import "../contracts/middle-layer/resource-mirror/storage/BucketStorage.sol";
+
+contract Helper is Script, BucketStorage, GroupStorage {
     Deployer public deployer;
 
     ProxyAdmin public proxyAdmin;
@@ -33,12 +35,9 @@ contract Helper is Script {
         objectHub = ObjectHub(payable(deployer.proxyObjectHub()));
         groupHub = GroupHub(payable(deployer.proxyGroupHub()));
 
-
-
         uint256 relayFee = crossChain.relayFee();
         uint256 minAckRelayFee = crossChain.minAckRelayFee();
         totalRelayFee = relayFee + minAckRelayFee;
-
         console.log('total relay fee', totalRelayFee);
     }
 

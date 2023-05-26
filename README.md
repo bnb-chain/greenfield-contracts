@@ -119,8 +119,20 @@ npm run verify:bsc
 ## Cross-Chain Transfer to GreenField
 ```shell
 # 1. add private-key, receiver and BNB amount to ./foundry-scripts/transferOut.sh
-# 2. run script below 
-bash -x ./foundry-scripts/transferOut.sh
+# 2. run shell command 
+# refer to ./foundry-scripts/examples/transferOut.sh
+```
+
+## Cross-Chain Operation to GreenField
+```shell
+# group operation
+# refer to ./foundry-scripts/examples/updateGroup.sh
+
+# bucket operation
+# refer to ./foundry-scripts/examples/bucketHub.sh
+
+# object operation
+# refer to ./foundry-scripts/examples/deleteObject.sh
 ```
 
 ## Inspect Transactions
