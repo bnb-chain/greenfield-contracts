@@ -73,9 +73,7 @@ set environment
 cp .env.example .env
 # modify the env variable `DeployerPrivateKey` to your own private key
 
-# Launch a local test BSC and modify RPC varialbes in .env as your local config
-# refer to https://github.com/bnb-chain/node-deploy
-# using https://github.com/bnb-chain/bsc-private/tree/ins-precompile as the BSC binary that includes the precompile contracts for BLS features 
+# make sure the address corresponding to the private key has enough tBNB in the BSC Testnet
 ```
 
 Install foundry:
@@ -120,21 +118,45 @@ npm run verify:bsc
 ```shell
 # make sure the foundry dependency are installed 
 # 1. add private-key, receiver and BNB amount to ./foundry-scripts/transferOut.sh
-# 2. run shell command 
-# refer to ./foundry-scripts/examples/transferOut.sh
+# 2. run shell command
+# cross-chain transfer 0.2 BNB (amount = 2 * 10 ^ 17) to your receiver on GreenField
+forge script foundry-scripts/TokenHub.s.sol:TokenHubScript \
+--private-key ${your private key} \
+--sig "transferOut(address receiver, uint256 amount)" \
+${the receiver you transfer to} 200000000000000000  \
+-f https://data-seed-prebsc-1-s1.binance.org:8545/  \
+--legacy --ffi --broadcast
+# More examples please refer to ./foundry-scripts/examples/transferOut.sh
 ```
 
 ## Cross-Chain Operation to GreenField
 ```shell
 # make sure the foundry dependency are installed 
-# group operation
-# refer to ./foundry-scripts/examples/updateGroup.sh
+# group operation - add member to the group
+forge script foundry-scripts/GroupHub.s.sol:GroupHubScript \
+--private-key ${your private key} \
+--sig "addMember(address operator, uint256 groupId, address member)" \
+${the owner of the group} ${your group id} ${the member address to add} \
+-f https://data-seed-prebsc-1-s1.binance.org:8545/ \
+--legacy --ffi --broadcast
+# More examples please refer to ./foundry-scripts/examples/updateGroup.sh
 
-# bucket operation
-# refer to ./foundry-scripts/examples/bucketHub.sh
+# bucket operation - delete a bucket
+forge script foundry-scripts/BucketHub.s.sol:BucketHubScript \
+--private-key ${your private key} \
+--sig "deleteBucket(uint256 bucketId)" \
+${bucketId to delete} \
+-f https://data-seed-prebsc-1-s1.binance.org:8545/ \
+--legacy --ffi --broadcast
+# More examples please refer to ./foundry-scripts/examples/bucketHub.sh
 
-# object operation
-# refer to ./foundry-scripts/examples/deleteObject.sh
+# object operation - delete an object
+forge script foundry-scripts/ObjectHub.s.sol:ObjectHubScript \
+--private-key ${your private key} \
+--sig "deleteObject(uint256 id)" \
+${object id to delete} \
+-f https://data-seed-prebsc-1-s1.binance.org:8545/ \
+--legacy --ffi --broadcast
 ```
 
 ## Inspect Transactions
