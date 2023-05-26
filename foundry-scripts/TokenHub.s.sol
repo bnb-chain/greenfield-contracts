@@ -1,28 +1,21 @@
 pragma solidity ^0.8.0;
 
-import "forge-std/Script.sol";
+import "./Helper.sol";
 
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+contract TokenHubScript is Helper {
 
-import "../contracts/GnfdProxy.sol";
-import "../contracts/GnfdProxyAdmin.sol";
-import "../contracts/GnfdLightClient.sol";
-import "../contracts/CrossChain.sol";
-import "../contracts/middle-layer/GovHub.sol";
-import "../contracts/middle-layer/TokenHub.sol";
+    function transferOut(address receiver, uint256 amount) public {
+        console.log('sender', tx.origin);
+        console.log('receiver', receiver);
 
-contract TokenHubScript is Script {
-    TokenHub private tokenHub;
+        uint256 totalValue = amount + totalRelayFee;
+        console.log('total value of tx', totalValue);
 
-    function run(address payable proxyTokenHub, address receipt, uint256 amount) public {
-        tokenHub = TokenHub(proxyTokenHub);
-        uint256 privateKey = uint256(vm.envBytes32("DeployerPrivateKey"));
-        address developer = vm.addr(privateKey);
-        console.log("developer", developer, developer.balance);
-
+        // start broadcast real tx
         vm.startBroadcast();
-        tokenHub.transferOut{ value: amount + 1 ether }(receipt, amount);
+
+        tokenHub.transferOut{ value: totalValue }(receiver, amount);
+
         vm.stopBroadcast();
     }
 }

@@ -56,23 +56,14 @@ const initConsensusState: any = {
 
 const initConsensusStateBytes = initConsensusState.consensusStateBytes;
 const main = async () => {
-    const [operator, operator2, faucet] = await ethers.getSigners();
+    const commitId = await getCommitId();
+    const [operator] = await ethers.getSigners();
     const balance = await ethers.provider.getBalance(operator.address);
     const network = await ethers.provider.getNetwork();
     log('network', network);
     log('operator.address: ', operator.address, toHuman(balance));
 
-    if (balance.lt(unit)) {
-        const tx = await faucet.sendTransaction({
-            to: operator.address,
-            value: unit.mul(50_000),
-        });
-        await tx.wait(2);
-        log('after got bnb, operator.address: ', operator.address, toHuman(balance));
-    }
-
     const deployer = (await deployContract('Deployer', gnfdChainId)) as Deployer;
-
     log('Deployer deployed', deployer.address);
 
     const proxyAdmin = await deployer.proxyAdmin();
@@ -198,14 +189,16 @@ const main = async () => {
         memberToken.address,
         bucketRlp.address,
         objectRlp.address,
-        groupRlp.address
-    ]
+        groupRlp.address,
+    ];
 
     let tx = await deployer.deploy(initAddrs, initConsensusStateBytes);
     await tx.wait(5);
     log('deploy success');
 
     const deployment: any = {
+        RepoCommitId: commitId,
+
         Deployer: deployer.address,
 
         ProxyAdmin: proxyAdmin,
@@ -235,9 +228,14 @@ const main = async () => {
         JSON.stringify(deployment, null, 2)
     );
 
+    // BSC Mainnet
+    if (network.chainId === 56) {
+        return;
+    }
+
     tx = await operator.sendTransaction({
         to: proxyTokenHub,
-        value: unit.mul(10000),
+        value: unit.mul(1000),
     });
     await tx.wait(1);
     log('balance of TokenHub', await ethers.provider.getBalance(proxyTokenHub));
@@ -259,6 +257,17 @@ const deployContract = async (factoryPath: string, ...args: any) => {
     const contract = await factory.deploy(...args);
     await contract.deployTransaction.wait(1);
     return contract;
+};
+
+const getCommitId = async (): Promise<string> => {
+    try {
+        const result = execSync('git rev-parse HEAD');
+        log('getCommitId', result.toString().trim());
+        return result.toString().trim();
+    } catch (e) {
+        console.error('getCommitId error', e);
+        return '';
+    }
 };
 
 main()

@@ -7,8 +7,8 @@ build:
 	forge build
 
 test:
-	npm run deploy:test
-	npx hardhat test --network test
+	npm run deploy:testnet
+	npx hardhat test --network bsc-testnet
 	forge t -vvvv --ffi
 
 install-dependencies:

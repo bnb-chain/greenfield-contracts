@@ -12,14 +12,23 @@ import { toHuman } from './helper';
 const { ethers } = require('hardhat');
 
 const log = console.log;
-const txHash = '0xcbe510e2534e70c37eab0d9d1a239ccf0469e609c03440080beee14321845283';
 
-const getLogsFromReceipt = async () => {
+const InspectTxHashes = ['0x0b95c109a74d7813f8d256a436a5b33a3505c611e238c4127ce5be2db4bac8b6'];
+
+const main = async () => {
+    for (let i = 0; i < InspectTxHashes.length; i++) {
+        const txHash = InspectTxHashes[i];
+        log(i + 1, txHash);
+        await decodeTx(txHash);
+    }
+};
+
+const getLogsFromReceipt = async (txHash: string) => {
     const receipt = await ethers.provider.getTransactionReceipt(txHash);
     return receipt.logs;
 };
 
-const main = async () => {
+const decodeTx = async (txHash: string) => {
     const [operator] = await ethers.getSigners();
     const balance = await ethers.provider.getBalance(operator.address);
     const network = await ethers.provider.getNetwork();
@@ -48,27 +57,58 @@ const main = async () => {
     )) as GnfdLightClient;
     const relayerHub = (await ethers.getContractAt('RelayerHub', RelayerHub)) as RelayerHub;
 
-    const interfaceMap: any = {};
-    interfaceMap[Deployer] = deployer.interface;
-    interfaceMap[ProxyAdmin] = proxyAdmin.interface;
-    interfaceMap[GovHub] = govHub.interface;
-    interfaceMap[CrossChain] = crossChain.interface;
-    interfaceMap[TokenHub] = tokenHub.interface;
-    interfaceMap[LightClient] = lightClient.interface;
-    interfaceMap[RelayerHub] = relayerHub.interface;
+    const interfaces: any = [];
+    interfaces.push({
+        name: 'Deployer',
+        interface: deployer.interface,
+        address: Deployer,
+    });
+    interfaces.push({
+        name: 'ProxyAdmin',
+        interface: proxyAdmin.interface,
+        address: ProxyAdmin,
+    });
+    interfaces.push({
+        name: 'GovHub',
+        interface: govHub.interface,
+        address: GovHub,
+    });
+    interfaces.push({
+        name: 'CrossChain',
+        interface: crossChain.interface,
+        address: CrossChain,
+    });
+    interfaces.push({
+        name: 'TokenHub',
+        interface: tokenHub.interface,
+        address: TokenHub,
+    });
+    interfaces.push({
+        name: 'LightClient',
+        interface: lightClient.interface,
+        address: LightClient,
+    });
+    interfaces.push({
+        name: 'RelayerHub',
+        interface: relayerHub.interface,
+        address: RelayerHub,
+    });
 
-    const logs = await getLogsFromReceipt();
-
+    const logs = await getLogsFromReceipt(txHash);
+    const tx = await ethers.provider.getTransaction(txHash);
     for (let i = 0; i < logs.length; i++) {
         const eventLog: any = logs[i];
-        const iface = interfaceMap[eventLog.address];
-        if (iface) {
-            log('----------------------------------');
-            log('contract:', eventLog.address);
-            try {
-                const logDesc = iface.parseLog(eventLog);
-                log(logDesc.signature, logDesc.args);
-            } catch (e) {}
+        for (const interfaceObj of interfaces) {
+            const iface = interfaceObj.interface;
+            if (iface) {
+                try {
+                    const logDesc = iface.parseLog(eventLog);
+                    log('----------------------------------');
+                    log('inspect', txHash, 'on block', tx.blockNumber, 'chainId is', tx.chainId);
+                    log(interfaceObj.name, 'contract:', eventLog.address);
+                    log(logDesc.signature, logDesc.args);
+                } catch (e) {}
+            }
         }
     }
 };
