@@ -13,6 +13,7 @@ import "contracts/middle-layer/TokenHub.sol";
 
 import "contracts/lib/RLPEncode.sol";
 import "contracts/lib/RLPDecode.sol";
+import "../contracts/middle-layer/TokenHubV2.sol";
 
 contract TokenHubTest is Test, TokenHub {
     using RLPEncode for *;
@@ -30,7 +31,33 @@ contract TokenHubTest is Test, TokenHub {
     address private developer = 0x0000000000000000000000000000000012345678;
     address private user1 = 0x1000000000000000000000000000000012345678;
 
-    function setUp() public {}
+    CrossChain private crossChain;
+    TokenHub private tokenHub;
+
+    function setUp() public {
+        vm.createSelectFork("bsc-test");
+        vm.deal(developer, 1000 ether);
+
+        crossChain = CrossChain(payable(CROSS_CHAIN));
+        tokenHub = TokenHub(payable(TOKEN_HUB));
+    }
+
+    function test_transferOut() public {
+
+        uint256 gasBefore = gasleft();
+        tokenHub.transferOut{ value: 1e18 + 5e14 }(developer, 1 ether);
+        console.log('transferOut gasUsed', gasBefore - gasleft());
+    }
+
+    function test_transferOutV2() public {
+        TokenHubV2 tokenHubV2 = new TokenHubV2();
+        vm.prank(PROXY_ADMIN);
+        GnfdProxy(payable(TOKEN_HUB)).upgradeTo(address(tokenHubV2));
+
+        uint256 gasBefore = gasleft();
+        tokenHub.transferOut{ value: 1e18 + 5e14 }(developer, 1 ether);
+        console.log('transferOutV2 gasUsed', gasBefore - gasleft());
+    }
 
     function test_rlp_fuzzy_test_case_1(uint256 amount, address recipient, address refundAddr) public {
         TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage(amount, recipient, refundAddr);
@@ -44,12 +71,36 @@ contract TokenHubTest is Test, TokenHub {
         assertEq(refundAddr, transInSynPkg.refundAddr);
     }
 
+    function test_rlp_fuzzy_test_case_1_abi_decode(uint256 amount, address recipient, address refundAddr) public {
+        TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage(amount, recipient, refundAddr);
+        bytes memory msgBytes = abi.encode(transOutSynPkg);
+        (TransferInSynPackage memory transInSynPkg) = abi.decode(msgBytes, (TransferInSynPackage));
+
+        assertEq(amount, transInSynPkg.amount);
+        assertEq(recipient, transInSynPkg.recipient);
+        assertEq(refundAddr, transInSynPkg.refundAddr);
+    }
+
     function test_rlp_fuzzy_test_case_2(uint256 refundAmount, address refundAddr, uint32 status) public {
         TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
         bytes memory msgBytes = _encodeTransferInRefundPackage(transInAckPkg);
         (TransferOutAckPackage memory transferOutAckPkg, bool success) = _decodeTransferOutAckPackage(msgBytes);
 
         assertEq(success, true, "decode transferOutAckPkg failed");
+        assertEq(refundAmount, transInAckPkg.refundAmount);
+        assertEq(refundAddr, transInAckPkg.refundAddr);
+        assertEq(status, transInAckPkg.status);
+
+        assertEq(refundAmount, transferOutAckPkg.refundAmount);
+        assertEq(refundAddr, transferOutAckPkg.refundAddr);
+        assertEq(status, transferOutAckPkg.status);
+    }
+
+    function test_rlp_fuzzy_test_case_2_abi_decode(uint256 refundAmount, address refundAddr, uint32 status) public {
+        TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
+        bytes memory msgBytes = abi.encode(transInAckPkg);
+        (TransferOutAckPackage memory transferOutAckPkg) = abi.decode(msgBytes, (TransferOutAckPackage));
+
         assertEq(refundAmount, transInAckPkg.refundAmount);
         assertEq(refundAddr, transInAckPkg.refundAddr);
         assertEq(status, transInAckPkg.status);

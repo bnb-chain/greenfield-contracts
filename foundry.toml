@@ -24,6 +24,7 @@ include_storage = true
 include_push_bytes = true
 
 [rpc_endpoints]
-bsc-test = "https://data-seed-prebsc-1-s1.binance.org:8545/"
+#bsc-test = "https://data-seed-prebsc-1-s1.binance.org:8545/"
+bsc-test = "${BSC_TESTNET_RPC}"
 bsc = "https://bsc-dataseed1.binance.org/"
 local = "http://localhost:8545"
