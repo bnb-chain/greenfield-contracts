@@ -59,6 +59,30 @@ contract TokenHubTest is Test, TokenHub {
         console.log('transferOutV2 gasUsed', gasBefore - gasleft());
     }
 
+    function test_decode_transferInRefund() public {
+        uint256 refundAmount = 1 ether;
+        address refundAddr = developer;
+        uint32 status = 0;
+        TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
+        bytes memory msgBytes = _encodeTransferInRefundPackage(transInAckPkg);
+
+        uint256 gasBefore = gasleft();
+        (TransferOutAckPackage memory transferOutAckPkg, bool success) = _decodeTransferOutAckPackage(msgBytes);
+        console.log('_decodeTransferOutAckPackage gasUsed', gasBefore - gasleft());
+    }
+
+    function test_decode_transferInRefundV2() public {
+        uint256 refundAmount = 1 ether;
+        address refundAddr = developer;
+        uint32 status = 0;
+        TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
+        bytes memory msgBytes = abi.encode(transInAckPkg);
+
+        uint256 gasBefore = gasleft();
+        (TransferOutAckPackage memory transferOutAckPkg) = abi.decode(msgBytes, (TransferOutAckPackage));
+        console.log('_decodeTransferOutAckPackage V2 gasUsed', gasBefore - gasleft());
+    }
+
     function test_rlp_fuzzy_test_case_1(uint256 amount, address recipient, address refundAddr) public {
         TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage(amount, recipient, refundAddr);
         bytes memory msgBytes = _encodeTransferOutSynPackage(transOutSynPkg);
@@ -84,7 +108,10 @@ contract TokenHubTest is Test, TokenHub {
     function test_rlp_fuzzy_test_case_2(uint256 refundAmount, address refundAddr, uint32 status) public {
         TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
         bytes memory msgBytes = _encodeTransferInRefundPackage(transInAckPkg);
+
+        uint256 gasBefore = gasleft();
         (TransferOutAckPackage memory transferOutAckPkg, bool success) = _decodeTransferOutAckPackage(msgBytes);
+        console.log('_decodeTransferOutAckPackage gasUsed', gasBefore - gasleft());
 
         assertEq(success, true, "decode transferOutAckPkg failed");
         assertEq(refundAmount, transInAckPkg.refundAmount);
@@ -99,7 +126,10 @@ contract TokenHubTest is Test, TokenHub {
     function test_rlp_fuzzy_test_case_2_abi_decode(uint256 refundAmount, address refundAddr, uint32 status) public {
         TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
         bytes memory msgBytes = abi.encode(transInAckPkg);
+
+        uint256 gasBefore = gasleft();
         (TransferOutAckPackage memory transferOutAckPkg) = abi.decode(msgBytes, (TransferOutAckPackage));
+        console.log('_decodeTransferOutAckPackage V2 gasUsed', gasBefore - gasleft());
 
         assertEq(refundAmount, transInAckPkg.refundAmount);
         assertEq(refundAddr, transInAckPkg.refundAddr);

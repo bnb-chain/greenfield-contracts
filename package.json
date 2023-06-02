@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "deploy:test": "npx hardhat run scripts/1-deploy.ts --network test",
     "deploy:testnet": "npx hardhat run scripts/1-deploy.ts --network bsc-testnet",
     "deploy:bsc": "npx hardhat run scripts/1-deploy.ts --network bsc",
     "lint:ts": "npx prettier --write scripts/** test/**",

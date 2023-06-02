@@ -199,7 +199,7 @@ contract TokenHubV2 is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
     function _decodeTransferInSynPackage(
         bytes memory msgBytes
     ) internal pure returns (TransferInSynPackage memory, bool) {
-        (TransferInSynPackage memory transInSynPkg) = abi.decode(msgBytes, (TransferInSynPackage));
+        TransferInSynPackage memory transInSynPkg = abi.decode(msgBytes, (TransferInSynPackage));
         return (transInSynPkg, true);
     }
 
@@ -242,7 +242,7 @@ contract TokenHubV2 is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
     function _decodeTransferOutAckPackage(
         bytes memory msgBytes
     ) internal pure returns (TransferOutAckPackage memory, bool) {
-        (TransferOutAckPackage memory transOutAckPkg) = abi.decode(msgBytes, (TransferOutAckPackage));
+        TransferOutAckPackage memory transOutAckPkg = abi.decode(msgBytes, (TransferOutAckPackage));
         return (transOutAckPkg, true);
     }
 
@@ -267,12 +267,12 @@ contract TokenHubV2 is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
     function _decodeTransferOutSynPackage(
         bytes memory msgBytes
     ) internal pure returns (TransferOutSynPackage memory, bool) {
-        (TransferOutSynPackage memory transOutSynPkg) = abi.decode(msgBytes, (TransferOutSynPackage));
+        TransferOutSynPackage memory transOutSynPkg = abi.decode(msgBytes, (TransferOutSynPackage));
         return (transOutSynPkg, true);
     }
 
     function _handleTransferOutFailAckPackage(bytes memory msgBytes) internal {
-        (TransferOutSynPackage memory transOutSynPkg) = abi.decode(msgBytes, (TransferOutSynPackage));
+        TransferOutSynPackage memory transOutSynPkg = abi.decode(msgBytes, (TransferOutSynPackage));
 
         TransferOutAckPackage memory transOutAckPkg;
         transOutAckPkg.refundAmount = transOutSynPkg.amount;
