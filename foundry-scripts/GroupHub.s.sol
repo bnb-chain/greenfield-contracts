@@ -30,7 +30,7 @@ contract GroupHubScript is Helper {
         address[] memory members = new address[](1);
         members[0] = member;
         UpdateGroupSynPackage memory pkg =
-            UpdateGroupSynPackage(operator, groupId, UpdateGroupOpType.RemoveMembers, members, "", "");
+            UpdateGroupSynPackage(operator, groupId, UpdateGroupOpType.RemoveMembers, members, "");
 
         // start broadcast real tx
         vm.startBroadcast();
