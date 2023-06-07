@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "./ICmnHub.sol";
 import "../middle-layer/resource-mirror/storage/GroupStorage.sol";
 
-interface IGroupHub is ICmnHub {
+interface IGroupHub {
     function createGroup(address creator, string memory name) external payable returns (bool);
 
     function createGroup(

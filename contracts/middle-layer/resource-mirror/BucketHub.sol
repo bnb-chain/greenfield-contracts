@@ -29,10 +29,7 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
      *
      * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
      */
-    function handleSynPackage(
-        uint8,
-        bytes calldata msgBytes
-    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (bytes memory) {
+    function handleSynPackage(uint8, bytes calldata msgBytes) external override onlyCrossChain returns (bytes memory) {
         return _handleMirrorSynPackage(msgBytes);
     }
 
@@ -48,7 +45,7 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());
@@ -80,7 +77,7 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());
@@ -110,6 +107,14 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         returns (uint256 version, string memory name, string memory description)
     {
         return (400_001, "BucketHub", "init version");
+    }
+
+    function grant(address, uint32, uint256) external override {
+        delegateAdditional();
+    }
+
+    function revoke(address, uint32) external override {
+        delegateAdditional();
     }
 
     function createBucket(CreateBucketSynPackage memory) external payable returns (bool) {

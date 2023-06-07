@@ -10,36 +10,43 @@ import "../../lib/Memory.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICmnHub.sol";
 import "../../interface/IERC721NonTransferable.sol";
+import "../../interface/IMiddleLayer.sol";
 
 // DO NOT define any state variables in this contract.
-abstract contract CmnHub is CmnStorage, Initializable, ICmnHub {
+abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     /*----------------- middle-layer function -----------------*/
     // need to be implemented in child contract
-    function handleSynPackage(uint8 channelId, bytes calldata callbackData) external virtual returns (bytes memory) {}
+    function handleSynPackage(uint8 channelId, bytes calldata callbackData) external virtual returns (bytes memory) {
+        revert("not implemented");
+    }
 
     function handleAckPackage(
         uint8 channelId,
         uint64 sequence,
         bytes calldata callbackData,
         uint256 callbackGasLimit
-    ) external virtual returns (uint256 remainingGas, address refundAddress) {}
+    ) external virtual returns (uint256 remainingGas, address refundAddress) {
+        revert("not implemented");
+    }
 
     function handleFailAckPackage(
         uint8 channelId,
         uint64 sequence,
         bytes calldata callbackData,
         uint256 callbackGasLimit
-    ) external virtual returns (uint256 remainingGas, address refundAddress) {}
-
-    /*----------------- external function -----------------*/
-    function grant(address, uint32, uint256) external {
-        delegateAdditional();
+    ) external virtual returns (uint256 remainingGas, address refundAddress) {
+        revert("not implemented");
     }
 
-    function revoke(address, uint32) external {
-        delegateAdditional();
+    /*----------------- external function -----------------*/
+    function grant(address, uint32, uint256) external virtual {
+        revert("not implemented");
+    }
+
+    function revoke(address, uint32) external virtual {
+        revert("not implemented");
     }
 
     function retryPackage() external {

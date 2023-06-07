@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "./ICmnHub.sol";
 import "../middle-layer/resource-mirror/storage/BucketStorage.sol";
 
-interface IBucketHub is ICmnHub {
+interface IBucketHub {
     function createBucket(BucketStorage.CreateBucketSynPackage memory createPackage) external payable returns (bool);
 
     function createBucket(
