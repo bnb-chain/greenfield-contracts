@@ -164,7 +164,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         previousTxHeight = 0;
         txCounter = 0;
         inTurnRelayerValidityPeriod = 45 seconds;
-        quorumMap[SUSPEND_PROPOSAL] = 1;
+        quorumMap[SUSPEND_PROPOSAL] = 2;
         quorumMap[REOPEN_PROPOSAL] = 2;
         quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
     }
