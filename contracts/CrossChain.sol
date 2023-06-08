@@ -43,7 +43,6 @@ contract CrossChain is Config, Initializable, ICrossChain {
     uint256 public callbackGasPrice;
     uint256 public previousTxHeight;
     uint256 public txCounter;
-    uint256 public inTurnRelayerValidityPeriod;
     int64 public oracleSequence;
     mapping(uint8 => address) public channelHandlerMap;
     mapping(address => mapping(uint8 => bool)) public registeredContractChannelMap;
@@ -101,20 +100,13 @@ contract CrossChain is Config, Initializable, ICrossChain {
         _;
     }
 
-    // TODO we will optimize the gas consumption here.
     modifier onlyRelayer() {
-        bool isRelayer;
-        address[] memory relayers = ILightClient(LIGHT_CLIENT).getRelayers();
-        uint256 _totalRelayers = relayers.length;
-        require(_totalRelayers > 0, "empty relayers");
-        for (uint256 i = 0; i < _totalRelayers; i++) {
-            if (relayers[i] == msg.sender) {
-                isRelayer = true;
-                break;
-            }
-        }
-        require(isRelayer, "only relayer");
+        require(ILightClient(LIGHT_CLIENT).isRelayer(msg.sender), "only relayer");
+        _;
+    }
 
+    modifier onlyEOA() {
+        require(msg.sender == tx.origin, "only EOA");
         _;
     }
 
@@ -130,6 +122,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         require(BUCKET_HUB != address(0), "zero BUCKET_HUB");
         require(OBJECT_HUB != address(0), "zero OBJECT_HUB");
         require(GROUP_HUB != address(0), "zero GROUP_HUB");
+        require(block.chainid <= type(uint16).max, "chain id overflow");
 
         relayFee = 25 * 1e13;
         minAckRelayFee = 25 * 1e13;
@@ -162,8 +155,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         oracleSequence = -1;
         previousTxHeight = 0;
         txCounter = 0;
-        inTurnRelayerValidityPeriod = 45 seconds;
-        quorumMap[SUSPEND_PROPOSAL] = 1;
+        quorumMap[SUSPEND_PROPOSAL] = 2;
         quorumMap[REOPEN_PROPOSAL] = 2;
         quorumMap[CANCEL_TRANSFER_PROPOSAL] = 2;
     }
@@ -184,7 +176,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         bytes calldata _payload,
         bytes calldata _blsSignature,
         uint256 _validatorsBitSet
-    ) external whenNotSuspended {
+    ) external whenNotSuspended onlyEOA {
         // 1. decode _payload
         // 1-1 check if the chainId is valid
         (
@@ -209,12 +201,9 @@ contract CrossChain is Config, Initializable, ICrossChain {
         require(sequence == channelReceiveSequenceMap[channelId], "sequence not in order");
         channelReceiveSequenceMap[channelId]++;
 
-        // 2. check valid relayer
-        _checkValidRelayer(eventTime);
-
-        // 3. verify bls signature
+        // 2. check valid relayer And 3. verify bls signature
         require(
-            ILightClient(LIGHT_CLIENT).verifyPackage(_payload, _blsSignature, _validatorsBitSet),
+            ILightClient(LIGHT_CLIENT).verifyRelayerAndPackage(eventTime, _payload, _blsSignature, _validatorsBitSet),
             "cross chain package not verified"
         );
 
@@ -313,7 +302,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         channelSendSequenceMap[channelId] = sendSequence;
     }
 
-    function suspend() external onlyRelayer whenNotSuspended {
+    function suspend() external onlyRelayer onlyEOA whenNotSuspended {
         bool isExecutable = _approveProposal(SUSPEND_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             isSuspended = true;
@@ -321,7 +310,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         }
     }
 
-    function reopen() external onlyRelayer whenSuspended {
+    function reopen() external onlyRelayer onlyEOA whenSuspended {
         bool isExecutable = _approveProposal(REOPEN_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             isSuspended = false;
@@ -329,7 +318,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         }
     }
 
-    function cancelTransfer(address attacker) external onlyRelayer {
+    function cancelTransfer(address attacker) external onlyRelayer onlyEOA {
         bytes32 _contentHash = keccak256(abi.encode(attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {
@@ -427,16 +416,8 @@ contract CrossChain is Config, Initializable, ICrossChain {
             uint16 cancelTransferQuorum = BytesToTypes.bytesToUint16(2, value);
             require(cancelTransferQuorum > 0 && cancelTransferQuorum < 100, "invalid cancel transfer quorum");
             quorumMap[CANCEL_TRANSFER_PROPOSAL] = cancelTransferQuorum;
-        } else if (Memory.compareStrings(key, "inTurnRelayerValidityPeriod")) {
-            require(valueLength == 32, "length of value for inTurnRelayerValidityPeriod should be 32");
-            uint256 newInTurnRelayerValidityPeriod = BytesToTypes.bytesToUint256(valueLength, value);
-            require(
-                newInTurnRelayerValidityPeriod >= 30 && newInTurnRelayerValidityPeriod <= 100,
-                "the newInTurnRelayerValidityPeriod should be [30, 100 seconds] "
-            );
-            inTurnRelayerValidityPeriod = newInTurnRelayerValidityPeriod;
         } else {
-            require(false, "unknown param");
+            revert("unknown param");
         }
 
         emit ParamChange(key, value);
@@ -505,24 +486,6 @@ contract CrossChain is Config, Initializable, ICrossChain {
             packageLoad = payload[54:];
         }
         success = true;
-    }
-
-    function _checkValidRelayer(uint64 eventTime) internal view {
-        address[] memory relayers = ILightClient(LIGHT_CLIENT).getRelayers();
-
-        bool found;
-        for (uint256 i; i < relayers.length; i++) {
-            if (relayers[i] == msg.sender) {
-                found = true;
-            }
-        }
-        require(found, "sender is not a relayer");
-
-        address inturnRelayerAddr = ILightClient(LIGHT_CLIENT).getInturnRelayerAddress();
-        if (msg.sender != inturnRelayerAddr) {
-            uint256 curTs = block.timestamp;
-            require(curTs - eventTime > inTurnRelayerValidityPeriod, "invalid candidate relayer");
-        }
     }
 
     function _sendPackage(uint64 packageSequence, uint8 channelId, bytes memory payload) internal whenNotSuspended {

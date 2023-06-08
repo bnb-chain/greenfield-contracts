@@ -10,15 +10,12 @@ interface ILightClient {
         uint256 end;
     }
 
-    function verifyPackage(
+    function verifyRelayerAndPackage(
+        uint64 eventTime,
         bytes calldata _payload,
         bytes calldata _blsSignature,
         uint256 _validatorSet
     ) external view returns (bool verified);
 
-    function getRelayers() external view returns (address[] memory);
-
-    function getInturnRelayer() external view returns (InturnRelayer memory);
-
-    function getInturnRelayerAddress() external view returns (address);
+    function isRelayer(address sender) external view returns (bool);
 }

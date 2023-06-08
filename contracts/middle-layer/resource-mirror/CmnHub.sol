@@ -16,6 +16,13 @@ import "../../interface/IMiddleLayer.sol";
 abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
+    modifier noReentrant() {
+        require(reentryLock != 2, "No Reentrant");
+        reentryLock = 2;
+        _;
+        reentryLock = 1;
+    }
+
     /*----------------- middle-layer function -----------------*/
     // need to be implemented in child contract
     function handleSynPackage(uint8 channelId, bytes calldata callbackData) external virtual returns (bytes memory) {
@@ -49,7 +56,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         revert("not implemented");
     }
 
-    function retryPackage() external {
+    function retryPackage() external noReentrant {
         address appAddress = msg.sender;
         bytes32 pkgHash = retryQueue[appAddress].popFront();
         RetryPackage memory pkg = packageMap[pkgHash];

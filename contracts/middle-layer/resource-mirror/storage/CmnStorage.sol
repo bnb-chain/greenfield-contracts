@@ -27,6 +27,7 @@ contract CmnStorage is Config, PackageQueue {
     bytes32 public constant ROLE_DELETE = keccak256("ROLE_DELETE");
 
     /*----------------- storage -----------------*/
+    uint8 internal reentryLock;
     uint8 public channelId;
 
     address public ERC721Token;
