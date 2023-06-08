@@ -138,7 +138,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
                 input = abi.encodePacked(input, validatorSet[i].relayerBlsKey);
             }
         }
-        require(bitCount >= (validatorSet.length * 2) / 3, "no majority validators");
+        require(bitCount > (validatorSet.length * 2) / 3, "no majority validators");
 
         (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         return success && result.length > 0;
