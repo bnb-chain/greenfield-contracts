@@ -41,7 +41,7 @@ contract GroupHubTest is Test, GroupHub {
     receive() external payable {}
 
     function setUp() public {
-        vm.createSelectFork("test");
+        vm.createSelectFork("bsc-test");
 
         govHub = GovHub(GOV_HUB);
         crossChain = CrossChain(CROSS_CHAIN);

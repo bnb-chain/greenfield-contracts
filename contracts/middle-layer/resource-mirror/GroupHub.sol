@@ -36,10 +36,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
      *
      * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
      */
-    function handleSynPackage(
-        uint8,
-        bytes calldata msgBytes
-    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (bytes memory) {
+    function handleSynPackage(uint8, bytes calldata msgBytes) external override onlyCrossChain returns (bytes memory) {
         return _handleMirrorSynPackage(msgBytes);
     }
 
@@ -55,7 +52,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());
@@ -89,7 +86,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());
@@ -121,6 +118,14 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         returns (uint256 version, string memory name, string memory description)
     {
         return (600_001, "GroupHub", "init version");
+    }
+
+    function grant(address, uint32, uint256) external override {
+        delegateAdditional();
+    }
+
+    function revoke(address, uint32) external override {
+        delegateAdditional();
     }
 
     function createGroup(address, string memory) external payable returns (bool) {

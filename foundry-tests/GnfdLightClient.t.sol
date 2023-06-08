@@ -18,7 +18,7 @@ contract GnfdLightClientTest is Test {
     GnfdLightClient public lightClient;
 
     function setUp() public {
-        vm.createSelectFork("test");
+        vm.createSelectFork("bsc-test");
         console.log("block.number", block.number);
         console.log("block.chainid", block.chainid);
     }
