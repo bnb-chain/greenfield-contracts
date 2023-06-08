@@ -101,8 +101,12 @@ contract CrossChain is Config, Initializable, ICrossChain {
     }
 
     modifier onlyRelayer() {
-        require(msg.sender == tx.origin, "only EOA");
         require(ILightClient(LIGHT_CLIENT).isRelayer(msg.sender), "only relayer");
+        _;
+    }
+
+    modifier onlyEOA() {
+        require(msg.sender == tx.origin, "only EOA");
         _;
     }
 
@@ -172,7 +176,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         bytes calldata _payload,
         bytes calldata _blsSignature,
         uint256 _validatorsBitSet
-    ) external whenNotSuspended {
+    ) external whenNotSuspended onlyEOA {
         // 1. decode _payload
         // 1-1 check if the chainId is valid
         (
@@ -198,7 +202,6 @@ contract CrossChain is Config, Initializable, ICrossChain {
         channelReceiveSequenceMap[channelId]++;
 
         // 2. check valid relayer And 3. verify bls signature
-        require(msg.sender == tx.origin, "only EOA");
         require(
             ILightClient(LIGHT_CLIENT).verifyRelayerAndPackage(eventTime, _payload, _blsSignature, _validatorsBitSet),
             "cross chain package not verified"
@@ -299,7 +302,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         channelSendSequenceMap[channelId] = sendSequence;
     }
 
-    function suspend() external onlyRelayer whenNotSuspended {
+    function suspend() external onlyRelayer onlyEOA whenNotSuspended {
         bool isExecutable = _approveProposal(SUSPEND_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             isSuspended = true;
@@ -307,7 +310,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         }
     }
 
-    function reopen() external onlyRelayer whenSuspended {
+    function reopen() external onlyRelayer onlyEOA whenSuspended {
         bool isExecutable = _approveProposal(REOPEN_PROPOSAL, EMPTY_CONTENT_HASH);
         if (isExecutable) {
             isSuspended = false;
@@ -315,7 +318,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         }
     }
 
-    function cancelTransfer(address attacker) external onlyRelayer {
+    function cancelTransfer(address attacker) external onlyRelayer onlyEOA {
         bytes32 _contentHash = keccak256(abi.encode(attacker));
         bool isExecutable = _approveProposal(CANCEL_TRANSFER_PROPOSAL, _contentHash);
         if (isExecutable) {

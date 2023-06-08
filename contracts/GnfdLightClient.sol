@@ -230,7 +230,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         uint256 valNum = (size - CONSENSUS_STATE_BASE_LENGTH) / VALIDATOR_BYTES_LENGTH;
 
         for (uint256 idx = 0; idx < validatorSet.length; idx++) {
-            isRelayer[validatorSet[idx].relayerAddress] = false;
+            delete isRelayer[validatorSet[idx].relayerAddress];
         }
         Validator[] memory newValidatorSet = new Validator[](valNum);
         for (uint256 idx = 0; idx < valNum; idx++) {
