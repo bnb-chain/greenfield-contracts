@@ -130,6 +130,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         require(BUCKET_HUB != address(0), "zero BUCKET_HUB");
         require(OBJECT_HUB != address(0), "zero OBJECT_HUB");
         require(GROUP_HUB != address(0), "zero GROUP_HUB");
+        require(block.chainid <= type(uint16).max, "chain id overflow");
 
         relayFee = 25 * 1e13;
         minAckRelayFee = 25 * 1e13;
