@@ -13,7 +13,7 @@ contract TestDeployer is Test {
         inputs[2] = "deploy:test";
         vm.ffi(inputs);
 
-        vm.createSelectFork("test");
+        vm.createSelectFork("bsc-test");
 
         string memory chainIdString = Strings.toString(block.chainid);
         inputs = new string[](4);

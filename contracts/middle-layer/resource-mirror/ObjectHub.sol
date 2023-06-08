@@ -29,10 +29,7 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
      *
      * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
      */
-    function handleSynPackage(
-        uint8,
-        bytes calldata msgBytes
-    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (bytes memory) {
+    function handleSynPackage(uint8, bytes calldata msgBytes) external override onlyCrossChain returns (bytes memory) {
         return _handleMirrorSynPackage(msgBytes);
     }
 
@@ -49,7 +46,7 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());
@@ -79,7 +76,7 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
         uint64 sequence,
         bytes calldata msgBytes,
         uint256 callbackGasLimit
-    ) external override(CmnHub, IMiddleLayer) onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
 
         uint8 opType = uint8(iter.next().toUint());
@@ -107,6 +104,14 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
         returns (uint256 version, string memory name, string memory description)
     {
         return (500_001, "ObjectHub", "init version");
+    }
+
+    function grant(address, uint32, uint256) external override {
+        delegateAdditional();
+    }
+
+    function revoke(address, uint32) external override {
+        delegateAdditional();
     }
 
     function deleteObject(uint256) external payable returns (bool) {
