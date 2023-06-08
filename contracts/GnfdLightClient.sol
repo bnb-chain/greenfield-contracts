@@ -42,10 +42,13 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
     uint64 public gnfdHeight;
     bytes32 public nextValidatorSetHash;
     bytes public consensusStateBytes;
-    Validator[] public validatorSet;
-    mapping(uint64 => address payable) public submitters;
 
     uint256 public inTurnRelayerRelayInterval;
+    uint256 public inTurnRelayerValidityPeriod;
+
+    Validator[] public validatorSet;
+    mapping(address => bool) public isRelayer;
+    mapping(uint64 => address payable) public submitters;
     /* --------------------- 3. events ----------------------- */
 
     event InitConsensusState(uint64 height);
@@ -54,17 +57,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
 
     /* --------------------- 4. functions -------------------- */
     modifier onlyRelayer() {
-        require(validatorSet.length != 0, "empty relayers");
-
-        bool isRelayer;
-        for (uint256 i = 0; i < validatorSet.length; i++) {
-            if (validatorSet[i].relayerAddress == msg.sender) {
-                isRelayer = true;
-                break;
-            }
-        }
-        require(isRelayer, "only relayer");
-
+        require(isRelayer[msg.sender], "only relayer");
         _;
     }
 
@@ -83,6 +76,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         consensusStateBytes = _initConsensusStateBytes;
 
         inTurnRelayerRelayInterval = 600 seconds;
+        inTurnRelayerValidityPeriod = 45 seconds;
 
         emit InitConsensusState(gnfdHeight);
     }
@@ -125,7 +119,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         bytes calldata _payload,
         bytes calldata _blsSignature,
         uint256 _validatorSetBitMap
-    ) external view returns (bool) {
+    ) public view returns (bool) {
         require(_blsSignature.length == BLS_SIGNATURE_LENGTH, "invalid signature length");
 
         uint256 bitCount;
@@ -142,6 +136,23 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
 
         (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         return success && result.length > 0;
+    }
+
+    function verifyRelayerAndPackage(
+        uint64 eventTime,
+
+        bytes calldata _payload,
+        bytes calldata _blsSignature,
+        uint256 _validatorSetBitMap
+    ) external view returns (bool) {
+        require(isRelayer[tx.origin], "tx origin is not relayer");
+
+        InturnRelayer memory inturnRelayer = getInturnRelayerWithInterval();
+        if (tx.origin != inturnRelayer.addr) {
+            require(block.timestamp - eventTime > inTurnRelayerValidityPeriod, "invalid candidate relayer");
+        }
+
+        return verifyPackage(_payload, _blsSignature, _validatorSetBitMap);
     }
 
     function getRelayers() external view returns (address[] memory) {
@@ -218,9 +229,14 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
 
         ptr = ptr + CHAIN_ID_LENGTH;
         uint256 valNum = (size - CONSENSUS_STATE_BASE_LENGTH) / VALIDATOR_BYTES_LENGTH;
+
+        for (uint256 idx = 0; idx < validatorSet.length; idx++) {
+            isRelayer[validatorSet[idx].relayerAddress] = false;
+        }
         Validator[] memory newValidatorSet = new Validator[](valNum);
         for (uint256 idx = 0; idx < valNum; idx++) {
             newValidatorSet[idx] = decodeValidator(ptr);
+            isRelayer[newValidatorSet[idx].relayerAddress] = true;
             ptr = ptr + VALIDATOR_BYTES_LENGTH;
         }
 
@@ -282,8 +298,16 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
                 "the newInTurnRelayerRelayInterval should be [300, 1800 seconds] "
             );
             inTurnRelayerRelayInterval = newInTurnRelayerRelayInterval;
+        } else if (Memory.compareStrings(key, "inTurnRelayerValidityPeriod")) {
+            require(valueLength == 32, "length of value for inTurnRelayerValidityPeriod should be 32");
+            uint256 newInTurnRelayerValidityPeriod = BytesToTypes.bytesToUint256(valueLength, value);
+            require(
+                newInTurnRelayerValidityPeriod >= 30 && newInTurnRelayerValidityPeriod <= 100,
+                "the newInTurnRelayerValidityPeriod should be [30, 100 seconds] "
+            );
+            inTurnRelayerValidityPeriod = newInTurnRelayerValidityPeriod;
         } else {
-            require(false, "unknown param");
+            revert("unknown param");
         }
         emit ParamChange(key, value);
     }
