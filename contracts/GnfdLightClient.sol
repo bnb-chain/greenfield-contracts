@@ -140,7 +140,6 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
 
     function verifyRelayerAndPackage(
         uint64 eventTime,
-
         bytes calldata _payload,
         bytes calldata _blsSignature,
         uint256 _validatorSetBitMap

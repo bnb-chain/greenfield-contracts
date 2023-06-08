@@ -16,7 +16,6 @@ import "../../interface/IMiddleLayer.sol";
 abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
-
     modifier noReentrant() {
         require(reentryLock != 2, "No Reentrant");
         reentryLock = 2;

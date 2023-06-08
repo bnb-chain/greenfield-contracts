@@ -34,7 +34,6 @@ contract CmnStorage is Config, PackageQueue {
     address public additional;
     address public rlp;
 
-
     // PlaceHolder reserve for future use
     uint256[25] public CmnStorageSlots;
 
