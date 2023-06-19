@@ -9,23 +9,21 @@ import "./utils/AccessControl.sol";
 import "../../interface/IERC1155NonTransferable.sol";
 import "../../interface/IERC721NonTransferable.sol";
 import "../../interface/IGroupHub.sol";
-import "../../interface/IGroupRlp.sol";
+import "../../interface/IGroupEncode.sol";
 
 contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
-    using RLPEncode for *;
-    using RLPDecode for *;
 
     function initialize(
         address _ERC721_token,
         address _ERC1155_token,
         address _additional,
-        address _groupRlp
+        address _GroupEncode
     ) public initializer {
         ERC721Token = _ERC721_token;
         ERC1155Token = _ERC1155_token;
         additional = _additional;
-        rlp = _groupRlp;
+        rlp = _GroupEncode;
 
         channelId = GROUP_CHANNEL_ID;
     }
@@ -53,15 +51,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-
-        uint8 opType = uint8(iter.next().toUint());
-        bytes memory pkgBytes;
-        if (iter.hasNext()) {
-            pkgBytes = iter.next().toBytes();
-        } else {
-            revert("wrong ack package");
-        }
+        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
 
         if (opType == TYPE_CREATE) {
             (remainingGas, refundAddress) = _handleCreateAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -87,15 +77,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-
-        uint8 opType = uint8(iter.next().toUint());
-        bytes memory pkgBytes;
-        if (iter.hasNext()) {
-            pkgBytes = iter.next().toBytes();
-        } else {
-            revert("wrong failAck package");
-        }
+        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
 
         if (opType == TYPE_CREATE) {
             (remainingGas, refundAddress) = _handleCreateFailAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -170,7 +152,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (UpdateGroupAckPackage memory ackPkg, bool success) = IGroupRlp(rlp).decodeUpdateGroupAckPackage(pkgBytes);
+        (UpdateGroupAckPackage memory ackPkg, bool success) = IGroupEncode(rlp).decodeUpdateGroupAckPackage(pkgBytes);
         require(success, "unrecognized update ack package");
 
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -183,7 +165,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
 
         if (ackPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = IGroupRlp(rlp).decodeExtraData(ackPkg.extraData);
+            (extraData, success) = IGroupEncode(rlp).decodeExtraData(ackPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -253,12 +235,12 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CreateGroupSynPackage memory synPkg, bool success) = IGroupRlp(rlp).decodeCreateGroupSynPackage(pkgBytes);
+        (CreateGroupSynPackage memory synPkg, bool success) = IGroupEncode(rlp).decodeCreateGroupSynPackage(pkgBytes);
         require(success, "unrecognized create group fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = IGroupRlp(rlp).decodeExtraData(synPkg.extraData);
+            (extraData, success) = IGroupEncode(rlp).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -309,12 +291,12 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (UpdateGroupSynPackage memory synPkg, bool success) = IGroupRlp(rlp).decodeUpdateGroupSynPackage(pkgBytes);
+        (UpdateGroupSynPackage memory synPkg, bool success) = IGroupEncode(rlp).decodeUpdateGroupSynPackage(pkgBytes);
         require(success, "unrecognized create group fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = IGroupRlp(rlp).decodeExtraData(synPkg.extraData);
+            (extraData, success) = IGroupEncode(rlp).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {

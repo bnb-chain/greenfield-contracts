@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./CmnRlp.sol";
+import "./CmnEncode.sol";
 import "../storage/ObjectStorage.sol";
 
-contract ObjectRlp is ObjectStorage, CmnRlp {}
+contract ObjectEncode is ObjectStorage, CmnEncode {}

@@ -243,9 +243,9 @@ contract GroupHubTest is Test, GroupHub {
         CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
             creator: address(this),
             name: "test",
-            extraData: IGroupRlp(rlp).encodeExtraData(extraData)
+            extraData: IGroupEncode(rlp).encodeExtraData(extraData)
         });
-        bytes memory msgBytes = IGroupRlp(rlp).encodeCreateGroupSynPackage(synPkg);
+        bytes memory msgBytes = IGroupEncode(rlp).encodeCreateGroupSynPackage(synPkg);
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
 
         vm.expectEmit(true, true, true, false, address(this));
@@ -322,7 +322,7 @@ contract GroupHubTest is Test, GroupHub {
         bytes[] memory elements = new bytes[](2);
         elements[0] = synPkg.id.encodeUint();
         elements[1] = synPkg.owner.encodeAddress();
-        return IGroupRlp(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
+        return IGroupEncode(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
     }
 
     function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal view returns (bytes memory) {
@@ -331,7 +331,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[1] = id.encodeUint();
         elements[2] = creator.encodeAddress();
         elements[3] = "".encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
+        return IGroupEncode(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
     }
 
     function _encodeCreateAckPackage(
@@ -352,8 +352,8 @@ contract GroupHubTest is Test, GroupHub {
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = creator.encodeAddress();
-        elements[3] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
+        elements[3] = IGroupEncode(rlp).encodeExtraData(extraData).encodeBytes();
+        return IGroupEncode(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
@@ -361,7 +361,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = "".encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+        return IGroupEncode(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 
     function _encodeDeleteAckPackage(
@@ -380,8 +380,8 @@ contract GroupHubTest is Test, GroupHub {
         bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        elements[2] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+        elements[2] = IGroupEncode(rlp).encodeExtraData(extraData).encodeBytes();
+        return IGroupEncode(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 
     function _encodeUpdateGroupAckPackage(UpdateGroupAckPackage memory ackPkg) internal view returns (bytes memory) {
@@ -397,7 +397,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[3] = uint256(ackPkg.opType).encodeUint();
         elements[4] = members.encodeList();
         elements[5] = "".encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
+        return IGroupEncode(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
     }
 
     function _encodeUpdateGroupAckPackage(
@@ -423,7 +423,7 @@ contract GroupHubTest is Test, GroupHub {
         elements[2] = ackPkg.operator.encodeAddress();
         elements[3] = uint256(ackPkg.opType).encodeUint();
         elements[4] = members.encodeList();
-        elements[5] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
+        elements[5] = IGroupEncode(rlp).encodeExtraData(extraData).encodeBytes();
+        return IGroupEncode(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
     }
 }

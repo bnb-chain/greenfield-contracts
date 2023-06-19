@@ -11,13 +11,11 @@ import "../../interface/IObjectHub.sol";
 
 contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
-    using RLPEncode for *;
-    using RLPDecode for *;
 
-    function initialize(address _ERC721_token, address _additional, address _objectRlp) public initializer {
+    function initialize(address _ERC721_token, address _additional, address _objectEncode) public initializer {
         ERC721Token = _ERC721_token;
         additional = _additional;
-        rlp = _objectRlp;
+        rlp = _objectEncode;
 
         channelId = OBJECT_CHANNEL_ID;
     }
@@ -47,15 +45,7 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-
-        uint8 opType = uint8(iter.next().toUint());
-        bytes memory pkgBytes;
-        if (iter.hasNext()) {
-            pkgBytes = iter.next().toBytes();
-        } else {
-            revert("wrong ack package");
-        }
+        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
 
         if (opType == TYPE_DELETE) {
             (remainingGas, refundAddress) = _handleDeleteAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -77,15 +67,7 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-
-        uint8 opType = uint8(iter.next().toUint());
-        bytes memory pkgBytes;
-        if (iter.hasNext()) {
-            pkgBytes = iter.next().toBytes();
-        } else {
-            revert("wrong failAck package");
-        }
+        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
 
         if (opType == TYPE_DELETE) {
             (remainingGas, refundAddress) = _handleDeleteFailAckPackage(pkgBytes, sequence, callbackGasLimit);

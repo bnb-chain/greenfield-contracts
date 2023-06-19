@@ -10,7 +10,7 @@ import "contracts/middle-layer/resource-mirror/ObjectHub.sol";
 import "contracts/tokens/ERC721NonTransferable.sol";
 import "contracts/lib/RLPDecode.sol";
 import "contracts/lib/RLPEncode.sol";
-import "contracts/interface/IObjectRlp.sol";
+import "contracts/interface/IObjectEncode.sol";
 
 contract ObjectHubTest is Test, ObjectHub {
     using RLPEncode for *;
@@ -184,9 +184,9 @@ contract ObjectHubTest is Test, ObjectHub {
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: address(this),
             id: 0,
-            extraData: IObjectRlp(rlp).encodeExtraData(extraData)
+            extraData: IObjectEncode(rlp).encodeExtraData(extraData)
         });
-        bytes memory msgBytes = IObjectRlp(rlp).encodeCmnDeleteSynPackage(synPkg);
+        bytes memory msgBytes = IObjectEncode(rlp).encodeCmnDeleteSynPackage(synPkg);
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
 
         vm.expectEmit(true, true, true, false, address(this));
@@ -262,7 +262,7 @@ contract ObjectHubTest is Test, ObjectHub {
         bytes[] memory elements = new bytes[](2);
         elements[0] = synPkg.id.encodeUint();
         elements[1] = synPkg.owner.encodeAddress();
-        return IObjectRlp(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
+        return IObjectEncode(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
@@ -270,7 +270,7 @@ contract ObjectHubTest is Test, ObjectHub {
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
         elements[2] = "".encodeBytes();
-        return IObjectRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+        return IObjectEncode(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 
     function _encodeDeleteAckPackage(
@@ -289,7 +289,7 @@ contract ObjectHubTest is Test, ObjectHub {
         bytes[] memory elements = new bytes[](3);
         elements[0] = status.encodeUint();
         elements[1] = id.encodeUint();
-        elements[2] = IObjectRlp(rlp).encodeExtraData(extraData).encodeBytes();
-        return IObjectRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+        elements[2] = IObjectEncode(rlp).encodeExtraData(extraData).encodeBytes();
+        return IObjectEncode(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
     }
 }

@@ -65,9 +65,9 @@ contract Helper is Test, BucketStorage, GroupStorage {
         vm.label(deployer.objectToken(), "objectToken");
         vm.label(deployer.groupToken(), "groupToken");
         vm.label(deployer.memberToken(), "memberToken");
-        vm.label(deployer.bucketRlp(), "bucketRlp");
-        vm.label(deployer.objectRlp(), "objectRlp");
-        vm.label(deployer.groupRlp(), "groupRlp");
+        vm.label(deployer.BucketEncode(), "BucketEncode");
+        vm.label(deployer.ObjectEncode(), "ObjectEncode");
+        vm.label(deployer.GroupEncode(), "GroupEncode");
 
 
         uint256 relayFee = crossChain.relayFee();

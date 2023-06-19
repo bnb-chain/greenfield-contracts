@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./storage/CmnStorage.sol";
-import "./rlp/CmnRlp.sol";
+import "./rlp/CmnEncode.sol";
 import "../../lib/Memory.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICmnHub.sol";
@@ -92,7 +92,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CmnCreateAckPackage memory ackPkg, bool success) = CmnRlp(rlp).decodeCmnCreateAckPackage(pkgBytes);
+        (CmnCreateAckPackage memory ackPkg, bool success) = CmnEncode(rlp).decodeCmnCreateAckPackage(pkgBytes);
         require(success, "unrecognized create ack package");
 
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -105,7 +105,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
 
         if (ackPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = CmnRlp(rlp).decodeExtraData(ackPkg.extraData);
+            (extraData, success) = CmnEncode(rlp).decodeExtraData(ackPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -161,7 +161,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CmnDeleteAckPackage memory ackPkg, bool success) = CmnRlp(rlp).decodeCmnDeleteAckPackage(pkgBytes);
+        (CmnDeleteAckPackage memory ackPkg, bool success) = CmnEncode(rlp).decodeCmnDeleteAckPackage(pkgBytes);
         require(success, "unrecognized delete ack package");
 
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -174,7 +174,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
 
         if (ackPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = CmnRlp(rlp).decodeExtraData(ackPkg.extraData);
+            (extraData, success) = CmnEncode(rlp).decodeExtraData(ackPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -226,12 +226,12 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
     }
 
     function _handleMirrorSynPackage(bytes memory msgBytes) internal returns (bytes memory) {
-        (CmnMirrorSynPackage memory synPkg, bool success) = CmnRlp(rlp).decodeCmnMirrorSynPackage(msgBytes);
+        (CmnMirrorSynPackage memory synPkg, bool success) = CmnEncode(rlp).decodeCmnMirrorSynPackage(msgBytes);
         require(success, "unrecognized mirror package");
 
         uint32 status = _doMirror(synPkg);
         CmnMirrorAckPackage memory mirrorAckPkg = CmnMirrorAckPackage({ status: status, id: synPkg.id });
-        return CmnRlp(rlp).encodeCmnMirrorAckPackage(mirrorAckPkg);
+        return CmnEncode(rlp).encodeCmnMirrorAckPackage(mirrorAckPkg);
     }
 
     function _doMirror(CmnMirrorSynPackage memory synPkg) internal returns (uint32) {
@@ -251,12 +251,12 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CmnDeleteSynPackage memory synPkg, bool success) = CmnRlp(rlp).decodeCmnDeleteSynPackage(pkgBytes);
+        (CmnDeleteSynPackage memory synPkg, bool success) = CmnEncode(rlp).decodeCmnDeleteSynPackage(pkgBytes);
         require(success, "unrecognized delete fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = CmnRlp(rlp).decodeExtraData(synPkg.extraData);
+            (extraData, success) = CmnEncode(rlp).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {

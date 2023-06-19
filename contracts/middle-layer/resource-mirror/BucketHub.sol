@@ -7,18 +7,16 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgrad
 import "./CmnHub.sol";
 import "./utils/AccessControl.sol";
 import "../../interface/IBucketHub.sol";
-import "../../interface/IBucketRlp.sol";
+import "../../interface/IBucketEncode.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
 contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
-    using RLPEncode for *;
-    using RLPDecode for *;
 
-    function initialize(address _ERC721_token, address _additional, address _bucketRlp) public initializer {
+    function initialize(address _ERC721_token, address _additional, address _bucketEncode) public initializer {
         ERC721Token = _ERC721_token;
         additional = _additional;
-        rlp = _bucketRlp;
+        rlp = _bucketEncode;
 
         channelId = BUCKET_CHANNEL_ID;
     }
@@ -46,15 +44,7 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-
-        uint8 opType = uint8(iter.next().toUint());
-        bytes memory pkgBytes;
-        if (iter.hasNext()) {
-            pkgBytes = iter.next().toBytes();
-        } else {
-            revert("wrong ack package");
-        }
+        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
 
         if (opType == TYPE_CREATE) {
             (remainingGas, refundAddress) = _handleCreateAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -78,15 +68,7 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-
-        uint8 opType = uint8(iter.next().toUint());
-        bytes memory pkgBytes;
-        if (iter.hasNext()) {
-            pkgBytes = iter.next().toBytes();
-        } else {
-            revert("wrong failAck package");
-        }
+        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
 
         if (opType == TYPE_CREATE) {
             (remainingGas, refundAddress) = _handleCreateFailAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -139,12 +121,14 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CreateBucketSynPackage memory synPkg, bool success) = IBucketRlp(rlp).decodeCreateBucketSynPackage(pkgBytes);
+        (CreateBucketSynPackage memory synPkg, bool success) = IBucketEncode(rlp).decodeCreateBucketSynPackage(
+            pkgBytes
+        );
         require(success, "unrecognized create bucket fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = IBucketRlp(rlp).decodeExtraData(synPkg.extraData);
+            (extraData, success) = IBucketEncode(rlp).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {

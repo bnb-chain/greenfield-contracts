@@ -9,7 +9,7 @@ import "contracts/CrossChain.sol";
 import "contracts/middle-layer/GovHub.sol";
 import "contracts/middle-layer/TokenHub.sol";
 import "./Helper.sol";
-import "../contracts/GnfdLightClientV2.sol";
+import "../contracts/test/GnfdLightClientTest.sol";
 
 abstract contract Network is Test {
     constructor() {
@@ -22,7 +22,7 @@ contract ReplayTxTest is Network, Helper {
     address private user1 = 0x1000000000000000000000000000000012345678;
 
     function replayTx(address relayer, bytes memory data) public {
-        address newImplLightClient = address(new GnfdLightClientV2());
+        address newImplLightClient = address(new GnfdLightClientTest());
         vm.startPrank(deployer.proxyGovHub());
         proxyAdmin.upgrade(TransparentUpgradeableProxy(payable(deployer.proxyLightClient())), newImplLightClient);
         vm.stopPrank();

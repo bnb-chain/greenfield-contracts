@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "../middle-layer/resource-mirror/storage/BucketStorage.sol";
 
-interface IBucketRlp {
+interface IBucketEncode {
     function decodeCmnCreateAckPackage(
         bytes memory pkgBytes
     ) external pure returns (CmnStorage.CmnCreateAckPackage memory, bool);

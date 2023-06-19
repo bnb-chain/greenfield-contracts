@@ -3,13 +3,13 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./Config.sol";
-import "./interface/ILightClient.sol";
-import "./lib/Memory.sol";
-import "./lib/BytesToTypes.sol";
-import "./lib/BytesLib.sol";
+import "../Config.sol";
+import "../interface/ILightClient.sol";
+import "../lib/Memory.sol";
+import "../lib/BytesToTypes.sol";
+import "../lib/BytesLib.sol";
 
-contract GnfdLightClientV2 is Initializable, Config, ILightClient {
+contract GnfdLightClientTest is Initializable, Config, ILightClient {
     struct Validator {
         bytes32 pubKey;
         int64 votingPower;

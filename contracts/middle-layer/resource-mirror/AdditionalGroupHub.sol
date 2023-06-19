@@ -10,7 +10,7 @@ import "./utils/AccessControl.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICrossChain.sol";
 import "../../interface/IERC721NonTransferable.sol";
-import "../../interface/IGroupRlp.sol";
+import "../../interface/IGroupEncode.sol";
 
 // Highlight: This contract must have the same storage layout as GroupHub
 // which means same state variables and same order of state variables.
@@ -93,7 +93,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            IGroupRlp(rlp).encodeCreateGroupSynPackage(synPkg),
+            IGroupEncode(rlp).encodeCreateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -138,7 +138,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
         CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
             creator: owner,
             name: name,
-            extraData: IGroupRlp(rlp).encodeExtraData(extraData)
+            extraData: IGroupEncode(rlp).encodeExtraData(extraData)
         });
 
         // check refund address
@@ -147,7 +147,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            IGroupRlp(rlp).encodeCreateGroupSynPackage(synPkg),
+            IGroupEncode(rlp).encodeCreateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -181,7 +181,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            IGroupRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
+            IGroupEncode(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -229,7 +229,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: id,
-            extraData: IGroupRlp(rlp).encodeExtraData(extraData)
+            extraData: IGroupEncode(rlp).encodeExtraData(extraData)
         });
 
         // check refund address
@@ -238,7 +238,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            IGroupRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
+            IGroupEncode(rlp).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -272,7 +272,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            IGroupRlp(rlp).encodeUpdateGroupSynPackage(synPkg),
+            IGroupEncode(rlp).encodeUpdateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -317,7 +317,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        synPkg.extraData = IGroupRlp(rlp).encodeExtraData(extraData);
+        synPkg.extraData = IGroupEncode(rlp).encodeExtraData(extraData);
 
         // check refund address
         (bool success, ) = extraData.refundAddress.call("");
@@ -325,7 +325,7 @@ contract AdditionalGroupHub is GroupStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
-            IGroupRlp(rlp).encodeUpdateGroupSynPackage(synPkg),
+            IGroupEncode(rlp).encodeUpdateGroupSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
