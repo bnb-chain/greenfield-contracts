@@ -19,14 +19,15 @@ contract CmnEncode is CmnStorage {
     }
 
     function wrapEncode(uint8 opType, bytes memory msgBytes) public pure returns (bytes memory) {
-        return abi.encode(opType, msgBytes);
+        return abi.encodePacked(opType, msgBytes);
     }
 
     /*----------------- decode -----------------*/
     function decodeCmnMirrorSynPackage(
         bytes calldata msgBytes
     ) external pure returns (CmnMirrorSynPackage memory, bool success) {
-        (uint8 opType, CmnMirrorSynPackage memory synPkg) = abi.decode(msgBytes, (uint8, CmnMirrorSynPackage));
+        uint8 opType = uint8(msgBytes[0]);
+        CmnMirrorSynPackage memory synPkg = abi.decode(msgBytes[1:], (CmnMirrorSynPackage));
         require(opType == TYPE_MIRROR, "wrong syn operation type");
         return (synPkg, true);
     }
