@@ -8,14 +8,9 @@ import "contracts/CrossChain.sol";
 import "contracts/middle-layer/GovHub.sol";
 import "contracts/middle-layer/resource-mirror/ObjectHub.sol";
 import "contracts/tokens/ERC721NonTransferable.sol";
-import "contracts/lib/RLPDecode.sol";
-import "contracts/lib/RLPEncode.sol";
 import "contracts/interface/IObjectEncode.sol";
 
 contract ObjectHubTest is Test, ObjectHub {
-    using RLPEncode for *;
-    using RLPDecode for *;
-
     struct ParamChangePackage {
         string key;
         bytes values;
@@ -45,7 +40,7 @@ contract ObjectHubTest is Test, ObjectHub {
         crossChain = CrossChain(CROSS_CHAIN);
         objectHub = ObjectHub(OBJECT_HUB);
         objectToken = ERC721NonTransferable(objectHub.ERC721Token());
-        rlp = objectHub.rlp();
+        codec = objectHub.codec();
 
         vm.label(GOV_HUB, "govHub");
         vm.label(OBJECT_HUB, "objectHub");
@@ -184,9 +179,9 @@ contract ObjectHubTest is Test, ObjectHub {
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: address(this),
             id: 0,
-            extraData: IObjectEncode(rlp).encodeExtraData(extraData)
+            extraData: IObjectEncode(codec).encodeExtraData(extraData)
         });
-        bytes memory msgBytes = IObjectEncode(rlp).encodeCmnDeleteSynPackage(synPkg);
+        bytes memory msgBytes = IObjectEncode(codec).encodeCmnDeleteSynPackage(synPkg);
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
 
         vm.expectEmit(true, true, true, false, address(this));
@@ -251,26 +246,15 @@ contract ObjectHubTest is Test, ObjectHub {
 
     /*----------------- Internal function -----------------*/
     function _encodeGovSynPackage(ParamChangePackage memory proposal) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = bytes(proposal.key).encodeBytes();
-        elements[1] = proposal.values.encodeBytes();
-        elements[2] = proposal.targets.encodeBytes();
-        return elements.encodeList();
+        return abi.encode(proposal);
     }
 
     function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = synPkg.id.encodeUint();
-        elements[1] = synPkg.owner.encodeAddress();
-        return IObjectEncode(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
+        return IObjectEncode(codec).wrapEncode(TYPE_MIRROR, abi.encode(synPkg));
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = "".encodeBytes();
-        return IObjectEncode(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+        return IObjectEncode(codec).wrapEncode(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, "")));
     }
 
     function _encodeDeleteAckPackage(
@@ -285,11 +269,6 @@ contract ObjectHubTest is Test, ObjectHub {
             failureHandleStrategy: failStrategy,
             callbackData: ""
         });
-
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = IObjectEncode(rlp).encodeExtraData(extraData).encodeBytes();
-        return IObjectEncode(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+        return IObjectEncode(codec).wrapEncode(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, abi.encode(extraData))));
     }
 }
