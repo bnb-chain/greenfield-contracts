@@ -14,15 +14,15 @@ abstract contract Config {
 
     // contract address
     // will calculate their deployed addresses from deploy script
-    address public constant PROXY_ADMIN = 0x052008988d3b1023599aa61A852bf1c06b776159;
-    address public constant GOV_HUB = 0xA8F0692E97B3e4C3fa7baa2982540A68a015Eb2A;
-    address public constant CROSS_CHAIN = 0x24e4b644DF338f9656843E2Ebf1b84715B8c58Ba;
-    address public constant TOKEN_HUB = 0xf5192b167d11ed87C02123801c0305ef072df04F;
-    address public constant LIGHT_CLIENT = 0xdaE85fF84e36922Bb822aE90894Bc9E5B7a128cE;
-    address public constant RELAYER_HUB = 0xF04cC2EF918C84E69e673d50f2b6BFac4B9F47Ff;
-    address public constant BUCKET_HUB = 0x1E2D9D372e51435c63a95cd934C9bcE1b6e32381;
-    address public constant OBJECT_HUB = 0x969bF7f9C9Cc43515c1448ca4f99369e4FDf65B3;
-    address public constant GROUP_HUB = 0x014964f4596A1fE218867867696b0661cF2421CA;
+    address public constant PROXY_ADMIN = address(0);
+    address public constant GOV_HUB = address(0);
+    address public constant CROSS_CHAIN = address(0);
+    address public constant TOKEN_HUB = address(0);
+    address public constant LIGHT_CLIENT = address(0);
+    address public constant RELAYER_HUB = address(0);
+    address public constant BUCKET_HUB = address(0);
+    address public constant OBJECT_HUB = address(0);
+    address public constant GROUP_HUB = address(0);
 
     // PlaceHolder reserve for future usage
     uint256[50] public ConfigSlots;
