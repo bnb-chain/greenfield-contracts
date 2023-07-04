@@ -33,7 +33,7 @@ contract GnfdLightClientTest is Initializable, Config, ILightClient {
     uint256 public constant RELAYER_BLS_KEY_LENGTH = 48;
 
     uint256 public constant VALIDATOR_BYTES_LENGTH =
-    VALIDATOR_PUB_KEY_LENGTH + VALIDATOR_VOTING_POWER_LENGTH + RELAYER_ADDRESS_LENGTH + RELAYER_BLS_KEY_LENGTH;
+        VALIDATOR_PUB_KEY_LENGTH + VALIDATOR_VOTING_POWER_LENGTH + RELAYER_ADDRESS_LENGTH + RELAYER_BLS_KEY_LENGTH;
     uint256 public constant MESSAGE_HASH_LENGTH = 32;
     uint256 public constant BLS_SIGNATURE_LENGTH = 96;
 
@@ -134,8 +134,8 @@ contract GnfdLightClientTest is Initializable, Config, ILightClient {
         }
         require(bitCount > (validatorSet.length * 2) / 3, "no majority validators");
 
-//        (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
-//        return success && result.length > 0;
+        //        (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
+        //        return success && result.length > 0;
         return true;
     }
 
@@ -280,10 +280,10 @@ contract GnfdLightClientTest is Initializable, Config, ILightClient {
     }
 
     function versionInfo()
-    external
-    pure
-    override
-    returns (uint256 version, string memory name, string memory description)
+        external
+        pure
+        override
+        returns (uint256 version, string memory name, string memory description)
     {
         return (400_001, "GnfdLightClient", "init version");
     }
