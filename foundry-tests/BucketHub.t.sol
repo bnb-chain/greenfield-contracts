@@ -8,13 +8,8 @@ import "contracts/CrossChain.sol";
 import "contracts/middle-layer/GovHub.sol";
 import "contracts/middle-layer/resource-mirror/BucketHub.sol";
 import "contracts/tokens/ERC721NonTransferable.sol";
-import "contracts/lib/RLPEncode.sol";
-import "contracts/lib/RLPDecode.sol";
 
 contract BucketHubTest is Test, BucketHub {
-    using RLPEncode for *;
-    using RLPDecode for *;
-
     struct ParamChangePackage {
         string key;
         bytes values;
@@ -44,7 +39,7 @@ contract BucketHubTest is Test, BucketHub {
         crossChain = CrossChain(CROSS_CHAIN);
         bucketHub = BucketHub(BUCKET_HUB);
         bucketToken = ERC721NonTransferable(bucketHub.ERC721Token());
-        rlp = bucketHub.rlp();
+        codec = bucketHub.codec();
 
         vm.label(GOV_HUB, "govHub");
         vm.label(BUCKET_HUB, "bucketHub");
@@ -223,9 +218,9 @@ contract BucketHubTest is Test, BucketHub {
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
             chargedReadQuota: 0,
-            extraData: IBucketEncode(rlp).encodeExtraData(extraData)
+            extraData: IBucketEncode(codec).encodeExtraData(extraData)
         });
-        bytes memory msgBytes = IBucketEncode(rlp).encodeCreateBucketSynPackage(synPkg);
+        bytes memory msgBytes = IBucketEncode(codec).encodeCreateBucketSynPackage(synPkg);
         uint64 sequence = crossChain.channelReceiveSequenceMap(BUCKET_CHANNEL_ID);
 
         vm.expectEmit(true, true, true, false, address(this));
@@ -302,27 +297,15 @@ contract BucketHubTest is Test, BucketHub {
 
     /*----------------- Internal function -----------------*/
     function _encodeGovSynPackage(ParamChangePackage memory proposal) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = bytes(proposal.key).encodeBytes();
-        elements[1] = proposal.values.encodeBytes();
-        elements[2] = proposal.targets.encodeBytes();
-        return elements.encodeList();
+        return abi.encode(proposal);
     }
 
     function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
-        bytes[] memory elements = new bytes[](32);
-        elements[0] = synPkg.id.encodeUint();
-        elements[1] = synPkg.owner.encodeAddress();
-        return IBucketEncode(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
+        return IBucketEncode(codec).wrapEncode(TYPE_MIRROR, abi.encode(synPkg));
     }
 
     function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal view returns (bytes memory) {
-        bytes[] memory elements = new bytes[](4);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = creator.encodeAddress();
-        elements[3] = "".encodeBytes();
-        return IBucketEncode(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
+        return IBucketEncode(codec).wrapEncode(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, "")));
     }
 
     function _encodeCreateAckPackage(
@@ -338,21 +321,11 @@ contract BucketHubTest is Test, BucketHub {
             failureHandleStrategy: failStrategy,
             callbackData: ""
         });
-
-        bytes[] memory elements = new bytes[](4);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = creator.encodeAddress();
-        elements[3] = IBucketEncode(rlp).encodeExtraData(extraData).encodeBytes();
-        return IBucketEncode(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
+        return IBucketEncode(codec).wrapEncode(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, abi.encode(extraData))));
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = "".encodeBytes();
-        return IBucketEncode(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+        return IBucketEncode(codec).wrapEncode(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, "")));
     }
 
     function _encodeDeleteAckPackage(
@@ -367,11 +340,6 @@ contract BucketHubTest is Test, BucketHub {
             failureHandleStrategy: failStrategy,
             callbackData: ""
         });
-
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = IBucketEncode(rlp).encodeExtraData(extraData).encodeBytes();
-        return IBucketEncode(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+        return IBucketEncode(codec).wrapEncode(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, abi.encode(extraData))));
     }
 }
