@@ -66,9 +66,9 @@ const main = async () => {
     const objectToken = await deployer.objectToken();
     const groupToken = await deployer.groupToken();
     const memberToken = await deployer.memberToken();
-    const bucketRlp = await deployer.bucketRlp();
-    const objectRlp = await deployer.objectRlp();
-    const groupRlp = await deployer.groupRlp();
+    const bucketEncode = await deployer.BucketEncode();
+    const objectEncode = await deployer.ObjectEncode();
+    const groupEncode = await deployer.GroupEncode();
 
     try {
         await run('verify:verify', { address: implGovHub });
@@ -89,12 +89,12 @@ const main = async () => {
         await run('verify:verify', { address: addObjectHub });
         await run('verify:verify', { address: addGroupHub });
 
-        await run('verify:verify', { address: bucketRlp });
-        await run('verify:verify', { address: objectRlp });
-        await run('verify:verify', { address: groupRlp });
-        log('verified addBucketHub, addObjectHub, addGroupHub, bucketRlp, objectRlp, groupRlp');
+        await run('verify:verify', { address: bucketEncode });
+        await run('verify:verify', { address: objectEncode });
+        await run('verify:verify', { address: groupEncode });
+        log('verified addBucketHub, addObjectHub, addGroupHub, bucketEncode, objectEncode, groupEncode');
     } catch (e) {
-        log('verify addBucketHub, addObjectHub, addGroupHub, bucketRlp, objectRlp, groupRlp', e);
+        log('verify addBucketHub, addObjectHub, addGroupHub, bucketEncode, objectEncode, groupEncode', e);
     }
 
     try {

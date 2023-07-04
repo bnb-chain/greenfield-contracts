@@ -77,7 +77,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
      * @dev handle sync cross-chain package from BSC to GNFD
      *
      * @param channelId The channel for cross-chain communication
-     * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
+     * @param msgBytes The encoded message bytes sent from BSC to GNFD
      */
     function handleSynPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChain returns (bytes memory) {
         if (channelId == TRANSFER_IN_CHANNEL_ID) {
@@ -94,7 +94,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
      * and will refund the remaining token caused by different decimals between BSC and GNFD.
      *
      * @param channelId The channel for cross-chain communication
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     * @param msgBytes The encoded message bytes sent from GNFD
      */
     function handleAckPackage(
         uint8 channelId,
@@ -115,7 +115,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
      * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain transfer to GNFD and will refund the token.
      *
      * @param channelId The channel for cross-chain communication
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     * @param msgBytes The encoded message bytes sent from GNFD
      */
     function handleFailAckPackage(
         uint8 channelId,
