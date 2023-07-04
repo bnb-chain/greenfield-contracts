@@ -81,7 +81,7 @@ contract AdditionalObjectHub is ObjectStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID,
-            IObjectEncode(rlp).encodeCmnDeleteSynPackage(synPkg),
+            IObjectEncode(codec).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -129,7 +129,7 @@ contract AdditionalObjectHub is ObjectStorage, AccessControl {
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: id,
-            extraData: IObjectEncode(rlp).encodeExtraData(extraData)
+            extraData: IObjectEncode(codec).encodeExtraData(extraData)
         });
 
         // check refund address
@@ -138,7 +138,7 @@ contract AdditionalObjectHub is ObjectStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID,
-            IObjectEncode(rlp).encodeCmnDeleteSynPackage(synPkg),
+            IObjectEncode(codec).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );

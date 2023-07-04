@@ -23,7 +23,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         ERC721Token = _ERC721_token;
         ERC1155Token = _ERC1155_token;
         additional = _additional;
-        rlp = _GroupEncode;
+        codec = _GroupEncode;
 
         channelId = GROUP_CHANNEL_ID;
     }
@@ -51,7 +51,8 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
+        uint8 opType = uint8(msgBytes[0]);
+        bytes memory pkgBytes = msgBytes[1:];
 
         if (opType == TYPE_CREATE) {
             (remainingGas, refundAddress) = _handleCreateAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -77,7 +78,8 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
+        uint8 opType = uint8(msgBytes[0]);
+        bytes memory pkgBytes = msgBytes[1:];
 
         if (opType == TYPE_CREATE) {
             (remainingGas, refundAddress) = _handleCreateFailAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -152,7 +154,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (UpdateGroupAckPackage memory ackPkg, bool success) = IGroupEncode(rlp).decodeUpdateGroupAckPackage(pkgBytes);
+        (UpdateGroupAckPackage memory ackPkg, bool success) = IGroupEncode(codec).decodeUpdateGroupAckPackage(pkgBytes);
         require(success, "unrecognized update ack package");
 
         if (ackPkg.status == STATUS_SUCCESS) {
@@ -165,7 +167,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
 
         if (ackPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = IGroupEncode(rlp).decodeExtraData(ackPkg.extraData);
+            (extraData, success) = IGroupEncode(codec).decodeExtraData(ackPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -235,12 +237,12 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CreateGroupSynPackage memory synPkg, bool success) = IGroupEncode(rlp).decodeCreateGroupSynPackage(pkgBytes);
+        (CreateGroupSynPackage memory synPkg, bool success) = IGroupEncode(codec).decodeCreateGroupSynPackage(pkgBytes);
         require(success, "unrecognized create group fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = IGroupEncode(rlp).decodeExtraData(synPkg.extraData);
+            (extraData, success) = IGroupEncode(codec).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
@@ -291,12 +293,12 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (UpdateGroupSynPackage memory synPkg, bool success) = IGroupEncode(rlp).decodeUpdateGroupSynPackage(pkgBytes);
+        (UpdateGroupSynPackage memory synPkg, bool success) = IGroupEncode(codec).decodeUpdateGroupSynPackage(pkgBytes);
         require(success, "unrecognized create group fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = IGroupEncode(rlp).decodeExtraData(synPkg.extraData);
+            (extraData, success) = IGroupEncode(codec).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {

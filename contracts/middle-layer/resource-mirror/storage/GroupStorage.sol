@@ -25,7 +25,7 @@ contract GroupStorage is CmnStorage {
     struct CreateGroupSynPackage {
         address creator;
         string name;
-        bytes extraData; // rlp encode of ExtraData
+        bytes extraData; // abi.encode of ExtraData
     }
 
     struct UpdateGroupSynPackage {
@@ -33,7 +33,7 @@ contract GroupStorage is CmnStorage {
         uint256 id; // group id
         UpdateGroupOpType opType;
         address[] members;
-        bytes extraData; // rlp encode of ExtraData
+        bytes extraData; // abi.encode of ExtraData
     }
 
     // GNFD to BSC
@@ -43,7 +43,7 @@ contract GroupStorage is CmnStorage {
         address operator;
         UpdateGroupOpType opType;
         address[] members;
-        bytes extraData; // rlp encode of ExtraData
+        bytes extraData; // abi.encode of ExtraData
     }
 
     enum UpdateGroupOpType {

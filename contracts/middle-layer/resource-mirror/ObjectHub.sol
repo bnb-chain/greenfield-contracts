@@ -15,7 +15,7 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
     function initialize(address _ERC721_token, address _additional, address _objectEncode) public initializer {
         ERC721Token = _ERC721_token;
         additional = _additional;
-        rlp = _objectEncode;
+        codec = _objectEncode;
 
         channelId = OBJECT_CHANNEL_ID;
     }
@@ -45,7 +45,8 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
+        uint8 opType = uint8(msgBytes[0]);
+        bytes memory pkgBytes = msgBytes[1:];
 
         if (opType == TYPE_DELETE) {
             (remainingGas, refundAddress) = _handleDeleteAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -67,7 +68,8 @@ contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
+        uint8 opType = uint8(msgBytes[0]);
+        bytes memory pkgBytes = msgBytes[1:];
 
         if (opType == TYPE_DELETE) {
             (remainingGas, refundAddress) = _handleDeleteFailAckPackage(pkgBytes, sequence, callbackGasLimit);

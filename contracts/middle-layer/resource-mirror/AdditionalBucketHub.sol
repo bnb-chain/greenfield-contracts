@@ -85,7 +85,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            IBucketEncode(rlp).encodeCreateBucketSynPackage(synPkg),
+            IBucketEncode(codec).encodeCreateBucketSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -126,7 +126,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        synPkg.extraData = IBucketEncode(rlp).encodeExtraData(extraData);
+        synPkg.extraData = IBucketEncode(codec).encodeExtraData(extraData);
 
         // check refund address
         (bool success, ) = extraData.refundAddress.call("");
@@ -134,7 +134,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            IBucketEncode(rlp).encodeCreateBucketSynPackage(synPkg),
+            IBucketEncode(codec).encodeCreateBucketSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -167,7 +167,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            IBucketEncode(rlp).encodeCmnDeleteSynPackage(synPkg),
+            IBucketEncode(codec).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );
@@ -215,7 +215,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: id,
-            extraData: IBucketEncode(rlp).encodeExtraData(extraData)
+            extraData: IBucketEncode(codec).encodeExtraData(extraData)
         });
 
         // check refund address
@@ -224,7 +224,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            IBucketEncode(rlp).encodeCmnDeleteSynPackage(synPkg),
+            IBucketEncode(codec).encodeCmnDeleteSynPackage(synPkg),
             relayFee,
             _ackRelayFee
         );

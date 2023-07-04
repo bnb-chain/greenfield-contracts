@@ -16,7 +16,7 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
     function initialize(address _ERC721_token, address _additional, address _bucketEncode) public initializer {
         ERC721Token = _ERC721_token;
         additional = _additional;
-        rlp = _bucketEncode;
+        codec = _bucketEncode;
 
         channelId = BUCKET_CHANNEL_ID;
     }
@@ -44,7 +44,8 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
+        uint8 opType = uint8(msgBytes[0]);
+        bytes memory pkgBytes = msgBytes[1:];
 
         if (opType == TYPE_CREATE) {
             (remainingGas, refundAddress) = _handleCreateAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -68,7 +69,8 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         bytes calldata msgBytes,
         uint256 callbackGasLimit
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        (uint8 opType, bytes memory pkgBytes) = abi.decode(msgBytes, (uint8, bytes));
+        uint8 opType = uint8(msgBytes[0]);
+        bytes memory pkgBytes = msgBytes[1:];
 
         if (opType == TYPE_CREATE) {
             (remainingGas, refundAddress) = _handleCreateFailAckPackage(pkgBytes, sequence, callbackGasLimit);
@@ -121,14 +123,14 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CreateBucketSynPackage memory synPkg, bool success) = IBucketEncode(rlp).decodeCreateBucketSynPackage(
+        (CreateBucketSynPackage memory synPkg, bool success) = IBucketEncode(codec).decodeCreateBucketSynPackage(
             pkgBytes
         );
         require(success, "unrecognized create bucket fail ack package");
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData;
-            (extraData, success) = IBucketEncode(rlp).decodeExtraData(synPkg.extraData);
+            (extraData, success) = IBucketEncode(codec).decodeExtraData(synPkg.extraData);
             require(success, "unrecognized extra data");
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {

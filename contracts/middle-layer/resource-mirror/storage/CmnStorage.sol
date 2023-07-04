@@ -32,7 +32,7 @@ contract CmnStorage is Config, PackageQueue {
 
     address public ERC721Token;
     address public additional;
-    address public rlp;
+    address public codec;
 
     // PlaceHolder reserve for future use
     uint256[25] public CmnStorageSlots;
@@ -44,21 +44,21 @@ contract CmnStorage is Config, PackageQueue {
         uint32 status;
         uint256 id;
         address creator;
-        bytes extraData; // rlp encode of ExtraData
+        bytes extraData; // abi.encode of ExtraData
     }
 
     // BSC to GNFD
     struct CmnDeleteSynPackage {
         address operator;
         uint256 id;
-        bytes extraData; // rlp encode of ExtraData
+        bytes extraData; // abi.encode of ExtraData
     }
 
     // GNFD to BSC
     struct CmnDeleteAckPackage {
         uint32 status;
         uint256 id;
-        bytes extraData; // rlp encode of ExtraData
+        bytes extraData; // abi.encode of ExtraData
     }
 
     // GNFD to BSC
