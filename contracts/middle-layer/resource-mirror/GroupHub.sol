@@ -32,7 +32,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
     /**
      * @dev handle sync cross-chain package from BSC to GNFD
      *
-     * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
+     * @param msgBytes The encoded message bytes sent from BSC to GNFD
      */
     function handleSynPackage(uint8, bytes calldata msgBytes) external override onlyCrossChain returns (bytes memory) {
         return _handleMirrorSynPackage(msgBytes);
@@ -42,7 +42,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
      * @dev handle ack cross-chain package from GNFD，it means create/delete/update operation handled by GNFD successfully.
      *
      * @param sequence The sequence of the ack package
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     * @param msgBytes The encoded message bytes sent from GNFD
      * @param callbackGasLimit The gas limit for callback
      */
     function handleAckPackage(
@@ -69,7 +69,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
      * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain syn request to GNFD.
      *
      * @param sequence The sequence of the fail ack package
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     * @param msgBytes The encoded message bytes sent from GNFD
      * @param callbackGasLimit The gas limit for callback
      */
     function handleFailAckPackage(

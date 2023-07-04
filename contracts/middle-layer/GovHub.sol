@@ -119,7 +119,7 @@ contract GovHub is Config, Initializable, IMiddleLayer {
         return CODE_OK;
     }
 
-    //rlp encode & decode function
+    // encode & decode function
     function _decodeSynPackage(bytes memory msgBytes) internal pure returns (ParamChangePackage memory pkg, bool) {
         pkg = abi.decode(msgBytes, (ParamChangePackage));
         return (pkg, true);
