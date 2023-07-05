@@ -32,7 +32,6 @@ contract CmnStorage is Config, PackageQueue {
 
     address public ERC721Token;
     address public additional;
-    address public codec;
 
     // PlaceHolder reserve for future use
     uint256[25] public CmnStorageSlots;

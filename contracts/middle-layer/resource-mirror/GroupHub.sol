@@ -9,21 +9,14 @@ import "./utils/AccessControl.sol";
 import "../../interface/IERC1155NonTransferable.sol";
 import "../../interface/IERC721NonTransferable.sol";
 import "../../interface/IGroupHub.sol";
-import "../../interface/IGroupEncode.sol";
 
 contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
-    function initialize(
-        address _ERC721_token,
-        address _ERC1155_token,
-        address _additional,
-        address _GroupEncode
-    ) public initializer {
+    function initialize(address _ERC721_token, address _ERC1155_token, address _additional) public initializer {
         ERC721Token = _ERC721_token;
         ERC1155Token = _ERC1155_token;
         additional = _additional;
-        codec = _GroupEncode;
 
         channelId = GROUP_CHANNEL_ID;
     }
@@ -154,8 +147,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (UpdateGroupAckPackage memory ackPkg, bool success) = IGroupEncode(codec).decodeUpdateGroupAckPackage(pkgBytes);
-        require(success, "unrecognized update ack package");
+        UpdateGroupAckPackage memory ackPkg = abi.decode(pkgBytes, (UpdateGroupAckPackage));
 
         if (ackPkg.status == STATUS_SUCCESS) {
             _doUpdate(ackPkg);
@@ -166,9 +158,7 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         }
 
         if (ackPkg.extraData.length > 0) {
-            ExtraData memory extraData;
-            (extraData, success) = IGroupEncode(codec).decodeExtraData(ackPkg.extraData);
-            require(success, "unrecognized extra data");
+            ExtraData memory extraData = abi.decode(ackPkg.extraData, (ExtraData));
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
                 bytes memory reason;
@@ -237,13 +227,10 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CreateGroupSynPackage memory synPkg, bool success) = IGroupEncode(codec).decodeCreateGroupSynPackage(pkgBytes);
-        require(success, "unrecognized create group fail ack package");
+        CreateGroupSynPackage memory synPkg = abi.decode(pkgBytes, (CreateGroupSynPackage));
 
         if (synPkg.extraData.length > 0) {
-            ExtraData memory extraData;
-            (extraData, success) = IGroupEncode(codec).decodeExtraData(synPkg.extraData);
-            require(success, "unrecognized extra data");
+            ExtraData memory extraData = abi.decode(synPkg.extraData, (ExtraData));
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
                 bytes memory reason;
@@ -293,13 +280,10 @@ contract GroupHub is GroupStorage, AccessControl, CmnHub, IGroupHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (UpdateGroupSynPackage memory synPkg, bool success) = IGroupEncode(codec).decodeUpdateGroupSynPackage(pkgBytes);
-        require(success, "unrecognized create group fail ack package");
+        UpdateGroupSynPackage memory synPkg = abi.decode(pkgBytes, (UpdateGroupSynPackage));
 
         if (synPkg.extraData.length > 0) {
-            ExtraData memory extraData;
-            (extraData, success) = IGroupEncode(codec).decodeExtraData(synPkg.extraData);
-            require(success, "unrecognized extra data");
+            ExtraData memory extraData = abi.decode(synPkg.extraData, (ExtraData));
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
                 bytes memory reason;

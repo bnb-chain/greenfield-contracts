@@ -155,17 +155,6 @@ const main = async () => {
     const memberToken = await deployContract('ERC1155NonTransferable', 'member', proxyGroupHub);
     log('deploy member token success', memberToken.address);
 
-    const bucketEncode = await deployContract('BucketEncode');
-    log('deploy bucketEncode success', bucketEncode.address);
-
-    const objectEncode = await deployContract('ObjectEncode');
-    log('deploy objectEncode success', objectEncode.address);
-
-    const groupEncode = await deployContract('GroupEncode');
-    log('deploy groupEncode success', groupEncode.address);
-
-    await groupEncode.deployTransaction.wait(5);
-
     const initAddrs = [
         implGovHub.address,
         implCrossChain.address,
@@ -182,9 +171,6 @@ const main = async () => {
         objectToken.address,
         groupToken.address,
         memberToken.address,
-        bucketEncode.address,
-        objectEncode.address,
-        groupEncode.address,
     ];
 
     let tx = await deployer.deploy(initAddrs, initConsensusStateBytes);

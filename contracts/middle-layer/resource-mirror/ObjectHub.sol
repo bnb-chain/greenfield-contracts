@@ -12,10 +12,9 @@ import "../../interface/IObjectHub.sol";
 contract ObjectHub is ObjectStorage, AccessControl, CmnHub, IObjectHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
-    function initialize(address _ERC721_token, address _additional, address _objectEncode) public initializer {
+    function initialize(address _ERC721_token, address _additional) public initializer {
         ERC721Token = _ERC721_token;
         additional = _additional;
-        codec = _objectEncode;
 
         channelId = OBJECT_CHANNEL_ID;
     }

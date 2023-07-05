@@ -8,7 +8,6 @@ import "contracts/CrossChain.sol";
 import "contracts/middle-layer/GovHub.sol";
 import "contracts/middle-layer/resource-mirror/ObjectHub.sol";
 import "contracts/tokens/ERC721NonTransferable.sol";
-import "contracts/interface/IObjectEncode.sol";
 
 contract ObjectHubTest is Test, ObjectHub {
     struct ParamChangePackage {
@@ -40,7 +39,6 @@ contract ObjectHubTest is Test, ObjectHub {
         crossChain = CrossChain(CROSS_CHAIN);
         objectHub = ObjectHub(OBJECT_HUB);
         objectToken = ERC721NonTransferable(objectHub.ERC721Token());
-        codec = objectHub.codec();
 
         vm.label(GOV_HUB, "govHub");
         vm.label(OBJECT_HUB, "objectHub");
@@ -179,9 +177,9 @@ contract ObjectHubTest is Test, ObjectHub {
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: address(this),
             id: 0,
-            extraData: IObjectEncode(codec).encodeExtraData(extraData)
+            extraData: abi.encode(extraData)
         });
-        bytes memory msgBytes = IObjectEncode(codec).encodeCmnDeleteSynPackage(synPkg);
+        bytes memory msgBytes = abi.encodePacked(TYPE_DELETE, abi.encode(synPkg));
         uint64 sequence = crossChain.channelReceiveSequenceMap(OBJECT_CHANNEL_ID);
 
         vm.expectEmit(true, true, true, false, address(this));
@@ -249,12 +247,12 @@ contract ObjectHubTest is Test, ObjectHub {
         return abi.encode(proposal);
     }
 
-    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
-        return IObjectEncode(codec).wrapEncode(TYPE_MIRROR, abi.encode(synPkg));
+    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal pure returns (bytes memory) {
+        return abi.encodePacked(TYPE_MIRROR, abi.encode(synPkg));
     }
 
-    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
-        return IObjectEncode(codec).wrapEncode(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, "")));
+    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
+        return abi.encodePacked(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, "")));
     }
 
     function _encodeDeleteAckPackage(
@@ -269,6 +267,6 @@ contract ObjectHubTest is Test, ObjectHub {
             failureHandleStrategy: failStrategy,
             callbackData: ""
         });
-        return IObjectEncode(codec).wrapEncode(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, abi.encode(extraData))));
+        return abi.encodePacked(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, abi.encode(extraData))));
     }
 }

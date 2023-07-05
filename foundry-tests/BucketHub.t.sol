@@ -299,11 +299,11 @@ contract BucketHubTest is Test, BucketHub {
         return abi.encode(proposal);
     }
 
-    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
+    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal pure returns (bytes memory) {
         return abi.encodePacked(TYPE_MIRROR, abi.encode(synPkg));
     }
 
-    function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal view returns (bytes memory) {
+    function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal pure returns (bytes memory) {
         return abi.encodePacked(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, "")));
     }
 
@@ -323,7 +323,7 @@ contract BucketHubTest is Test, BucketHub {
         return abi.encodePacked(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, abi.encode(extraData))));
     }
 
-    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
+    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
         return abi.encodePacked(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, "")));
     }
 

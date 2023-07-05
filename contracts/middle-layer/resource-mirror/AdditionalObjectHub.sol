@@ -10,7 +10,6 @@ import "./utils/AccessControl.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICrossChain.sol";
 import "../../interface/IERC721NonTransferable.sol";
-import "../../interface/IObjectEncode.sol";
 
 // Highlight: This contract must have the same storage layout as ObjectHub
 // which means same state variables and same order of state variables.
@@ -81,7 +80,7 @@ contract AdditionalObjectHub is ObjectStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID,
-            IObjectEncode(codec).encodeCmnDeleteSynPackage(synPkg),
+            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
             relayFee,
             _ackRelayFee
         );
@@ -129,7 +128,7 @@ contract AdditionalObjectHub is ObjectStorage, AccessControl {
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: id,
-            extraData: IObjectEncode(codec).encodeExtraData(extraData)
+            extraData: abi.encode(extraData)
         });
 
         // check refund address
@@ -138,7 +137,7 @@ contract AdditionalObjectHub is ObjectStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             OBJECT_CHANNEL_ID,
-            IObjectEncode(codec).encodeCmnDeleteSynPackage(synPkg),
+            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
             relayFee,
             _ackRelayFee
         );

@@ -41,7 +41,7 @@ contract TokenHubTest is Test, TokenHub {
         console.log('transferOut gasUsed', gasBefore - gasleft());
     }
 
-    function test_decode_transferInRefund() public {
+    function test_decode_transferInRefund() public view {
         uint256 refundAmount = 1 ether;
         address refundAddr = developer;
         uint32 status = 0;
@@ -49,11 +49,11 @@ contract TokenHubTest is Test, TokenHub {
         bytes memory msgBytes = _encodeTransferInRefundPackage(transInAckPkg);
 
         uint256 gasBefore = gasleft();
-        (TransferOutAckPackage memory transferOutAckPkg, bool success) = _decodeTransferOutAckPackage(msgBytes);
+        _decodeTransferOutAckPackage(msgBytes);
         console.log('_decodeTransferOutAckPackage gasUsed', gasBefore - gasleft());
     }
 
-    function test_decode_transferInRefundV2() public {
+    function test_decode_transferInRefundV2() public view {
         uint256 refundAmount = 1 ether;
         address refundAddr = developer;
         uint32 status = 0;
@@ -61,7 +61,7 @@ contract TokenHubTest is Test, TokenHub {
         bytes memory msgBytes = abi.encode(transInAckPkg);
 
         uint256 gasBefore = gasleft();
-        (TransferOutAckPackage memory transferOutAckPkg) = abi.decode(msgBytes, (TransferOutAckPackage));
+        abi.decode(msgBytes, (TransferOutAckPackage));
         console.log('_decodeTransferOutAckPackage V2 gasUsed', gasBefore - gasleft());
     }
 
