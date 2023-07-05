@@ -11,13 +11,7 @@ import "contracts/GnfdLightClient.sol";
 import "contracts/middle-layer/GovHub.sol";
 import "contracts/middle-layer/TokenHub.sol";
 
-import "contracts/lib/RLPEncode.sol";
-import "contracts/lib/RLPDecode.sol";
-
 contract TokenHubTest is Test, TokenHub {
-    using RLPEncode for *;
-    using RLPDecode for *;
-
     uint16 public constant gnfdChainId = 1;
     bytes public constant blsPubKeys =
         hex"8ec21505e290d7c15f789c7b4c522179bb7d70171319bfe2d6b2aae2461a1279566782907593cc526a5f2611c0721d60b4a78719a34817cc1d085b6eed110ed1d1ca59a35c9cf4d094e4e71b0b8b76ac2d30ba0762ec9acfaca8b8b369d914e980e970c25a8580cb0d840dce6fff3adc830e16ec8660fb91c8811a28d8ada91d539f82d2730496549e7783a34167498c";
@@ -30,9 +24,48 @@ contract TokenHubTest is Test, TokenHub {
     address private developer = 0x0000000000000000000000000000000012345678;
     address private user1 = 0x1000000000000000000000000000000012345678;
 
-    function setUp() public {}
+    CrossChain private crossChain;
+    TokenHub private tokenHub;
 
-    function test_rlp_fuzzy_test_case_1(uint256 amount, address recipient, address refundAddr) public {
+    function setUp() public {
+        vm.createSelectFork("local");
+        vm.deal(developer, 1000 ether);
+
+        crossChain = CrossChain(payable(CROSS_CHAIN));
+        tokenHub = TokenHub(payable(TOKEN_HUB));
+    }
+
+    function test_transferOut() public {
+        uint256 gasBefore = gasleft();
+        tokenHub.transferOut{ value: 1e18 + 5e14 }(developer, 1 ether);
+        console.log('transferOut gasUsed', gasBefore - gasleft());
+    }
+
+    function test_decode_transferInRefund() public view {
+        uint256 refundAmount = 1 ether;
+        address refundAddr = developer;
+        uint32 status = 0;
+        TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
+        bytes memory msgBytes = _encodeTransferInRefundPackage(transInAckPkg);
+
+        uint256 gasBefore = gasleft();
+        _decodeTransferOutAckPackage(msgBytes);
+        console.log('_decodeTransferOutAckPackage gasUsed', gasBefore - gasleft());
+    }
+
+    function test_decode_transferInRefundV2() public view {
+        uint256 refundAmount = 1 ether;
+        address refundAddr = developer;
+        uint32 status = 0;
+        TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
+        bytes memory msgBytes = abi.encode(transInAckPkg);
+
+        uint256 gasBefore = gasleft();
+        abi.decode(msgBytes, (TransferOutAckPackage));
+        console.log('_decodeTransferOutAckPackage V2 gasUsed', gasBefore - gasleft());
+    }
+
+    function test_encode_fuzzy_test_case_1(uint256 amount, address recipient, address refundAddr) public {
         TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage(amount, recipient, refundAddr);
         bytes memory msgBytes = _encodeTransferOutSynPackage(transOutSynPkg);
 
@@ -44,10 +77,23 @@ contract TokenHubTest is Test, TokenHub {
         assertEq(refundAddr, transInSynPkg.refundAddr);
     }
 
-    function test_rlp_fuzzy_test_case_2(uint256 refundAmount, address refundAddr, uint32 status) public {
+    function test_fuzzy_test_case_1_abi_decode(uint256 amount, address recipient, address refundAddr) public {
+        TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage(amount, recipient, refundAddr);
+        bytes memory msgBytes = abi.encode(transOutSynPkg);
+        (TransferInSynPackage memory transInSynPkg) = abi.decode(msgBytes, (TransferInSynPackage));
+
+        assertEq(amount, transInSynPkg.amount);
+        assertEq(recipient, transInSynPkg.recipient);
+        assertEq(refundAddr, transInSynPkg.refundAddr);
+    }
+
+    function test_fuzzy_test_case_2_abi_encode(uint256 refundAmount, address refundAddr, uint32 status) public {
         TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
         bytes memory msgBytes = _encodeTransferInRefundPackage(transInAckPkg);
+
+        uint256 gasBefore = gasleft();
         (TransferOutAckPackage memory transferOutAckPkg, bool success) = _decodeTransferOutAckPackage(msgBytes);
+        console.log('_decodeTransferOutAckPackage gasUsed', gasBefore - gasleft());
 
         assertEq(success, true, "decode transferOutAckPkg failed");
         assertEq(refundAmount, transInAckPkg.refundAmount);

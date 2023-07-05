@@ -8,50 +8,45 @@ const { ethers } = require('hardhat');
 const log = console.log;
 const unit = ethers.constants.WeiPerEther;
 
-const gnfdChainId = 7971;
+const gnfdChainId = 9000;
 const initConsensusState: any = {
-    chainID: 'greenfield_7971-1',
+    chainID: 'greenfield_9000-1741',
     height: 1,
-    nextValidatorSetHash: '0x38e0755cf22d1b461042267e1becf974aa95499c6dd01fe657ab7cba056576ee',
-    validators: [
-        {
-            pubKey: '0x9656f518c3169bb921e49dde966d43cc0aebca5232d6cf85385f8ffad270d54b',
-            votingPower: 1000,
-            relayerAddress: '0x2edd53b48726a887c98adab97e0a8600f855570d',
-            relayerBlsKey:
-                '0xa22249e548ef1829660521d3ab4496ebee89781f2b91cc237b36caef014f6779ba82e5c784515a9e3702ad356f5bbee1',
-        },
-        {
-            pubKey: '0xb3b66156ff2463eb82b74f60f6b2c7396dffa8727552af39b5ee5c32440b7963',
-            votingPower: 1000,
-            relayerAddress: '0x115e247d2771f08fdd94c16ac01381082ebc73d1',
-            relayerBlsKey:
-                '0x84ed5dc9551e8e44fce09dc30272156fd70a094cc5e9f1d69fabd04630d8961036b9497a563d1de9f7b98a7d2a178419',
-        },
-        {
-            pubKey: '0x97328a8ace9a8722ec6f9232075425672bb5590b8a1a68a104fe072e30e52ff3',
-            votingPower: 1000,
-            relayerAddress: '0xa4a2957e858529ffabbbb483d1d704378a9fca6b',
-            relayerBlsKey:
-                '0xa5e140ee80a0ff1552a954701f599622adf029916f55b3157a649e16086a0669900f784d03bff79e69eb8eb7ccfd77d8',
-        },
-        {
-            pubKey: '0x4629ce60903edab13f06cfadad4c6646e3a2435c85ad7cbdd1966805400174a0',
-            votingPower: 1000,
-            relayerAddress: '0x4038993e087832d84e2ac855d27f6b0b2eec1907',
-            relayerBlsKey:
-                '0xad10ab912fcf510dfca1d27ab8a3d2a8b197e09bd69cd0e80e960d653e656073e89d417cf6f22de627710ccab352e6c2',
-        },
-        {
-            pubKey: '0xeba438da90262e1a66869d394498eaf79b9a3c8a2ed1fe902e63ae2ca9c32b54',
-            votingPower: 1000,
-            relayerAddress: '0x2bbe5c8e5c3eb2b35063b330749f1958206d2ec2',
-            relayerBlsKey:
-                '0x9762663048cd982ae30da530ed6d0262e8adaafe6da99c9133f8ae2182c5776f35cd8e6a722a3306aa43b543907fca68',
-        },
-    ],
+    nextValidatorSetHash: '0xaf6b801dda578dddfa4da1d5d67fd1b32510db24ec271346fc573e9242b01c9a',
+  "validators": [
+    {
+      "pubKey": "0x112b51dda2d336246bdc0cc51407ba0cb0e5087be0db5f1cdc3285bbaa8e6475",
+      "votingPower": 1000,
+      "relayerAddress": "0x4202722cf6a34d727be762b46825b0d26b6263a0",
+      "relayerBlsKey": "0xa9355ebf3c24bedac5a357a56feeb2cd8b6fed9f14cca15c3091f523b9fb21183b4bb31eb482a0321885e3f570721564"
+    },
+    {
+      "pubKey": "0x48e2b2f7d9a3e7b668757d9cc0bbd28cd674c34ed1c2ed75c5de3b6a8f8cad46",
+      "votingPower": 1000,
+      "relayerAddress": "0x668a0acd8f6db5cae959a0e02132f4d6a672c4d7",
+      "relayerBlsKey": "0xa4726b542012cc8023ee07b29ab3971cc999d8751bbd16f23413968afcdb070ed66ab47e6e1842bf875bef21dfc5b8af"
+    },
+    {
+      "pubKey": "0x6813bfd82860d361e339bd1ae2f801b6d6ee46b8497a3d51c80b50b6160ea1cc",
+      "votingPower": 1000,
+      "relayerAddress": "0x0dfa99423d3084c596c5e3bd6bcb4f654516517b",
+      "relayerBlsKey": "0x8d4786703c56b300b70f085c0d0482e5d6a3c7208883f0ec8abd2de893f71d18e8f919e7ab198499201d87f92c57ebce"
+    },
+    {
+      "pubKey": "0x83ed2b763bb872e9bc148fb216fd5c93b18819670d9a946ae4b3075672d726b8",
+      "votingPower": 1000,
+      "relayerAddress": "0x24aab6f85470ff73e3048c64083a09e980d4cb7f",
+      "relayerBlsKey": "0x8146d231a7b2051c5f7a9c07ab6e6bfe277bd5f4a94f901fe6ee7a6b6bd8479e9e5e448de4b1b33d5ddd74194c86b385"
+    },
+    {
+      "pubKey": "0x2cc140a3f08a9c4149efd45643202f8bef2ad7eecf53e58951c6df6fd932004b",
+      "votingPower": 1000,
+      "relayerAddress": "0x4998f6ef8d999a0f36a851bfa29dbcf0364dd656",
+      "relayerBlsKey": "0x95c286deb3f1657664859d59876bf1ec5a288f6e66e18b37b8a2a1e6ee4a3ef8fa50784d8b758d0c3e70a7cdfe65ab5d"
+    }
+  ],
     consensusStateBytes:
-        '0x677265656e6669656c645f373937312d31000000000000000000000000000000000000000000000138e0755cf22d1b461042267e1becf974aa95499c6dd01fe657ab7cba056576ee9656f518c3169bb921e49dde966d43cc0aebca5232d6cf85385f8ffad270d54b00000000000003e82edd53b48726a887c98adab97e0a8600f855570da22249e548ef1829660521d3ab4496ebee89781f2b91cc237b36caef014f6779ba82e5c784515a9e3702ad356f5bbee1b3b66156ff2463eb82b74f60f6b2c7396dffa8727552af39b5ee5c32440b796300000000000003e8115e247d2771f08fdd94c16ac01381082ebc73d184ed5dc9551e8e44fce09dc30272156fd70a094cc5e9f1d69fabd04630d8961036b9497a563d1de9f7b98a7d2a17841997328a8ace9a8722ec6f9232075425672bb5590b8a1a68a104fe072e30e52ff300000000000003e8a4a2957e858529ffabbbb483d1d704378a9fca6ba5e140ee80a0ff1552a954701f599622adf029916f55b3157a649e16086a0669900f784d03bff79e69eb8eb7ccfd77d84629ce60903edab13f06cfadad4c6646e3a2435c85ad7cbdd1966805400174a000000000000003e84038993e087832d84e2ac855d27f6b0b2eec1907ad10ab912fcf510dfca1d27ab8a3d2a8b197e09bd69cd0e80e960d653e656073e89d417cf6f22de627710ccab352e6c2eba438da90262e1a66869d394498eaf79b9a3c8a2ed1fe902e63ae2ca9c32b5400000000000003e82bbe5c8e5c3eb2b35063b330749f1958206d2ec29762663048cd982ae30da530ed6d0262e8adaafe6da99c9133f8ae2182c5776f35cd8e6a722a3306aa43b543907fca68',
+        '0x677265656e6669656c645f393030302d313734310000000000000000000000000000000000000001af6b801dda578dddfa4da1d5d67fd1b32510db24ec271346fc573e9242b01c9a112b51dda2d336246bdc0cc51407ba0cb0e5087be0db5f1cdc3285bbaa8e647500000000000003e84202722cf6a34d727be762b46825b0d26b6263a0a9355ebf3c24bedac5a357a56feeb2cd8b6fed9f14cca15c3091f523b9fb21183b4bb31eb482a0321885e3f57072156448e2b2f7d9a3e7b668757d9cc0bbd28cd674c34ed1c2ed75c5de3b6a8f8cad4600000000000003e8668a0acd8f6db5cae959a0e02132f4d6a672c4d7a4726b542012cc8023ee07b29ab3971cc999d8751bbd16f23413968afcdb070ed66ab47e6e1842bf875bef21dfc5b8af6813bfd82860d361e339bd1ae2f801b6d6ee46b8497a3d51c80b50b6160ea1cc00000000000003e80dfa99423d3084c596c5e3bd6bcb4f654516517b8d4786703c56b300b70f085c0d0482e5d6a3c7208883f0ec8abd2de893f71d18e8f919e7ab198499201d87f92c57ebce83ed2b763bb872e9bc148fb216fd5c93b18819670d9a946ae4b3075672d726b800000000000003e824aab6f85470ff73e3048c64083a09e980d4cb7f8146d231a7b2051c5f7a9c07ab6e6bfe277bd5f4a94f901fe6ee7a6b6bd8479e9e5e448de4b1b33d5ddd74194c86b3852cc140a3f08a9c4149efd45643202f8bef2ad7eecf53e58951c6df6fd932004b00000000000003e84998f6ef8d999a0f36a851bfa29dbcf0364dd65695c286deb3f1657664859d59876bf1ec5a288f6e66e18b37b8a2a1e6ee4a3ef8fa50784d8b758d0c3e70a7cdfe65ab5d',
 };
 
 const initConsensusStateBytes = initConsensusState.consensusStateBytes;
@@ -160,17 +155,6 @@ const main = async () => {
     const memberToken = await deployContract('ERC1155NonTransferable', 'member', proxyGroupHub);
     log('deploy member token success', memberToken.address);
 
-    const bucketRlp = await deployContract('BucketRlp');
-    log('deploy bucketRlp success', bucketRlp.address);
-
-    const objectRlp = await deployContract('ObjectRlp');
-    log('deploy objectRlp success', objectRlp.address);
-
-    const groupRlp = await deployContract('GroupRlp');
-    log('deploy groupRlp success', groupRlp.address);
-
-    await groupRlp.deployTransaction.wait(5);
-
     const initAddrs = [
         implGovHub.address,
         implCrossChain.address,
@@ -187,17 +171,16 @@ const main = async () => {
         objectToken.address,
         groupToken.address,
         memberToken.address,
-        bucketRlp.address,
-        objectRlp.address,
-        groupRlp.address,
     ];
 
     let tx = await deployer.deploy(initAddrs, initConsensusStateBytes);
     await tx.wait(5);
     log('deploy success');
 
+    const blockNumber = await ethers.provider.getBlockNumber()
     const deployment: any = {
         RepoCommitId: commitId,
+        BlockNumber: blockNumber,
 
         Deployer: deployer.address,
 

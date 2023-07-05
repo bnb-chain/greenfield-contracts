@@ -10,13 +10,10 @@ import "../lib/BytesToTypes.sol";
 import "../lib/Memory.sol";
 import "../lib/CmnPkg.sol";
 
-import "../lib/RLPDecode.sol";
 import "../Config.sol";
 import "../interface/IMiddleLayer.sol";
 
 contract GovHub is Config, Initializable, IMiddleLayer {
-    using RLPDecode for *;
-
     /*----------------- constants -----------------*/
     uint8 public constant PARAM_UPDATE_MESSAGE_TYPE = 0;
 
@@ -122,27 +119,10 @@ contract GovHub is Config, Initializable, IMiddleLayer {
         return CODE_OK;
     }
 
-    //rlp encode & decode function
-    function _decodeSynPackage(bytes memory msgBytes) internal pure returns (ParamChangePackage memory, bool) {
-        ParamChangePackage memory pkg;
-
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success;
-        uint256 idx;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                pkg.key = string(iter.next().toBytes());
-            } else if (idx == 1) {
-                pkg.values = iter.next().toBytes();
-            } else if (idx == 2) {
-                pkg.targets = iter.next().toBytes();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (pkg, success);
+    // encode & decode function
+    function _decodeSynPackage(bytes memory msgBytes) internal pure returns (ParamChangePackage memory pkg, bool) {
+        pkg = abi.decode(msgBytes, (ParamChangePackage));
+        return (pkg, true);
     }
 
     function versionInfo()

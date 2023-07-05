@@ -9,12 +9,8 @@ import "contracts/middle-layer/GovHub.sol";
 import "contracts/middle-layer/resource-mirror/GroupHub.sol";
 import "contracts/tokens/ERC721NonTransferable.sol";
 import "contracts/tokens/ERC1155NonTransferable.sol";
-import "contracts/lib/RLPDecode.sol";
-import "contracts/lib/RLPEncode.sol";
 
 contract GroupHubTest is Test, GroupHub {
-    using RLPEncode for *;
-    using RLPDecode for *;
 
     struct ParamChangePackage {
         string key;
@@ -41,14 +37,13 @@ contract GroupHubTest is Test, GroupHub {
     receive() external payable {}
 
     function setUp() public {
-        vm.createSelectFork("bsc-test");
+        vm.createSelectFork("local");
 
         govHub = GovHub(GOV_HUB);
         crossChain = CrossChain(CROSS_CHAIN);
         groupHub = GroupHub(GROUP_HUB);
         groupToken = ERC721NonTransferable(groupHub.ERC721Token());
         memberToken = ERC1155NonTransferable(groupHub.ERC1155Token());
-        rlp = groupHub.rlp();
 
         vm.label(GOV_HUB, "govHub");
         vm.label(GROUP_HUB, "groupHub");
@@ -243,9 +238,9 @@ contract GroupHubTest is Test, GroupHub {
         CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
             creator: address(this),
             name: "test",
-            extraData: IGroupRlp(rlp).encodeExtraData(extraData)
+            extraData: abi.encode(extraData)
         });
-        bytes memory msgBytes = IGroupRlp(rlp).encodeCreateGroupSynPackage(synPkg);
+        bytes memory msgBytes = abi.encodePacked(TYPE_CREATE, abi.encode(synPkg));
         uint64 sequence = crossChain.channelReceiveSequenceMap(GROUP_CHANNEL_ID);
 
         vm.expectEmit(true, true, true, false, address(this));
@@ -311,27 +306,15 @@ contract GroupHubTest is Test, GroupHub {
 
     /*----------------- Internal function -----------------*/
     function _encodeGovSynPackage(ParamChangePackage memory proposal) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = bytes(proposal.key).encodeBytes();
-        elements[1] = proposal.values.encodeBytes();
-        elements[2] = proposal.targets.encodeBytes();
-        return elements.encodeList();
+        return abi.encode(proposal);
     }
 
-    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
-        bytes[] memory elements = new bytes[](2);
-        elements[0] = synPkg.id.encodeUint();
-        elements[1] = synPkg.owner.encodeAddress();
-        return IGroupRlp(rlp).wrapEncode(TYPE_MIRROR, elements.encodeList());
+    function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal pure returns (bytes memory) {
+        return abi.encodePacked(TYPE_MIRROR, abi.encode(synPkg));
     }
 
-    function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal view returns (bytes memory) {
-        bytes[] memory elements = new bytes[](4);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = creator.encodeAddress();
-        elements[3] = "".encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
+    function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal pure returns (bytes memory) {
+        return abi.encodePacked(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, "")));
     }
 
     function _encodeCreateAckPackage(
@@ -347,21 +330,11 @@ contract GroupHubTest is Test, GroupHub {
             failureHandleStrategy: failStrategy,
             callbackData: ""
         });
-
-        bytes[] memory elements = new bytes[](4);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = creator.encodeAddress();
-        elements[3] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_CREATE, elements.encodeList());
+        return abi.encodePacked(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, abi.encode(extraData))));
     }
 
-    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = "".encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+    function _encodeDeleteAckPackage(uint32 status, uint256 id) internal pure returns (bytes memory) {
+        return abi.encodePacked(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, "")));
     }
 
     function _encodeDeleteAckPackage(
@@ -376,28 +349,11 @@ contract GroupHubTest is Test, GroupHub {
             failureHandleStrategy: failStrategy,
             callbackData: ""
         });
-
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = status.encodeUint();
-        elements[1] = id.encodeUint();
-        elements[2] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_DELETE, elements.encodeList());
+        return abi.encodePacked(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, abi.encode(extraData))));
     }
 
-    function _encodeUpdateGroupAckPackage(UpdateGroupAckPackage memory ackPkg) internal view returns (bytes memory) {
-        bytes[] memory members = new bytes[](ackPkg.members.length);
-        for (uint256 i; i < ackPkg.members.length; ++i) {
-            members[i] = ackPkg.members[i].encodeAddress();
-        }
-
-        bytes[] memory elements = new bytes[](6);
-        elements[0] = ackPkg.status.encodeUint();
-        elements[1] = ackPkg.id.encodeUint();
-        elements[2] = ackPkg.operator.encodeAddress();
-        elements[3] = uint256(ackPkg.opType).encodeUint();
-        elements[4] = members.encodeList();
-        elements[5] = "".encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
+    function _encodeUpdateGroupAckPackage(UpdateGroupAckPackage memory ackPkg) internal pure returns (bytes memory) {
+        return abi.encodePacked(TYPE_UPDATE, abi.encode(ackPkg));
     }
 
     function _encodeUpdateGroupAckPackage(
@@ -405,25 +361,13 @@ contract GroupHubTest is Test, GroupHub {
         address refundAddr,
         FailureHandleStrategy failStrategy
     ) internal view returns (bytes memory) {
-        bytes[] memory members = new bytes[](ackPkg.members.length);
-        for (uint256 i; i < ackPkg.members.length; ++i) {
-            members[i] = ackPkg.members[i].encodeAddress();
-        }
-
         ExtraData memory extraData = ExtraData({
             appAddress: address(this),
             refundAddress: refundAddr,
             failureHandleStrategy: failStrategy,
             callbackData: ""
         });
-
-        bytes[] memory elements = new bytes[](6);
-        elements[0] = ackPkg.status.encodeUint();
-        elements[1] = ackPkg.id.encodeUint();
-        elements[2] = ackPkg.operator.encodeAddress();
-        elements[3] = uint256(ackPkg.opType).encodeUint();
-        elements[4] = members.encodeList();
-        elements[5] = IGroupRlp(rlp).encodeExtraData(extraData).encodeBytes();
-        return IGroupRlp(rlp).wrapEncode(TYPE_UPDATE, elements.encodeList());
+        ackPkg.extraData = abi.encode(extraData);
+        return abi.encodePacked(TYPE_UPDATE, abi.encode(ackPkg));
     }
 }

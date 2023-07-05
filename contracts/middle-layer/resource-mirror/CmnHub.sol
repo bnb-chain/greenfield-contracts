@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./storage/CmnStorage.sol";
-import "./rlp/CmnRlp.sol";
 import "../../lib/Memory.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICmnHub.sol";
@@ -25,25 +24,15 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
 
     /*----------------- middle-layer function -----------------*/
     // need to be implemented in child contract
-    function handleSynPackage(uint8 channelId, bytes calldata callbackData) external virtual returns (bytes memory) {
+    function handleSynPackage(uint8, bytes calldata) external virtual returns (bytes memory) {
         revert("not implemented");
     }
 
-    function handleAckPackage(
-        uint8 channelId,
-        uint64 sequence,
-        bytes calldata callbackData,
-        uint256 callbackGasLimit
-    ) external virtual returns (uint256 remainingGas, address refundAddress) {
+    function handleAckPackage(uint8, uint64, bytes calldata, uint256) external virtual returns (uint256, address) {
         revert("not implemented");
     }
 
-    function handleFailAckPackage(
-        uint8 channelId,
-        uint64 sequence,
-        bytes calldata callbackData,
-        uint256 callbackGasLimit
-    ) external virtual returns (uint256 remainingGas, address refundAddress) {
+    function handleFailAckPackage(uint8, uint64, bytes calldata, uint256) external virtual returns (uint256, address) {
         revert("not implemented");
     }
 
@@ -92,8 +81,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CmnCreateAckPackage memory ackPkg, bool success) = CmnRlp(rlp).decodeCmnCreateAckPackage(pkgBytes);
-        require(success, "unrecognized create ack package");
+        CmnCreateAckPackage memory ackPkg = abi.decode(pkgBytes, (CmnCreateAckPackage));
 
         if (ackPkg.status == STATUS_SUCCESS) {
             _doCreate(ackPkg.creator, ackPkg.id);
@@ -104,9 +92,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         }
 
         if (ackPkg.extraData.length > 0) {
-            ExtraData memory extraData;
-            (extraData, success) = CmnRlp(rlp).decodeExtraData(ackPkg.extraData);
-            require(success, "unrecognized extra data");
+            ExtraData memory extraData = abi.decode(ackPkg.extraData, (ExtraData));
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
                 bytes memory reason;
@@ -161,8 +147,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CmnDeleteAckPackage memory ackPkg, bool success) = CmnRlp(rlp).decodeCmnDeleteAckPackage(pkgBytes);
-        require(success, "unrecognized delete ack package");
+        CmnDeleteAckPackage memory ackPkg = abi.decode(pkgBytes, (CmnDeleteAckPackage));
 
         if (ackPkg.status == STATUS_SUCCESS) {
             _doDelete(ackPkg.id);
@@ -173,9 +158,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         }
 
         if (ackPkg.extraData.length > 0) {
-            ExtraData memory extraData;
-            (extraData, success) = CmnRlp(rlp).decodeExtraData(ackPkg.extraData);
-            require(success, "unrecognized extra data");
+            ExtraData memory extraData = abi.decode(ackPkg.extraData, (ExtraData));
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
                 bytes memory reason;
@@ -225,13 +208,14 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         emit DeleteSuccess(id);
     }
 
-    function _handleMirrorSynPackage(bytes memory msgBytes) internal returns (bytes memory) {
-        (CmnMirrorSynPackage memory synPkg, bool success) = CmnRlp(rlp).decodeCmnMirrorSynPackage(msgBytes);
-        require(success, "unrecognized mirror package");
+    function _handleMirrorSynPackage(bytes calldata msgBytes) internal returns (bytes memory) {
+        uint8 opType = uint8(msgBytes[0]);
+        CmnMirrorSynPackage memory synPkg = abi.decode(msgBytes[1:], (CmnMirrorSynPackage));
+        require(opType == TYPE_MIRROR, "wrong syn operation type");
 
         uint32 status = _doMirror(synPkg);
         CmnMirrorAckPackage memory mirrorAckPkg = CmnMirrorAckPackage({ status: status, id: synPkg.id });
-        return CmnRlp(rlp).encodeCmnMirrorAckPackage(mirrorAckPkg);
+        return abi.encodePacked(TYPE_MIRROR, abi.encode(mirrorAckPkg));
     }
 
     function _doMirror(CmnMirrorSynPackage memory synPkg) internal returns (uint32) {
@@ -251,13 +235,10 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CmnDeleteSynPackage memory synPkg, bool success) = CmnRlp(rlp).decodeCmnDeleteSynPackage(pkgBytes);
-        require(success, "unrecognized delete fail ack package");
+        CmnDeleteSynPackage memory synPkg = abi.decode(pkgBytes, (CmnDeleteSynPackage));
 
         if (synPkg.extraData.length > 0) {
-            ExtraData memory extraData;
-            (extraData, success) = CmnRlp(rlp).decodeExtraData(synPkg.extraData);
-            require(success, "unrecognized extra data");
+            ExtraData memory extraData = abi.decode(synPkg.extraData, (ExtraData));
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
                 bytes memory reason;
