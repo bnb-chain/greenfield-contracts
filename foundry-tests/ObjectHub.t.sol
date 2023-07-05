@@ -34,7 +34,7 @@ contract ObjectHubTest is Test, ObjectHub {
     receive() external payable {}
 
     function setUp() public {
-        vm.createSelectFork("bsc-test");
+        vm.createSelectFork("local");
 
         govHub = GovHub(GOV_HUB);
         crossChain = CrossChain(CROSS_CHAIN);

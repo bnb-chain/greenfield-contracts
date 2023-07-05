@@ -33,13 +33,12 @@ contract BucketHubTest is Test, BucketHub {
     receive() external payable {}
 
     function setUp() public {
-        vm.createSelectFork("bsc-test");
+        vm.createSelectFork("local");
 
         govHub = GovHub(GOV_HUB);
         crossChain = CrossChain(CROSS_CHAIN);
         bucketHub = BucketHub(BUCKET_HUB);
         bucketToken = ERC721NonTransferable(bucketHub.ERC721Token());
-        codec = bucketHub.codec();
 
         vm.label(GOV_HUB, "govHub");
         vm.label(BUCKET_HUB, "bucketHub");
@@ -218,9 +217,9 @@ contract BucketHubTest is Test, BucketHub {
             primarySpApprovalExpiredHeight: 0,
             primarySpSignature: "",
             chargedReadQuota: 0,
-            extraData: IBucketEncode(codec).encodeExtraData(extraData)
+            extraData: abi.encode(extraData)
         });
-        bytes memory msgBytes = IBucketEncode(codec).encodeCreateBucketSynPackage(synPkg);
+        bytes memory msgBytes = abi.encodePacked(TYPE_CREATE, abi.encode(synPkg));
         uint64 sequence = crossChain.channelReceiveSequenceMap(BUCKET_CHANNEL_ID);
 
         vm.expectEmit(true, true, true, false, address(this));
@@ -301,11 +300,11 @@ contract BucketHubTest is Test, BucketHub {
     }
 
     function _encodeMirrorSynPackage(CmnMirrorSynPackage memory synPkg) internal view returns (bytes memory) {
-        return IBucketEncode(codec).wrapEncode(TYPE_MIRROR, abi.encode(synPkg));
+        return abi.encodePacked(TYPE_MIRROR, abi.encode(synPkg));
     }
 
     function _encodeCreateAckPackage(uint32 status, uint256 id, address creator) internal view returns (bytes memory) {
-        return IBucketEncode(codec).wrapEncode(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, "")));
+        return abi.encodePacked(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, "")));
     }
 
     function _encodeCreateAckPackage(
@@ -321,11 +320,11 @@ contract BucketHubTest is Test, BucketHub {
             failureHandleStrategy: failStrategy,
             callbackData: ""
         });
-        return IBucketEncode(codec).wrapEncode(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, abi.encode(extraData))));
+        return abi.encodePacked(TYPE_CREATE, abi.encode(CmnCreateAckPackage(status, id, creator, abi.encode(extraData))));
     }
 
     function _encodeDeleteAckPackage(uint32 status, uint256 id) internal view returns (bytes memory) {
-        return IBucketEncode(codec).wrapEncode(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, "")));
+        return abi.encodePacked(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, "")));
     }
 
     function _encodeDeleteAckPackage(
@@ -340,6 +339,6 @@ contract BucketHubTest is Test, BucketHub {
             failureHandleStrategy: failStrategy,
             callbackData: ""
         });
-        return IBucketEncode(codec).wrapEncode(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, abi.encode(extraData))));
+        return abi.encodePacked(TYPE_DELETE, abi.encode(CmnDeleteAckPackage(status, id, abi.encode(extraData))));
     }
 }

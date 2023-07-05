@@ -28,7 +28,7 @@ contract TokenHubTest is Test, TokenHub {
     TokenHub private tokenHub;
 
     function setUp() public {
-        vm.createSelectFork("bsc-test");
+        vm.createSelectFork("local");
         vm.deal(developer, 1000 ether);
 
         crossChain = CrossChain(payable(CROSS_CHAIN));
@@ -36,20 +36,9 @@ contract TokenHubTest is Test, TokenHub {
     }
 
     function test_transferOut() public {
-
         uint256 gasBefore = gasleft();
         tokenHub.transferOut{ value: 1e18 + 5e14 }(developer, 1 ether);
         console.log('transferOut gasUsed', gasBefore - gasleft());
-    }
-
-    function test_transferOutV2() public {
-        TokenHub TokenHub = new TokenHub();
-        vm.prank(PROXY_ADMIN);
-        GnfdProxy(payable(TOKEN_HUB)).upgradeTo(address(TokenHub));
-
-        uint256 gasBefore = gasleft();
-        tokenHub.transferOut{ value: 1e18 + 5e14 }(developer, 1 ether);
-        console.log('transferOutV2 gasUsed', gasBefore - gasleft());
     }
 
     function test_decode_transferInRefund() public {

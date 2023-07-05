@@ -171,7 +171,12 @@ npx hardhat run scripts/3-decode-events.ts --network bsc
 
 ## Test
 ```shell
-make test
+# start a local chain
+anvil -b 1
+
+# run test on another terminal
+npm run deploy:local
+forge t -vvv --ffi
 ```
 
 ## Disclaimer

@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgrad
 import "./CmnHub.sol";
 import "./utils/AccessControl.sol";
 import "../../interface/IBucketHub.sol";
-import "../../interface/IBucketEncode.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
 contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
@@ -123,15 +122,10 @@ contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
         uint64 sequence,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        (CreateBucketSynPackage memory synPkg, bool success) = IBucketEncode(codec).decodeCreateBucketSynPackage(
-            pkgBytes
-        );
-        require(success, "unrecognized create bucket fail ack package");
+        CreateBucketSynPackage memory synPkg = abi.decode(pkgBytes, (CreateBucketSynPackage));
 
         if (synPkg.extraData.length > 0) {
-            ExtraData memory extraData;
-            (extraData, success) = IBucketEncode(codec).decodeExtraData(synPkg.extraData);
-            require(success, "unrecognized extra data");
+            ExtraData memory extraData = abi.decode(synPkg.extraData, (ExtraData));
 
             if (extraData.appAddress != address(0) && callbackGasLimit >= 2300) {
                 bytes memory reason;
