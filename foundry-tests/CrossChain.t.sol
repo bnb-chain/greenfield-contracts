@@ -9,34 +9,25 @@ import "contracts/CrossChain.sol";
 import "contracts/middle-layer/GovHub.sol";
 import "contracts/middle-layer/TokenHub.sol";
 import "./TestDeployer.sol";
+import "./Helper.sol";
 
-contract CrossChainTest is TestDeployer {
-    Deployer public deployer;
-    GovHub public govHub;
-    CrossChain public crossChain;
-    TokenHub public tokenHub;
-    GnfdLightClient public lightClient;
-
+contract CrossChainTest is Helper {
     address private developer = 0x0000000000000000000000000000000012345678;
     address private user1 = 0x1000000000000000000000000000000012345678;
+    event TransferOutSuccess(address senderAddress, uint256 amount, uint256 relayFee, uint256 ackRelayFee);
 
     function setUp() public {
-        address _deployer = _deployOnTestChain();
-        deployer = Deployer(_deployer);
-        assert(deployer.deployed());
-
-        govHub = GovHub(payable(deployer.proxyGovHub()));
-        crossChain = CrossChain(payable(deployer.proxyCrossChain()));
-        tokenHub = TokenHub(payable(deployer.proxyTokenHub()));
-        lightClient = GnfdLightClient(payable(deployer.proxyLightClient()));
-
         vm.deal(developer, 10000 ether);
     }
 
     function test_transferOut() public {
+        vm.startPrank(developer);
         address receipt = user1;
         uint256 amount = 1 ether;
-        tokenHub.transferOut{ value: amount + 1 ether }(receipt, amount);
+        vm.expectEmit(true, true, true, true, address(tokenHub));
+        emit TransferOutSuccess(developer, 1 ether, 250000000000000, 250000000000000);
+        tokenHub.transferOut{ value: amount + 500000000000000 }(receipt, amount);
+        vm.stopPrank();
     }
 
     function test_decode() public view {

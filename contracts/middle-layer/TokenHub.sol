@@ -4,15 +4,10 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../Config.sol";
-import "../lib/RLPEncode.sol";
-import "../lib/RLPDecode.sol";
 import "../interface/ICrossChain.sol";
 import "../interface/IMiddleLayer.sol";
 
 contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
-    using RLPEncode for *;
-    using RLPDecode for *;
-
     /*----------------- constants -----------------*/
     // transfer in channel
     uint8 public constant TRANSFER_IN_SUCCESS = 0;
@@ -82,7 +77,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
      * @dev handle sync cross-chain package from BSC to GNFD
      *
      * @param channelId The channel for cross-chain communication
-     * @param msgBytes The rlp encoded message bytes sent from BSC to GNFD
+     * @param msgBytes The encoded message bytes sent from BSC to GNFD
      */
     function handleSynPackage(uint8 channelId, bytes calldata msgBytes) external onlyCrossChain returns (bytes memory) {
         if (channelId == TRANSFER_IN_CHANNEL_ID) {
@@ -99,7 +94,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
      * and will refund the remaining token caused by different decimals between BSC and GNFD.
      *
      * @param channelId The channel for cross-chain communication
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     * @param msgBytes The encoded message bytes sent from GNFD
      */
     function handleAckPackage(
         uint8 channelId,
@@ -120,7 +115,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
      * @dev handle failed ack cross-chain package from GNFD, it means failed to cross-chain transfer to GNFD and will refund the token.
      *
      * @param channelId The channel for cross-chain communication
-     * @param msgBytes The rlp encoded message bytes sent from GNFD
+     * @param msgBytes The encoded message bytes sent from GNFD
      */
     function handleFailAckPackage(
         uint8 channelId,
@@ -199,35 +194,14 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
     function _decodeTransferInSynPackage(
         bytes memory msgBytes
     ) internal pure returns (TransferInSynPackage memory, bool) {
-        TransferInSynPackage memory transInSynPkg;
-
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                transInSynPkg.amount = iter.next().toUint();
-            } else if (idx == 1) {
-                transInSynPkg.recipient = iter.next().toAddress();
-            } else if (idx == 2) {
-                transInSynPkg.refundAddr = iter.next().toAddress();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (transInSynPkg, success);
+        TransferInSynPackage memory transInSynPkg = abi.decode(msgBytes, (TransferInSynPackage));
+        return (transInSynPkg, true);
     }
 
     function _encodeTransferInRefundPackage(
         TransferInRefundPackage memory transInAckPkg
     ) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = transInAckPkg.refundAmount.encodeUint();
-        elements[1] = transInAckPkg.refundAddr.encodeAddress();
-        elements[2] = uint256(transInAckPkg.status).encodeUint();
-        return elements.encodeList();
+        return abi.encode(transInAckPkg);
     }
 
     function _handleTransferInSynPackage(bytes memory msgBytes) internal returns (bytes memory) {
@@ -263,25 +237,8 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
     function _decodeTransferOutAckPackage(
         bytes memory msgBytes
     ) internal pure returns (TransferOutAckPackage memory, bool) {
-        TransferOutAckPackage memory transOutAckPkg;
-
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                transOutAckPkg.refundAmount = iter.next().toUint();
-            } else if (idx == 1) {
-                transOutAckPkg.refundAddr = ((iter.next().toAddress()));
-            } else if (idx == 2) {
-                transOutAckPkg.status = uint32(iter.next().toUint());
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (transOutAckPkg, success);
+        TransferOutAckPackage memory transOutAckPkg = abi.decode(msgBytes, (TransferOutAckPackage));
+        return (transOutAckPkg, true);
     }
 
     function _handleTransferOutAckPackage(bytes memory msgBytes) internal {
@@ -305,30 +262,12 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
     function _decodeTransferOutSynPackage(
         bytes memory msgBytes
     ) internal pure returns (TransferOutSynPackage memory, bool) {
-        TransferOutSynPackage memory transOutSynPkg;
-
-        RLPDecode.Iterator memory iter = msgBytes.toRLPItem().iterator();
-        bool success = false;
-        uint256 idx = 0;
-        while (iter.hasNext()) {
-            if (idx == 0) {
-                transOutSynPkg.amount = iter.next().toUint();
-            } else if (idx == 1) {
-                transOutSynPkg.recipient = ((iter.next().toAddress()));
-            } else if (idx == 2) {
-                transOutSynPkg.refundAddr = iter.next().toAddress();
-                success = true;
-            } else {
-                break;
-            }
-            idx++;
-        }
-        return (transOutSynPkg, success);
+        TransferOutSynPackage memory transOutSynPkg = abi.decode(msgBytes, (TransferOutSynPackage));
+        return (transOutSynPkg, true);
     }
 
     function _handleTransferOutFailAckPackage(bytes memory msgBytes) internal {
-        (TransferOutSynPackage memory transOutSynPkg, bool decodeSuccess) = _decodeTransferOutSynPackage(msgBytes);
-        require(decodeSuccess, "unrecognized transferOut syn package");
+        TransferOutSynPackage memory transOutSynPkg = abi.decode(msgBytes, (TransferOutSynPackage));
         TransferOutAckPackage memory transOutAckPkg;
         transOutAckPkg.refundAmount = transOutSynPkg.amount;
         transOutAckPkg.refundAddr = transOutSynPkg.refundAddr;
@@ -339,11 +278,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
     function _encodeTransferOutSynPackage(
         TransferOutSynPackage memory transOutSynPkg
     ) internal pure returns (bytes memory) {
-        bytes[] memory elements = new bytes[](3);
-        elements[0] = transOutSynPkg.amount.encodeUint();
-        elements[1] = transOutSynPkg.recipient.encodeAddress();
-        elements[2] = transOutSynPkg.refundAddr.encodeAddress();
-        return elements.encodeList();
+        return abi.encode(transOutSynPkg);
     }
 
     function versionInfo()

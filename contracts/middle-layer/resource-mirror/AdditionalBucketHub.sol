@@ -8,7 +8,6 @@ import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgrad
 import "./storage/BucketStorage.sol";
 import "./utils/AccessControl.sol";
 import "../../interface/IApplication.sol";
-import "../../interface/IBucketRlp.sol";
 import "../../interface/ICrossChain.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
@@ -85,7 +84,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            IBucketRlp(rlp).encodeCreateBucketSynPackage(synPkg),
+            abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
             relayFee,
             _ackRelayFee
         );
@@ -126,7 +125,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
-        synPkg.extraData = IBucketRlp(rlp).encodeExtraData(extraData);
+        synPkg.extraData = abi.encode(extraData);
 
         // check refund address
         (bool success, ) = extraData.refundAddress.call("");
@@ -134,7 +133,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            IBucketRlp(rlp).encodeCreateBucketSynPackage(synPkg),
+            abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
             relayFee,
             _ackRelayFee
         );
@@ -167,7 +166,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            IBucketRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
+            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
             relayFee,
             _ackRelayFee
         );
@@ -215,7 +214,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: id,
-            extraData: IBucketRlp(rlp).encodeExtraData(extraData)
+            extraData: abi.encode(extraData)
         });
 
         // check refund address
@@ -224,7 +223,7 @@ contract AdditionalBucketHub is BucketStorage, AccessControl {
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             BUCKET_CHANNEL_ID,
-            IBucketRlp(rlp).encodeCmnDeleteSynPackage(synPkg),
+            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
             relayFee,
             _ackRelayFee
         );
