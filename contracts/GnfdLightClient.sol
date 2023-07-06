@@ -288,7 +288,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         return (400_001, "GnfdLightClient", "init version");
     }
 
-    function ceilDiv(uint256 x, uint256 y) internal pure {
+    function ceilDiv(uint256 x, uint256 y) internal pure returns(uint256) {
         if (y == 0) return 0;
         return (x + y - 1) / y;
     }
