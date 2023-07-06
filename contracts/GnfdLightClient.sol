@@ -134,7 +134,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         }
 
         uint256 _quorum = ceilDiv(validatorSet.length * 2, 3);
-        require(bitCount >= _quorum, "no majority validators");
+        require(_quorum > 0 && bitCount >= _quorum, "no majority validators");
         (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         return success && result.length > 0;
     }
