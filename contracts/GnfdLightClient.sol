@@ -132,8 +132,9 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
                 input = abi.encodePacked(input, validatorSet[i].relayerBlsKey);
             }
         }
-        require(bitCount > (validatorSet.length * 2) / 3, "no majority validators");
 
+        uint256 _quorum = ceilDiv(validatorSet.length * 2, 3);
+        require(bitCount >= _quorum, "no majority validators");
         (bool success, bytes memory result) = PACKAGE_VERIFY_CONTRACT.staticcall(input);
         return success && result.length > 0;
     }
@@ -285,6 +286,11 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         returns (uint256 version, string memory name, string memory description)
     {
         return (400_001, "GnfdLightClient", "init version");
+    }
+
+    function ceilDiv(uint256 x, uint256 y) internal pure {
+        if (y == 0) return 0;
+        return (x + y - 1) / y;
     }
 
     function updateParam(string calldata key, bytes calldata value) external onlyGov {
