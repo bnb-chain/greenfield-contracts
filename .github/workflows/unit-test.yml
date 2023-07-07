@@ -46,16 +46,18 @@ jobs:
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts@v4.8.3
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
           cp .env.example .env
+          hardhat compile
       - name: Build project
         run: |
+          hardhat compile
           npm run lint:check
           forge build
-          npx hardhat compile
-          sleep 20
+          hardhat compile
       - name: Deploy on Local
         run: |
+          hardhat compile
           npx hardhat run scripts/1-deploy.ts --network local
-          sleep 10
+          sleep 5
       - name: Unit Test
         run: |
           npm run test
