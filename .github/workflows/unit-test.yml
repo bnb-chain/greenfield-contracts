@@ -47,7 +47,7 @@ jobs:
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts@v4.8.3
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
           cp .env.example .env
-          hardhat compile
+          npx hardhat compile
       - name: Build project
         run: |
           npx hardhat compile
