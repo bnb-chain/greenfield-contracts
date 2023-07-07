@@ -103,6 +103,7 @@ contract GovHub is Config, Initializable, IMiddleLayer {
                     keccak256(abi.encodePacked(lastName)) == keccak256(abi.encodePacked(newName)),
                     "invalid upgrade name"
                 );
+                require(Config(target).CROSS_CHAIN() == CROSS_CHAIN, "cross chain changed after upgrade");
 
                 emit SuccessUpgrade(target, newImpl);
             }

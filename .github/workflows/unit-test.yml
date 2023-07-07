@@ -1,0 +1,65 @@
+name: Unit Test
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+permissions:
+  contents: read
+  # Optional: allow read access to pull request. Use with `only-new-issues` option.
+  # pull-requests: read
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - uses: actions/cache@v1
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Start Local Chain
+        run: |
+          npm install pm2 -g
+          pm2 start --name local-chain "anvil -b 1"
+          sleep 5
+        env:
+          PORT: 8545
+
+      - name: Install project dependencies
+        run: |
+          npm install
+          npx hardhat compile
+          forge install --no-git --no-commit foundry-rs/forge-std@v1.5.6
+          forge install --no-git --no-commit openZeppelin/openzeppelin-contracts@v4.8.3
+          forge install --no-git --no-commit openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
+          cp .env.example .env
+          npx hardhat compile
+      - name: Build project
+        run: |
+          npx hardhat compile
+          npm run lint:check
+          forge build
+          npx hardhat compile
+      - name: Deploy on Local
+        run: |
+          npx hardhat compile
+          npx hardhat run scripts/1-deploy.ts --network local
+          sleep 5
+      - name: Unit Test
+        run: |
+          npm run test
+
