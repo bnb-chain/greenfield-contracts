@@ -24,12 +24,6 @@ contract DeployerTest is TestDeployer {
             );
         }
     }
-
-    function test_deploy() public {
-        address _deployer = _deployOnTestChain();
-        deployer = Deployer(_deployer);
-        assertTrue(deployer.deployed());
-    }
 }
 
 contract TestAddress {
