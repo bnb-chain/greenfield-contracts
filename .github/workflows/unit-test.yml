@@ -42,6 +42,7 @@ jobs:
       - name: Install project dependencies
         run: |
           npm install
+          npx hardhat compile
           forge install --no-git --no-commit foundry-rs/forge-std@v1.5.6
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts@v4.8.3
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
@@ -49,13 +50,13 @@ jobs:
           hardhat compile
       - name: Build project
         run: |
-          hardhat compile
+          npx hardhat compile
           npm run lint:check
           forge build
-          hardhat compile
+          npx hardhat compile
       - name: Deploy on Local
         run: |
-          hardhat compile
+          npx hardhat compile
           npx hardhat run scripts/1-deploy.ts --network local
           sleep 5
       - name: Unit Test
