@@ -35,12 +35,6 @@ contract TokenHubTest is Test, TokenHub {
         tokenHub = TokenHub(payable(TOKEN_HUB));
     }
 
-    function test_transferOut() public {
-        uint256 gasBefore = gasleft();
-        tokenHub.transferOut{ value: 1e18 + 5e14 }(developer, 1 ether);
-        console.log('transferOut gasUsed', gasBefore - gasleft());
-    }
-
     function test_decode_transferInRefund() public view {
         uint256 refundAmount = 1 ether;
         address refundAddr = developer;
@@ -51,18 +45,6 @@ contract TokenHubTest is Test, TokenHub {
         uint256 gasBefore = gasleft();
         _decodeTransferOutAckPackage(msgBytes);
         console.log('_decodeTransferOutAckPackage gasUsed', gasBefore - gasleft());
-    }
-
-    function test_decode_transferInRefundV2() public view {
-        uint256 refundAmount = 1 ether;
-        address refundAddr = developer;
-        uint32 status = 0;
-        TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage(refundAmount, refundAddr, status);
-        bytes memory msgBytes = abi.encode(transInAckPkg);
-
-        uint256 gasBefore = gasleft();
-        abi.decode(msgBytes, (TransferOutAckPackage));
-        console.log('_decodeTransferOutAckPackage V2 gasUsed', gasBefore - gasleft());
     }
 
     function test_encode_fuzzy_test_case_1(uint256 amount, address recipient, address refundAddr) public {

@@ -13,7 +13,7 @@ permissions:
   # Optional: allow read access to pull request. Use with `only-new-issues` option.
   # pull-requests: read
 jobs:
-  build:
+  unit-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -27,24 +27,36 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
-      - name: Install project dependencies
-        if: steps.yarn-cache.outputs.cache-hit != 'true' # Over here!
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Start Local Chain
         run: |
-          npm run install
-          curl -L https://foundry.paradigm.xyz | bash
-          source /root/.bashrc
-          foundryup
+          npm install pm2 -g
+          pm2 start --name local-chain "anvil -b 1"
+          sleep 5
+        env:
+          PORT: 8545
+
+      - name: Install project dependencies
+        run: |
+          npm install
           forge install --no-git --no-commit foundry-rs/forge-std@v1.5.6
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts@v4.8.3
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
+          cp .env.example .env
       - name: Build project
         run: |
           npm run lint:check
-          npm run build
-      - name: Start Local Chain
-        run: nohup anvil -b 1 &
-      - name: Deploy on Local Chain
-        run: npm run deploy:local
+          forge build
+          npx hardhat compile
+          sleep 20
+      - name: Deploy on Local
+        run: |
+          npx hardhat run scripts/1-deploy.ts --network local
+          sleep 10
       - name: Unit Test
-        run: npm run test
+        run: |
+          npm run test
 
