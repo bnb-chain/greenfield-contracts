@@ -13,7 +13,7 @@ permissions:
   # Optional: allow read access to pull request. Use with `only-new-issues` option.
   # pull-requests: read
 jobs:
-  build-and-lint:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -30,7 +30,7 @@ jobs:
       - name: Install project dependencies
         if: steps.yarn-cache.outputs.cache-hit != 'true' # Over here!
         run: |
-          yarn install
+          npm run install
           curl -L https://foundry.paradigm.xyz | bash
           source /root/.bashrc
           foundryup
@@ -39,7 +39,8 @@ jobs:
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
       - name: Build project
         run: |
-          yarn build
+          npm run lint:check
+          npm run build
       - name: Start Local Chain
         run: nohup anvil -b 1 &
       - name: Deploy on Local Chain
