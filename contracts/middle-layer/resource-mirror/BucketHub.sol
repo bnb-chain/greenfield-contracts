@@ -5,11 +5,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./CmnHub.sol";
-import "./utils/AccessControl.sol";
+import "./utils/GnfdAccessControl.sol";
 import "../../interface/IBucketHub.sol";
 import "../../interface/IERC721NonTransferable.sol";
 
-contract BucketHub is BucketStorage, AccessControl, CmnHub, IBucketHub {
+contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     function initialize(address _ERC721_token, address _additional) public initializer {
