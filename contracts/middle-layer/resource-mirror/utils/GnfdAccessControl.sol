@@ -5,9 +5,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-import "../../../interface/IAccessControl.sol";
+import "../../../interface/IGnfdAccessControl.sol";
 
-contract AccessControl is Context, IAccessControl {
+contract GnfdAccessControl is Context, IGnfdAccessControl {
     // Role => Granter => Operator => ExpireTime
     mapping(bytes32 => mapping(address => mapping(address => uint256))) private _roles;
 
@@ -20,7 +20,7 @@ contract AccessControl is Context, IAccessControl {
      *
      * The format of the revert reason is given by the following regular expression:
      *
-     *  /^AccessControl: account (0x[0-9a-f]{40}) is missing grant
+     *  /^GnfdAccessControl: account (0x[0-9a-f]{40}) is missing grant
      * from (0x[0-9a-f]{40}) as role (0x[0-9a-f]{64})$/
      */
     modifier onlyRole(bytes32 role, address granter) {
@@ -44,7 +44,7 @@ contract AccessControl is Context, IAccessControl {
      * May emit a {RoleGranted} event.
      */
     function grantRole(bytes32 role, address grantee, uint256 expireTime) public virtual {
-        require(expireTime > block.timestamp, "AccessControl: Expire time must be greater than current time");
+        require(expireTime > block.timestamp, "GnfdAccessControl: Expire time must be greater than current time");
         _grantRole(role, _msgSender(), grantee, expireTime);
     }
 
@@ -103,7 +103,7 @@ contract AccessControl is Context, IAccessControl {
      *
      * The format of the revert reason is given by the following regular expression:
      *
-     *  /^AccessControl: account (0x[0-9a-f]{40}) is missing grant
+     *  /^GnfdAccessControl: account (0x[0-9a-f]{40}) is missing grant
      * from (0x[0-9a-f]{40}) as role (0x[0-9a-f]{64})$/
      */
     function _checkRole(bytes32 role, address granter, address operator) internal view virtual {
@@ -111,7 +111,7 @@ contract AccessControl is Context, IAccessControl {
             revert(
                 string(
                     abi.encodePacked(
-                        "AccessControl: account ",
+                        "GnfdAccessControl: account ",
                         Strings.toHexString(operator),
                         " is missing grant from ",
                         Strings.toHexString(granter),

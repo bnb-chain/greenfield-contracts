@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/structs/DoubleEndedQueueUpgradeable.sol";
 
 import "./storage/GroupStorage.sol";
-import "./utils/AccessControl.sol";
+import "./utils/GnfdAccessControl.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICrossChain.sol";
 import "../../interface/IERC721NonTransferable.sol";
@@ -15,7 +15,7 @@ import "../../interface/IERC721NonTransferable.sol";
 // which means same state variables and same order of state variables.
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as GroupHub.
-contract AdditionalGroupHub is GroupStorage, AccessControl {
+contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     /*----------------- external function -----------------*/

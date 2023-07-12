@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-interface IAccessControl {
+interface IGnfdAccessControl {
     function hasRole(bytes32 role, address granter, address account) external view returns (bool);
 
     function grantRole(bytes32 role, address grantee, uint256 expireTime) external;
