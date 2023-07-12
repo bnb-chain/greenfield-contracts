@@ -1,4 +1,24 @@
 {
+  "name": "@bnb-chain/greenfield-contracts",
+  "version": "0.0.9",
+  "description": "Smart contracts for Greenfield and BSC Cross-Chain communication",
+  "files": [
+    "/contracts/**/*.sol"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bnb-chain/greenfield-contracts.git"
+  },
+  "author": "BNB Chain",
+  "license": "GNU Affero General Public License v3.0",
+  "bugs": {
+    "url": "https://github.com/bnb-chain/greenfield-contracts/issues"
+  },
+  "homepage": "https://github.com/bnb-chain/greenfield-contracts#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "scripts": {
     "deploy:test": "npx hardhat run scripts/1-deploy.ts --network test",
     "deploy:local": "npx hardhat run scripts/1-deploy.ts --network local",
