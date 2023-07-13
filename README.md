@@ -109,6 +109,13 @@ npm run deploy:bsc
 
 ## Deployment
 ### Greenfield Contracts on BSC Testnet
+- ChainID: greenfield_5600-1
+- Tendermit: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org
+- GRPC swagger: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org/openapi
+- EthAPI: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org
+- Storage dApp: https://dcellar.io/
+- Explorer: http://greenfieldscan.com/
+
 ```json
 {
   "DeployCommitId": "c31dfef545368ab96ce7c517247176d157086ba6",
