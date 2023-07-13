@@ -179,7 +179,7 @@ const main = async () => {
 
     const blockNumber = await ethers.provider.getBlockNumber()
     const deployment: any = {
-        RepoCommitId: commitId,
+        DeployCommitId: commitId,
         BlockNumber: blockNumber,
 
         Deployer: deployer.address,
@@ -196,6 +196,11 @@ const main = async () => {
         AdditionalBucketHub: addBucketHub.address,
         AdditionalObjectHub: addObjectHub.address,
         AdditionalGroupHub: addGroupHub.address,
+
+        BucketERC721Token: bucketToken.address,
+        ObjectERC721Token: objectToken.address,
+        GroupERC721Token: groupToken.address,
+        MemberERC1155Token: memberToken.address,
 
         initConsensusState,
         gnfdChainId,
