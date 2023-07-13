@@ -27,7 +27,7 @@
     "lint:ts": "npx prettier --write scripts/** test/**",
     "lint:check": "npx prettier -c contracts/**",
     "lint:write": "npx prettier --write contracts/**",
-    "build": "npx hardhat compile && forge build",
+    "build": "npx hardhat compile",
     "test": "forge t --ffi",
     "verify:testnet": "npx hardhat run scripts/2-verify-scan.ts --network bsc-testnet",
     "verify:bsc": "npx hardhat run scripts/2-verify-scan.ts --network bsc"
