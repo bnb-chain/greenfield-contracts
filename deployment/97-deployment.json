@@ -13,6 +13,12 @@
   "AdditionalBucketHub": "0xE8c5eb8e42F0c7aF746409c71Fab5fbE9a5d6EC2",
   "AdditionalObjectHub": "0x458CA8900b70fd8843c749D0899D5c11071A0E6b",
   "AdditionalGroupHub": "0xb629e36c65d575606f493BBDaf3474BDb47dE8A2",
+
+  "BucketERC721Token": "0x541445f3D951718a029523909dDE56F67D880F38",
+  "ObjectERC721Token": "0xc7ec92076413f878F9B045b9327DffC10D718f84",
+  "GroupERC721Token": "0x089AFF7964E435eB2C7b296B371078B18E2C9A35",
+  "MemberERC1155Token": "0x80Dd11998159cbea4BF79650fCc5Da72Ffb51EFc",
+
   "initConsensusState": {
     "chainID": "greenfield_5600-1",
     "height": 1,
