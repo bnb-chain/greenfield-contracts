@@ -96,6 +96,11 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             relayFee,
             _ackRelayFee
         );
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
         emit CreateSubmitted(owner, msg.sender, name);
         return true;
     }
@@ -150,6 +155,11 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             relayFee,
             _ackRelayFee
         );
+
+        // transfer all the fee to tokenHub
+        (success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
         emit CreateSubmitted(owner, msg.sender, name);
         return true;
     }
@@ -184,6 +194,11 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             relayFee,
             _ackRelayFee
         );
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
@@ -241,6 +256,11 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             relayFee,
             _ackRelayFee
         );
+
+        // transfer all the fee to tokenHub
+        (success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
@@ -275,6 +295,11 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             relayFee,
             _ackRelayFee
         );
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
         emit UpdateSubmitted(owner, msg.sender, synPkg.id, uint8(synPkg.opType), synPkg.members);
         return true;
     }
@@ -328,6 +353,11 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             relayFee,
             _ackRelayFee
         );
+
+        // transfer all the fee to tokenHub
+        (success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
         emit UpdateSubmitted(owner, msg.sender, synPkg.id, uint8(synPkg.opType), synPkg.members);
         return true;
     }
