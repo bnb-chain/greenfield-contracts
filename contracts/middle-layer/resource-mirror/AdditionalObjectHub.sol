@@ -84,6 +84,11 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
             relayFee,
             _ackRelayFee
         );
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{value: address(this).balance}("");
+        require(success, "transfer to tokenHub failed");
+
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
@@ -141,6 +146,11 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
             relayFee,
             _ackRelayFee
         );
+
+        // transfer all the fee to tokenHub
+        (success, ) = TOKEN_HUB.call{value: address(this).balance}("");
+        require(success, "transfer to tokenHub failed");
+
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
     }
