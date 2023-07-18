@@ -27,7 +27,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
     // 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
     bytes32 public constant EMPTY_CONTENT_HASH = keccak256("");
     uint256 public constant EMERGENCY_PROPOSAL_EXPIRE_PERIOD = 1 hours;
-
+    uint256 public constant MAX_RELAY_FEE = 1 ether;
     /*----------------- storage layer -----------------*/
     bool public isSuspended;
     // proposal type hash => latest emergency proposal
@@ -110,6 +110,12 @@ contract CrossChain is Config, Initializable, ICrossChain {
         _;
     }
 
+    modifier relayFeeCheck(uint256 _relayFee, uint256 _ackRelayFee) {
+        require(_relayFee <= MAX_RELAY_FEE, "_relayFee too large");
+        require(_ackRelayFee <= MAX_RELAY_FEE, "_ackRelayFee too large");
+        _;
+    }
+
     /*----------------- external function -----------------*/
     function initialize(uint16 _gnfdChainId) public initializer {
         require(_gnfdChainId != 0, "zero _gnfdChainId");
@@ -165,7 +171,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         uint256 _relayFee,
         uint256 _ackRelayFee,
         bytes memory msgBytes
-    ) public view returns (bytes memory) {
+    ) public relayFeeCheck(_relayFee, _ackRelayFee) view returns (bytes memory) {
         return
             packageType == SYN_PACKAGE
                 ? abi.encodePacked(packageType, uint64(block.timestamp), _relayFee, _ackRelayFee, msgBytes)
@@ -486,6 +492,9 @@ contract CrossChain is Config, Initializable, ICrossChain {
             packageLoad = payload[54:];
         }
         success = true;
+
+        require(_relayFee <= MAX_RELAY_FEE, "_relayFee too large");
+        require(_ackRelayFee <= MAX_RELAY_FEE, "_ackRelayFee too large");
     }
 
     function _sendPackage(uint64 packageSequence, uint8 channelId, bytes memory payload) internal whenNotSuspended {
