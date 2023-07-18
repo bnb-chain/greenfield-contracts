@@ -98,7 +98,7 @@ contract GovHub is Config, Initializable, IMiddleLayer {
                 (lastVersion, lastName, ) = Config(target).versionInfo();
                 IProxyAdmin(PROXY_ADMIN).upgrade(target, newImpl);
                 (newVersion, newName, ) = Config(target).versionInfo();
-                require(newVersion == lastVersion + 1, "invalid upgrade version");
+                require(newVersion > lastVersion, "invalid upgrade version");
                 require(
                     keccak256(abi.encodePacked(lastName)) == keccak256(abi.encodePacked(newName)),
                     "invalid upgrade name"
