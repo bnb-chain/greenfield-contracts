@@ -171,7 +171,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         uint256 _relayFee,
         uint256 _ackRelayFee,
         bytes memory msgBytes
-    ) public relayFeeCheck(_relayFee, _ackRelayFee) view returns (bytes memory) {
+    ) public view relayFeeCheck(_relayFee, _ackRelayFee) returns (bytes memory) {
         return
             packageType == SYN_PACKAGE
                 ? abi.encodePacked(packageType, uint64(block.timestamp), _relayFee, _ackRelayFee, msgBytes)

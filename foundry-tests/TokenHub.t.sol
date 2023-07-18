@@ -10,6 +10,7 @@ import "contracts/GnfdProxyAdmin.sol";
 import "contracts/GnfdLightClient.sol";
 import "contracts/middle-layer/GovHub.sol";
 import "contracts/middle-layer/TokenHub.sol";
+import "../contracts/RelayerHub.sol";
 
 contract TokenHubTest is Test, TokenHub {
     uint16 public constant gnfdChainId = 1;
@@ -22,17 +23,98 @@ contract TokenHubTest is Test, TokenHub {
     ];
 
     address private developer = 0x0000000000000000000000000000000012345678;
-    address private user1 = 0x1000000000000000000000000000000012345678;
+    address private user1 = 0x1000000000000000000000000000000012345679;
 
     CrossChain private crossChain;
     TokenHub private tokenHub;
+    RelayerHub private relayerHub;
 
     function setUp() public {
         vm.createSelectFork("local");
-        vm.deal(developer, 1000 ether);
+        vm.deal(developer, 10000 ether);
+        vm.deal(TOKEN_HUB, 10000 ether);
 
         crossChain = CrossChain(payable(CROSS_CHAIN));
         tokenHub = TokenHub(payable(TOKEN_HUB));
+        relayerHub = RelayerHub(payable(RELAYER_HUB));
+
+        vm.label(TOKEN_HUB, "TOKEN_HUB");
+        vm.label(CROSS_CHAIN, "CROSS_CHAIN");
+        vm.label(RELAYER_HUB, "RELAYER_HUB");
+    }
+
+    function test_transferOut_correct_case() public {
+        vm.startPrank(developer);
+        vm.expectEmit(true, true, true, true, TOKEN_HUB);
+        emit TransferOutSuccess(developer, 123 ether, 25 * 1e13, 25 * 1e13);
+        tokenHub.transferOut{ value: 123 ether + 50 * 1e13 }(user1, 123 ether);
+        vm.stopPrank();
+    }
+
+    function test_transferOut_error_case_1() public {
+        vm.startPrank(developer);
+        vm.expectRevert("exceed max transfer amount");
+        tokenHub.transferOut{ value: 1233 ether + 50 * 1e13 }(user1, 1233 ether);
+        vm.stopPrank();
+    }
+
+    function test_transferIn_correct_case() public {
+        TransferInSynPackage memory pkg = TransferInSynPackage(123 ether, user1, developer);
+        bytes memory msgBytes = abi.encode(pkg);
+
+        vm.expectEmit(true, true, true, true, TOKEN_HUB);
+        emit TransferInSuccess(user1, 123 ether);
+        vm.prank(CROSS_CHAIN);
+        tokenHub.handleSynPackage(TRANSFER_IN_CHANNEL_ID, msgBytes);
+    }
+
+    function test_transferIn_error_case_1() public {
+        TransferInSynPackage memory pkg = TransferInSynPackage(1001 ether, user1, developer);
+        bytes memory msgBytes = abi.encode(pkg);
+
+        vm.expectRevert("exceed max transfer amount");
+        vm.prank(CROSS_CHAIN);
+        tokenHub.handleSynPackage(TRANSFER_IN_CHANNEL_ID, msgBytes);
+    }
+
+    function test_transferIn_error_case_2() public {
+        // CROSS_CHAIN cannot receive BNB transfers since the receive() interface is not implemented by CROSS_CHAIN
+        TransferInSynPackage memory pkg = TransferInSynPackage(123 ether, CROSS_CHAIN, developer);
+        bytes memory msgBytes = abi.encode(pkg);
+
+        TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage({
+            refundAmount: 123 ether,
+            refundAddr: developer,
+            status: TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT
+        });
+
+        vm.prank(CROSS_CHAIN);
+        bytes memory data = tokenHub.handleSynPackage(TRANSFER_IN_CHANNEL_ID, msgBytes);
+        assertEq(keccak256(data), keccak256(abi.encode(transInAckPkg)), "invalid refund pkg");
+    }
+
+    function test_refund_correct_case() public {
+        // CROSS_CHAIN cannot receive BNB transfers since the receive() interface is not implemented by CROSS_CHAIN
+        TransferOutAckPackage memory pkg = TransferOutAckPackage(123 ether, developer, 1);
+        bytes memory msgBytes = abi.encode(pkg);
+
+        uint256 initBalance = developer.balance;
+        vm.expectEmit(true, true, true, true, TOKEN_HUB);
+        emit RefundSuccess(developer, 123 ether, 1);
+        vm.prank(CROSS_CHAIN);
+        tokenHub.handleAckPackage(TRANSFER_OUT_CHANNEL_ID, 1, msgBytes, 0);
+
+        assertEq(developer.balance, initBalance + 123 ether, "invalid refund amount");
+    }
+
+    function test_refund_error_case() public {
+        // CROSS_CHAIN cannot receive BNB transfers since the receive() interface is not implemented by CROSS_CHAIN
+        TransferOutAckPackage memory pkg = TransferOutAckPackage(1233 ether, developer, 1);
+        bytes memory msgBytes = abi.encode(pkg);
+
+        vm.expectRevert("exceed max transfer amount");
+        vm.prank(CROSS_CHAIN);
+        tokenHub.handleAckPackage(TRANSFER_OUT_CHANNEL_ID, 1, msgBytes, 0);
     }
 
     function test_decode_transferInRefund() public view {

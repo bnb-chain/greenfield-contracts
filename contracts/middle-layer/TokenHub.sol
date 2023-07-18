@@ -17,7 +17,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
 
     uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 5000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
-
+    uint256 public constant MAX_TRANSFER_AMOUNT = 1000 ether;
     /*----------------- struct / event / modifier -----------------*/
     struct TransferOutSynPackage {
         uint256 amount;
@@ -46,7 +46,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
         uint32 status;
     }
 
-    event TransferInSuccess(address refundAddress, uint256 amount);
+    event TransferInSuccess(address recipient, uint256 amount);
     event TransferOutSuccess(address senderAddress, uint256 amount, uint256 relayFee, uint256 ackRelayFee);
     event RefundSuccess(address refundAddress, uint256 amount, uint32 status);
     event RefundFailure(address refundAddress, uint256 amount, uint32 status);
@@ -59,6 +59,11 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
 
     modifier onlyRelayerHub() {
         require(msg.sender == RELAYER_HUB, "only RelayerHub contract");
+        _;
+    }
+
+    modifier transferAmountCheck(uint256 _amount) {
+        require(_amount <= MAX_TRANSFER_AMOUNT, "exceed max transfer amount");
         _;
     }
 
@@ -148,7 +153,10 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
      * @param recipient The destination address of the cross-chain transfer on GNFD.
      * @param amount The amount to transfer
      */
-    function transferOut(address recipient, uint256 amount) external payable returns (bool) {
+    function transferOut(
+        address recipient,
+        uint256 amount
+    ) external payable transferAmountCheck(amount) returns (bool) {
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
 
         require(
@@ -177,6 +185,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
     function claimRelayFee(uint256 amount) external onlyRelayerHub returns (uint256) {
         uint256 actualAmount = amount < address(this).balance ? amount : address(this).balance;
 
+        // should not happen, still protect
         if (actualAmount > REWARD_UPPER_LIMIT) {
             return 0;
         }
@@ -220,7 +229,9 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
         }
     }
 
-    function _doTransferIn(TransferInSynPackage memory transInSynPkg) internal returns (uint32) {
+    function _doTransferIn(
+        TransferInSynPackage memory transInSynPkg
+    ) internal transferAmountCheck(transInSynPkg.amount) returns (uint32) {
         if (address(this).balance < transInSynPkg.amount) {
             return TRANSFER_IN_FAILURE_INSUFFICIENT_BALANCE;
         }
@@ -247,7 +258,9 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer {
         _doRefund(transOutAckPkg);
     }
 
-    function _doRefund(TransferOutAckPackage memory transOutAckPkg) internal {
+    function _doRefund(
+        TransferOutAckPackage memory transOutAckPkg
+    ) internal transferAmountCheck(transOutAckPkg.refundAmount) {
         (bool success, ) = transOutAckPkg.refundAddr.call{
             gas: MAX_GAS_FOR_TRANSFER_BNB,
             value: transOutAckPkg.refundAmount
