@@ -58,6 +58,9 @@ const main = async () => {
     log('network', network);
     log('operator.address: ', operator.address, toHuman(balance));
 
+    execSync('npx hardhat compile');
+    await sleep(2);
+
     const deployer = (await deployContract('Deployer', gnfdChainId)) as Deployer;
     log('Deployer deployed', deployer.address);
 
