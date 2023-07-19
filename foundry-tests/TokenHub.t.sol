@@ -51,13 +51,6 @@ contract TokenHubTest is Test, TokenHub {
         vm.stopPrank();
     }
 
-    function test_transferOut_error_case_1() public {
-        vm.startPrank(developer);
-        vm.expectRevert("exceed max transfer amount");
-        tokenHub.transferOut{ value: 1233 ether + 50 * 1e13 }(user1, 1233 ether);
-        vm.stopPrank();
-    }
-
     function test_transferIn_correct_case() public {
         TransferInSynPackage memory pkg = TransferInSynPackage(123 ether, user1, developer);
         bytes memory msgBytes = abi.encode(pkg);
@@ -68,29 +61,65 @@ contract TokenHubTest is Test, TokenHub {
         tokenHub.handleSynPackage(TRANSFER_IN_CHANNEL_ID, msgBytes);
     }
 
-    function test_transferIn_error_case_1() public {
-        TransferInSynPackage memory pkg = TransferInSynPackage(1001 ether, user1, developer);
+    function test_transferIn_case_2() public {
+        vm.expectRevert("no locked amount");
+        tokenHub.withdrawUnlockedToken(user1);
+
+        TransferInSynPackage memory pkg = TransferInSynPackage(1000 ether, user1, developer);
         bytes memory msgBytes = abi.encode(pkg);
 
-        vm.expectRevert("exceed max transfer amount");
+        vm.expectEmit(true, true, true, true, TOKEN_HUB);
+        emit LargeTransferLocked(user1, 1000 ether, block.timestamp + 12 hours);
+
+        vm.expectEmit(true, true, true, true, TOKEN_HUB);
+        emit TransferInSuccess(user1, 1000 ether);
+
         vm.prank(CROSS_CHAIN);
         tokenHub.handleSynPackage(TRANSFER_IN_CHANNEL_ID, msgBytes);
+
+        vm.expectRevert("still on locking period");
+        tokenHub.withdrawUnlockedToken(user1);
+
+        uint256 _current = block.timestamp;
+        vm.warp(_current + 11 hours);
+        vm.expectRevert("still on locking period");
+        tokenHub.withdrawUnlockedToken(user1);
+
+        vm.warp(_current + 12 hours);
+        vm.expectEmit(true, true, true, true, TOKEN_HUB);
+        emit WithdrawUnlockedToken(user1, 1000 ether);
+        tokenHub.withdrawUnlockedToken(user1);
     }
 
-    function test_transferIn_error_case_2() public {
-        // CROSS_CHAIN cannot receive BNB transfers since the receive() interface is not implemented by CROSS_CHAIN
-        TransferInSynPackage memory pkg = TransferInSynPackage(123 ether, CROSS_CHAIN, developer);
+    function test_transferIn_case_3() public {
+        vm.expectRevert("no locked amount");
+        tokenHub.withdrawUnlockedToken(user1);
+
+        TransferInSynPackage memory pkg = TransferInSynPackage(1000 ether, user1, developer);
         bytes memory msgBytes = abi.encode(pkg);
 
-        TransferInRefundPackage memory transInAckPkg = TransferInRefundPackage({
-            refundAmount: 123 ether,
-            refundAddr: developer,
-            status: TRANSFER_IN_FAILURE_NON_PAYABLE_RECIPIENT
-        });
+        vm.expectEmit(true, true, true, true, TOKEN_HUB);
+        emit LargeTransferLocked(user1, 1000 ether, block.timestamp + 12 hours);
+
+        vm.expectEmit(true, true, true, true, TOKEN_HUB);
+        emit TransferInSuccess(user1, 1000 ether);
 
         vm.prank(CROSS_CHAIN);
-        bytes memory data = tokenHub.handleSynPackage(TRANSFER_IN_CHANNEL_ID, msgBytes);
-        assertEq(keccak256(data), keccak256(abi.encode(transInAckPkg)), "invalid refund pkg");
+        tokenHub.handleSynPackage(TRANSFER_IN_CHANNEL_ID, msgBytes);
+
+        vm.expectRevert("still on locking period");
+        tokenHub.withdrawUnlockedToken(user1);
+
+        vm.startPrank(CROSS_CHAIN);
+
+        vm.expectEmit(true, true, true, true, TOKEN_HUB);
+        emit CancelTransfer(user1, 1000 ether);
+        tokenHub.cancelTransferIn(user1);
+
+        vm.expectRevert("no locked amount");
+        tokenHub.withdrawUnlockedToken(user1);
+
+        vm.stopPrank();
     }
 
     function test_refund_correct_case() public {
@@ -105,16 +134,6 @@ contract TokenHubTest is Test, TokenHub {
         tokenHub.handleAckPackage(TRANSFER_OUT_CHANNEL_ID, 1, msgBytes, 0);
 
         assertEq(developer.balance, initBalance + 123 ether, "invalid refund amount");
-    }
-
-    function test_refund_error_case() public {
-        // CROSS_CHAIN cannot receive BNB transfers since the receive() interface is not implemented by CROSS_CHAIN
-        TransferOutAckPackage memory pkg = TransferOutAckPackage(1233 ether, developer, 1);
-        bytes memory msgBytes = abi.encode(pkg);
-
-        vm.expectRevert("exceed max transfer amount");
-        vm.prank(CROSS_CHAIN);
-        tokenHub.handleAckPackage(TRANSFER_OUT_CHANNEL_ID, 1, msgBytes, 0);
     }
 
     function test_decode_transferInRefund() public view {
