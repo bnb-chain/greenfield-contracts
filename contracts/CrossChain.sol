@@ -7,7 +7,6 @@ import "./interface/IMiddleLayer.sol";
 import "./interface/ITokenHub.sol";
 import "./interface/ILightClient.sol";
 import "./interface/IRelayerHub.sol";
-import "./lib/Memory.sol";
 import "./lib/BytesToTypes.sol";
 import "./Config.sol";
 import "./interface/ICrossChain.sol";
@@ -334,12 +333,12 @@ contract CrossChain is Config, Initializable, ICrossChain {
 
     function updateParam(string calldata key, bytes calldata value) external onlyGov whenNotSuspended {
         uint256 valueLength = value.length;
-        if (Memory.compareStrings(key, "relayFee")) {
+        if (_compareStrings(key, "relayFee")) {
             require(valueLength == 32, "invalid relayFee value length");
             uint256 newRelayFee = BytesToTypes.bytesToUint256(valueLength, value);
             require(newRelayFee <= 1 ether && newRelayFee > 0, "the newRelayFee should be in (0, 1 ether]");
             relayFee = newRelayFee;
-        } else if (Memory.compareStrings(key, "minAckRelayFee")) {
+        } else if (_compareStrings(key, "minAckRelayFee")) {
             require(valueLength == 32, "invalid minAckRelayFee value length");
             uint256 newMinAckRelayFee = BytesToTypes.bytesToUint256(valueLength, value);
             require(
@@ -347,7 +346,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
                 "the newMinAckRelayFee should be in (0, 1 ether]"
             );
             minAckRelayFee = newMinAckRelayFee;
-        } else if (Memory.compareStrings(key, "batchSizeForOracle")) {
+        } else if (_compareStrings(key, "batchSizeForOracle")) {
             require(valueLength == 32, "invalid batchSizeForOracle value length");
             uint256 newBatchSizeForOracle = BytesToTypes.bytesToUint256(valueLength, value);
             require(
@@ -355,7 +354,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
                 "the newBatchSizeForOracle should be in [10, 10000]"
             );
             batchSizeForOracle = newBatchSizeForOracle;
-        } else if (Memory.compareStrings(key, "callbackGasPrice")) {
+        } else if (_compareStrings(key, "callbackGasPrice")) {
             require(valueLength == 32, "invalid callbackGasPrice value length");
             uint256 newCallbackGasPrice = BytesToTypes.bytesToUint256(valueLength, value);
             require(
@@ -363,7 +362,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
                 "the newCallbackGasPrice should be in (0, 1000 gwei)"
             );
             callbackGasPrice = newCallbackGasPrice;
-        } else if (Memory.compareStrings(key, "addOrUpdateChannel")) {
+        } else if (_compareStrings(key, "addOrUpdateChannel")) {
             require(
                 valueLength == 21,
                 "length of value for addOrUpdateChannel should be 21, channelId + handlerAddress"
@@ -383,7 +382,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
             channelHandlerMap[channelId] = handlerContract;
             registeredContractChannelMap[handlerContract][channelId] = true;
             emit AddChannel(channelId, handlerContract);
-        } else if (Memory.compareStrings(key, "enableOrDisableChannel")) {
+        } else if (_compareStrings(key, "enableOrDisableChannel")) {
             bytes memory valueLocal = value;
             require(
                 valueLocal.length == 2,
@@ -407,17 +406,17 @@ contract CrossChain is Config, Initializable, ICrossChain {
                 registeredContractChannelMap[handlerContract][channelId] = isEnable;
                 emit EnableOrDisableChannel(channelId, isEnable);
             }
-        } else if (Memory.compareStrings(key, "suspendQuorum")) {
+        } else if (_compareStrings(key, "suspendQuorum")) {
             require(value.length == 2, "length of value for suspendQuorum should be 2");
             uint16 suspendQuorum = BytesToTypes.bytesToUint16(2, value);
             require(suspendQuorum > 0 && suspendQuorum < 100, "invalid suspend quorum");
             quorumMap[SUSPEND_PROPOSAL] = suspendQuorum;
-        } else if (Memory.compareStrings(key, "reopenQuorum")) {
+        } else if (_compareStrings(key, "reopenQuorum")) {
             require(value.length == 2, "length of value for reopenQuorum should be 2");
             uint16 reopenQuorum = BytesToTypes.bytesToUint16(2, value);
             require(reopenQuorum > 0 && reopenQuorum < 100, "invalid reopen quorum");
             quorumMap[REOPEN_PROPOSAL] = reopenQuorum;
-        } else if (Memory.compareStrings(key, "cancelTransferQuorum")) {
+        } else if (_compareStrings(key, "cancelTransferQuorum")) {
             require(value.length == 2, "length of value for cancelTransferQuorum should be 2");
             uint16 cancelTransferQuorum = BytesToTypes.bytesToUint16(2, value);
             require(cancelTransferQuorum > 0 && cancelTransferQuorum < 100, "invalid cancel transfer quorum");

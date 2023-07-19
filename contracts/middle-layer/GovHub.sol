@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../interface/IParamSubscriber.sol";
 import "../interface/IProxyAdmin.sol";
 import "../lib/BytesToTypes.sol";
-import "../lib/Memory.sol";
 import "../lib/CmnPkg.sol";
 
 import "../Config.sol";
