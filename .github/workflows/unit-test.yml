@@ -37,8 +37,7 @@ jobs:
           npm install
           npm install pm2 -g
           pm2 start --name local-chain "anvil -b 1 --block-base-fee-per-gas 0"
-          pm2 start --name hardhat-build "npx hardhat compile"
-          sleep 20
+          sleep 5
         env:
           PORT: 8545
 
@@ -47,20 +46,15 @@ jobs:
           forge install --no-git --no-commit foundry-rs/forge-std@v1.5.6
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts@v4.8.3
           forge install --no-git --no-commit openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
-          npx hardhat compile
       - name: Build project
         run: |
-          make build
-          npx hardhat compile
           npm run lint:check
           forge build
           npx hardhat compile
       - name: Deploy on Local
         run: |
-          npx hardhat compile
           npx hardhat run scripts/1-deploy.ts --network local
           sleep 5
       - name: Unit Test
         run: |
           npm run test
-
