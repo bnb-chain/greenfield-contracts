@@ -8,4 +8,6 @@ interface ITokenHub {
     function refundCallbackGasFee(address _refundAddress, uint256 _refundFee) external;
 
     function cancelTransferIn(address attacker) external;
+
+    function transferOut(address recipient, uint256 amount) external payable returns (bool);
 }

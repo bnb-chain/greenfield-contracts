@@ -168,7 +168,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
      * @param recipient The destination address of the cross-chain transfer on GNFD.
      * @param amount The amount to transfer
      */
-    function transferOut(address recipient, uint256 amount) external payable returns (bool) {
+    function transferOut(address recipient, uint256 amount) external payable override returns (bool) {
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
 
         require(
