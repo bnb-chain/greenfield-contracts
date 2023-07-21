@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "./storage/CmnStorage.sol";
-import "../../lib/Memory.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICmnHub.sol";
 import "../../interface/IERC721NonTransferable.sol";
@@ -67,7 +66,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
 
     /*----------------- update param -----------------*/
     function updateParam(string calldata key, bytes calldata value) external virtual onlyGov {
-        if (Memory.compareStrings(key, "BaseURI")) {
+        if (_compareStrings(key, "BaseURI")) {
             IERC721NonTransferable(ERC721Token).setBaseURI(string(value));
         } else {
             revert("unknown param");

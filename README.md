@@ -215,6 +215,17 @@ npm run deploy:local
 forge t -vvv --ffi
 ```
 
+
+## Large Transfer Unlock
+```shell script
+npm install typescript ts-node -g
+
+cp .env.example .env
+# set RPC_URL, OPERATOR_PRIVATE_KEY, UNLOCK_RECEIVER to .env
+
+ts-node scripts/6-claim-unlock-bot.ts
+```
+
 ## Disclaimer
 **The software and related documentation are under active development, all subject to potential future change without
 notification and not ready for production use. The code and security audit have not been fully completed and not ready
