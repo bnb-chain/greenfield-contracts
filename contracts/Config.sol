@@ -37,6 +37,10 @@ abstract contract Config {
         _;
     }
 
+    function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
+        return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
+    }
+
     // Please note this is a weak check, don't use this when you need a strong verification.
     function _isContract(address account) internal view returns (bool) {
         return account.code.length > 0;

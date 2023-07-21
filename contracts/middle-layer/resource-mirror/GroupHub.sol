@@ -131,9 +131,9 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
 
     /*----------------- update param -----------------*/
     function updateParam(string calldata key, bytes calldata value) external override onlyGov {
-        if (Memory.compareStrings(key, "ERC721BaseURI")) {
+        if (_compareStrings(key, "ERC721BaseURI")) {
             IERC721NonTransferable(ERC721Token).setBaseURI(string(value));
-        } else if (Memory.compareStrings(key, "ERC1155BaseURI")) {
+        } else if (_compareStrings(key, "ERC1155BaseURI")) {
             IERC1155NonTransferable(ERC1155Token).setBaseURI(string(value));
         } else {
             revert("unknown param");

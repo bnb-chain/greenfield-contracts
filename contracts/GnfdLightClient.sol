@@ -289,7 +289,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
 
     function updateParam(string calldata key, bytes calldata value) external onlyGov {
         uint256 valueLength = value.length;
-        if (Memory.compareStrings(key, "inTurnRelayerRelayInterval")) {
+        if (_compareStrings(key, "inTurnRelayerRelayInterval")) {
             require(valueLength == 32, "length of value for inTurnRelayerRelayInterval should be 32");
             uint256 newInTurnRelayerRelayInterval = BytesToTypes.bytesToUint256(valueLength, value);
             require(
@@ -297,7 +297,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
                 "the newInTurnRelayerRelayInterval should be [300, 1800 seconds] "
             );
             inTurnRelayerRelayInterval = newInTurnRelayerRelayInterval;
-        } else if (Memory.compareStrings(key, "inTurnRelayerValidityPeriod")) {
+        } else if (_compareStrings(key, "inTurnRelayerValidityPeriod")) {
             require(valueLength == 32, "length of value for inTurnRelayerValidityPeriod should be 32");
             uint256 newInTurnRelayerValidityPeriod = BytesToTypes.bytesToUint256(valueLength, value);
             require(

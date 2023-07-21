@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../interface/IParamSubscriber.sol";
 import "../interface/IProxyAdmin.sol";
 import "../lib/BytesToTypes.sol";
-import "../lib/Memory.sol";
 import "../lib/CmnPkg.sol";
 
 import "../Config.sol";
@@ -98,7 +97,7 @@ contract GovHub is Config, Initializable, IMiddleLayer {
                 (lastVersion, lastName, ) = Config(target).versionInfo();
                 IProxyAdmin(PROXY_ADMIN).upgrade(target, newImpl);
                 (newVersion, newName, ) = Config(target).versionInfo();
-                require(newVersion == lastVersion + 1, "invalid upgrade version");
+                require(newVersion > lastVersion, "invalid upgrade version");
                 require(
                     keccak256(abi.encodePacked(lastName)) == keccak256(abi.encodePacked(newName)),
                     "invalid upgrade name"
