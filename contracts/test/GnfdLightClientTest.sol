@@ -76,7 +76,7 @@ contract GnfdLightClientTest is Initializable, Config, ILightClient {
         consensusStateBytes = _initConsensusStateBytes;
 
         inTurnRelayerRelayInterval = 600 seconds;
-        inTurnRelayerValidityPeriod = 45 seconds;
+        inTurnRelayerValidityPeriod = 30 seconds;
 
         emit InitConsensusState(gnfdHeight);
     }
@@ -302,8 +302,8 @@ contract GnfdLightClientTest is Initializable, Config, ILightClient {
             require(valueLength == 32, "length of value for inTurnRelayerValidityPeriod should be 32");
             uint256 newInTurnRelayerValidityPeriod = BytesToTypes.bytesToUint256(valueLength, value);
             require(
-                newInTurnRelayerValidityPeriod >= 30 && newInTurnRelayerValidityPeriod <= 100,
-                "the newInTurnRelayerValidityPeriod should be [30, 100 seconds] "
+                newInTurnRelayerValidityPeriod >= 20 && newInTurnRelayerValidityPeriod <= 100,
+                "the newInTurnRelayerValidityPeriod should be [20, 100 seconds] "
             );
             inTurnRelayerValidityPeriod = newInTurnRelayerValidityPeriod;
         } else {
