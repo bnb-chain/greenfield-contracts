@@ -1,6 +1,6 @@
 {
   "name": "@bnb-chain/greenfield-contracts",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "description": "Smart contracts for Greenfield and BSC Cross-Chain communication",
   "files": [
     "/contracts/**/*.sol"
