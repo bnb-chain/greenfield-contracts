@@ -120,28 +120,26 @@ npm run deploy:bsc
 - Greenfield Storage dApp: https://dcellar.io/
 - Greenfield Explorer: http://greenfieldscan.com/
 
-```json
-{
-  "DeployCommitId": "c31dfef545368ab96ce7c517247176d157086ba6",
-  "Deployer": "0xf917c1F09449bF4DD751052f46726bB96fC9484f",
-  "ProxyAdmin": "0x867C32275D8ae3ed8598f4440B5178f11A7f9559",
-  "GovHub": "0x09EffF3e2E584CA6aD7fc5F759bA26930acbD225",
-  "CrossChain": "0x57b8A375193b2e9c6481f167BaECF1feEf9F7d4B",
-  "TokenHub": "0x860034FbC1446A244eb131CE5531Aa68Dc33466d",
-  "LightClient": "0x4916f5c0688d058659aFce361E2A8F3F5b75CAd5",
-  "RelayerHub": "0x66897d19a014d29019A1799b76039Ea2a48e9F1b",
-  "BucketHub": "0x0bB5Cc7C520295fF4BBd3de846FBE27022CA5eF7",
-  "ObjectHub": "0xA936D3bD88B0179108f3578DC247528BE37E7E39",
-  "GroupHub": "0x0Bf7D3Ed3F777D7fB8D65Fb21ba4FBD9F584B579",
-  "AdditionalBucketHub": "0xE8c5eb8e42F0c7aF746409c71Fab5fbE9a5d6EC2",
-  "AdditionalObjectHub": "0x458CA8900b70fd8843c749D0899D5c11071A0E6b",
-  "AdditionalGroupHub": "0xb629e36c65d575606f493BBDaf3474BDb47dE8A2",
-  "BucketERC721Token": "0x541445f3D951718a029523909dDE56F67D880F38",
-  "ObjectERC721Token": "0xc7ec92076413f878F9B045b9327DffC10D718f84",
-  "GroupERC721Token": "0x089AFF7964E435eB2C7b296B371078B18E2C9A35",
-  "MemberERC1155Token": "0x80Dd11998159cbea4BF79650fCc5Da72Ffb51EFc"
-}
-```
+## Contract Entrypoint
+
+### Testnet
+
+| contract name | address                                    |
+|---------------|--------------------------------------------|
+| CrossChain    | 0x93Cf63F9Db8F2B6614Bf507eAaeb29c4D1EfA388 |
+| TokenHub      | 0x8B7161A47f7eB5d16Cef291Ba320d4C499a9E51A |
+| BucketHub     | 0xFAdD8F4081E64Ff3950f5831A83d7Be8D65Df5f4 |
+| ObjectHub     | 0xcae1547e838aFe97585d5e661272D5aF228bE560 |
+| GroupHub      | 0x28BCd1062dFc8fa6Ab3CA685C48A0e18ddBf1dBf |
+
+Extra:
+
+| contract name | address                                    |
+|---------------|--------------------------------------------|
+| Deployer      | 0xe1f7b4A7729fdb84D62901ba318cdDB6Cc490431 |
+| ProxyAdmin    | 0xe67e17b18404002c8faF56087F7eA7e2D7CbFCf1 |
+| LightClient   | 0x7Df5f0536E008E1Dd073Eb3d623D9fd476a6EBc0 |
+| RelayerHub    | 0x701F1f576E1236EC7d607F32c7e5395E9856B7D6 |
 
 ## Verify on BSCScan
 ```shell
