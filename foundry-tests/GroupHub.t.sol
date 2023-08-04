@@ -126,15 +126,18 @@ contract GroupHubTest is Test, GroupHub {
         groupToken.mint(address(this), id);
 
         address[] memory newMembers = new address[](3);
+        uint64[] memory newMembersExpiration = new uint64[](3);
         for (uint256 i; i < 3; i++) {
             newMembers[i] = address(uint160(i + 1));
+            newMembersExpiration[i] = uint64(block.timestamp + 10000000);
         }
         UpdateGroupSynPackage memory synPkg = UpdateGroupSynPackage({
             operator: address(this),
             id: id,
             opType: UpdateGroupOpType.AddMembers,
             members: newMembers,
-            extraData: ""
+            extraData: "",
+            memberExpiration: newMembersExpiration
         });
 
         vm.expectEmit(true, true, true, true, address(groupHub));

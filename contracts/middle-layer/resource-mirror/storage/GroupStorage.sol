@@ -34,6 +34,7 @@ contract GroupStorage is CmnStorage {
         UpdateGroupOpType opType;
         address[] members;
         bytes extraData; // abi.encode of ExtraData
+        uint64[] memberExpiration; // timestamp(UNIX) of member expiration
     }
 
     // GNFD to BSC
@@ -48,7 +49,8 @@ contract GroupStorage is CmnStorage {
 
     enum UpdateGroupOpType {
         AddMembers,
-        RemoveMembers
+        RemoveMembers,
+        RenweMembers
     }
 
     event UpdateSubmitted(address owner, address operator, uint256 id, uint8 opType, address[] members);
