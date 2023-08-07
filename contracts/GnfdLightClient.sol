@@ -98,8 +98,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
             tmp := mload(ptr)
         }
 
-        // TODO: we will optimize here in the next version
-        bool validatorSetChanged = true;
+        bool validatorSetChanged = (tmp >> 248) != 0x00;
         uint256 consensusStateLength = tmp & 0xffffffffffffffff;
         ptr = ptr + CONSENSUS_STATE_BYTES_LENGTH;
 
