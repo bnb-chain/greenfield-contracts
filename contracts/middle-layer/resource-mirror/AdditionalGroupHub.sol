@@ -271,6 +271,11 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param synPkg Package containing information of the group to be updated
      */
     function updateGroup(UpdateGroupSynPackage memory synPkg) external payable returns (bool) {
+        // check synPkg
+        if (synPkg.opType == UpdateGroupOpType.AddMembers || synPkg.opType == UpdateGroupOpType.RenweMembers) {
+            require(synPkg.members.length == synPkg.memberExpiration.length, "member and expiration length mismatch");
+        }
+
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
@@ -318,6 +323,11 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
+        // check synPkg
+        if (synPkg.opType == UpdateGroupOpType.AddMembers || synPkg.opType == UpdateGroupOpType.RenweMembers) {
+            require(synPkg.members.length == synPkg.memberExpiration.length, "member and expiration length mismatch");
+        }
+
         // check relay fee and callback fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
