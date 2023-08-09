@@ -73,6 +73,15 @@ contract GovHub is Config, Initializable, IMiddleLayer {
         revert("receive unexpected fail ack package");
     }
 
+    function emergencyUpdate(
+        string memory key,
+        bytes memory values,
+        bytes memory targets
+    ) external onlyEmergencyOperator {
+        ParamChangePackage memory _proposal = ParamChangePackage(key, values, targets);
+        _notifyUpdates(_proposal);
+    }
+
     function _notifyUpdates(ParamChangePackage memory proposal) internal returns (uint32) {
         require(proposal.targets.length > 0 && proposal.targets.length % 20 == 0, "invalid target length");
         uint256 totalTargets = proposal.targets.length / 20;
