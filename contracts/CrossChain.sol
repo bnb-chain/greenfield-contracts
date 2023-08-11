@@ -130,7 +130,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         require(block.chainid <= type(uint16).max, "chain id overflow");
 
         relayFee = 25 * 1e13;
-        minAckRelayFee = 25 * 1e13;
+        minAckRelayFee = 130 * 1e13;
 
         chainId = uint16(block.chainid);
         gnfdChainId = _gnfdChainId;

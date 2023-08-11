@@ -25,8 +25,8 @@ contract CrossChainTest is Helper {
         address receipt = user1;
         uint256 amount = 1 ether;
         vm.expectEmit(true, true, true, true, address(tokenHub));
-        emit TransferOutSuccess(developer, 1 ether, 250000000000000, 250000000000000);
-        tokenHub.transferOut{ value: amount + 500000000000000 }(receipt, amount);
+        emit TransferOutSuccess(developer, 1 ether, 25 * 1e13, 130 * 1e13);
+        tokenHub.transferOut{ value: amount + 155 * 1e13 }(receipt, amount);
         vm.stopPrank();
     }
 
