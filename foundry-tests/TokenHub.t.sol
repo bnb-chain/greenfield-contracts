@@ -46,8 +46,8 @@ contract TokenHubTest is Test, TokenHub {
     function test_transferOut_correct_case() public {
         vm.startPrank(developer);
         vm.expectEmit(true, true, true, true, TOKEN_HUB);
-        emit TransferOutSuccess(developer, 123 ether, 25 * 1e13, 120 * 1e13);
-        tokenHub.transferOut{ value: 123 ether + 145 * 1e13 }(user1, 123 ether);
+        emit TransferOutSuccess(developer, 123 ether, 25 * 1e13, 130 * 1e13);
+        tokenHub.transferOut{ value: 123 ether + 155 * 1e13 }(user1, 123 ether);
         vm.stopPrank();
     }
 
