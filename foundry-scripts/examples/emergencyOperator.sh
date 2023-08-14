@@ -1,3 +1,7 @@
+# emergency update abi for gnosis wallet
+# target contract: GovHub address
+# [{"inputs": [{"internalType": "string","name": "key","type": "string"},{"internalType": "bytes","name": "values","type": "bytes"},{"internalType": "bytes","name": "targets","type": "bytes"}],"name": "emergencyUpdate","outputs": [],"stateMutability": "nonpayable","type": "function"}]
+
 # 1. generate EmergencyUpgrade params
 # set target contract and new implement contract
 forge script foundry-scripts/EmergencyOperator.s.sol:EmergencyOperatorScript \
@@ -8,6 +12,7 @@ ${the target contract} ${new implement for the target} \
 
 # 2. generate EmergencyUpgrade contracts params
 # set target contracts and new implement contracts
+# params example: "[0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266]" "[0x70997970C51812dc3A010C7d01b50e0d17dc79C8,0x70997970C51812dc3A010C7d01b50e0d17dc79C8]"
 forge script foundry-scripts/EmergencyOperator.s.sol:EmergencyOperatorScript \
 --sig "generateEmergencyUpgrades(address[] memory _targets, address[] memory _newImpls)" \
 ${the target contracts separated by commas} ${new implements separated by commas} \
