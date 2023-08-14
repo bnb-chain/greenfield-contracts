@@ -67,6 +67,27 @@ contract EmergencyOperatorScript is Helper {
         vm.stopBroadcast();
     }
 
+    function emergencySuspend() external {
+        // start broadcast real tx
+        vm.startBroadcast();
+        crossChain.emergencySuspend();
+        vm.stopBroadcast();
+    }
+
+    function emergencyReopen() external {
+        // start broadcast real tx
+        vm.startBroadcast();
+        crossChain.emergencyReopen();
+        vm.stopBroadcast();
+    }
+
+    function emergencyCancelTransfer(address attacker) external {
+        // start broadcast real tx
+        vm.startBroadcast();
+        crossChain.emergencyCancelTransfer(attacker);
+        vm.stopBroadcast();
+    }
+
     function _addressListToBytes(address[] memory _addresses) internal pure returns (bytes memory) {
         bytes memory result = new bytes(_addresses.length * 20);
         for (uint256 i = 0; i < _addresses.length; i++) {
