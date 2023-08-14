@@ -27,3 +27,24 @@ ${the param key} ${the target contract} ${new value for param} \
 -f https://data-seed-prebsc-1-s1.binance.org:8545/ \
 --legacy --ffi
 
+# 4. send emergencySuspend tx on testnet
+forge script foundry-scripts/EmergencyOperator.s.sol:EmergencyOperatorScript \
+--private-key ${your private key} \
+--sig "emergencySuspend()" \
+-f https://data-seed-prebsc-1-s1.binance.org:8545/ \
+--legacy --ffi --broadcast
+
+# 5. send emergencyReopen tx
+forge script foundry-scripts/EmergencyOperator.s.sol:EmergencyOperatorScript \
+--private-key ${your private key} \
+--sig "emergencyReopen()" \
+-f https://data-seed-prebsc-1-s1.binance.org:8545/ \
+--legacy --ffi --broadcast
+
+# 6. send emergencyCancelTransfer tx
+forge script foundry-scripts/EmergencyOperator.s.sol:EmergencyOperatorScript \
+--private-key ${your private key} \
+--sig "emergencyCancelTransfer(address attacker)" \
+${attacker address} \
+-f https://data-seed-prebsc-1-s1.binance.org:8545/ \
+--legacy --ffi --broadcast
