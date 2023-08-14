@@ -23,6 +23,7 @@ abstract contract Config {
     address public constant BUCKET_HUB = address(0);
     address public constant OBJECT_HUB = address(0);
     address public constant GROUP_HUB = address(0);
+    address public constant EMERGENCY_OPERATOR = address(0);
 
     // PlaceHolder reserve for future usage
     uint256[50] public ConfigSlots;
@@ -34,6 +35,11 @@ abstract contract Config {
 
     modifier onlyGov() {
         require(msg.sender == GOV_HUB, "only GovHub contract");
+        _;
+    }
+
+    modifier onlyEmergencyOperator() {
+        require(msg.sender == EMERGENCY_OPERATOR, "only Emergency Operator");
         _;
     }
 

@@ -331,6 +331,10 @@ contract CrossChain is Config, Initializable, ICrossChain {
         }
     }
 
+    function emergencyCancelTransfer(address attacker) external onlyEmergencyOperator {
+        ITokenHub(TOKEN_HUB).cancelTransferIn(attacker);
+    }
+
     function updateParam(string calldata key, bytes calldata value) external onlyGov whenNotSuspended {
         uint256 valueLength = value.length;
         if (_compareStrings(key, "relayFee")) {
