@@ -70,7 +70,9 @@ const main = async () => {
             throw new Error('emergencyOperator is not multi-sig contract');
         }
     } else { // BSC Testnet
-        emergencyOperator = operator.address
+        if (!emergencyOperator) {
+            emergencyOperator = operator.address
+        }
     }
 
     log('emergencyOperator: ', emergencyOperator);
