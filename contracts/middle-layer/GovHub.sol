@@ -114,7 +114,10 @@ contract GovHub is Config, Initializable, IMiddleLayer {
                 require(Config(target).CROSS_CHAIN() == CROSS_CHAIN, "cross chain changed after upgrade");
                 require(Config(target).PROXY_ADMIN() == PROXY_ADMIN, "proxy admin changed after upgrade");
                 require(Config(target).GOV_HUB() == GOV_HUB, "gov hub changed after upgrade");
-                require(Config(target).EMERGENCY_OPERATOR() == EMERGENCY_OPERATOR, "emergency operator changed after upgrade");
+                require(
+                    Config(target).EMERGENCY_OPERATOR() == EMERGENCY_OPERATOR,
+                    "emergency operator changed after upgrade"
+                );
 
                 emit SuccessUpgrade(target, newImpl);
             }
