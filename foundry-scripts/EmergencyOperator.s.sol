@@ -9,7 +9,7 @@ contract EmergencyOperatorScript is Helper {
         bytes targets;
     }
 
-    function generateEmergencyUpgrade(address target, address newImpl) external view {
+    function generateEmergencyUpgrade(address target, address newImpl) external {
         string memory key = "upgrade";
         bytes memory values = abi.encodePacked(newImpl);
         bytes memory targets = abi.encodePacked(target);
@@ -21,12 +21,19 @@ contract EmergencyOperatorScript is Helper {
 
         console.log("targets: ");
         console.logBytes(targets);
+
+        // start broadcast real tx
+        vm.startBroadcast();
+        govHub.emergencyUpdate(key, values, targets);
+        vm.stopBroadcast();
     }
 
-    function generateEmergencyUpgrades(address[] memory _targets, address[] memory _newImpls) external view {
+    function generateEmergencyUpgrades(address[] memory _targets, address[] memory _newImpls) external {
         string memory key = "upgrade";
-        bytes memory values = abi.encodePacked(_newImpls);
-        bytes memory targets = abi.encodePacked(_targets);
+        require(_targets.length == _newImpls.length, "length not match");
+
+        bytes memory values = _addressListToBytes(_newImpls);
+        bytes memory targets = _addressListToBytes(_targets);
 
         console.log("key", key);
 
@@ -35,9 +42,14 @@ contract EmergencyOperatorScript is Helper {
 
         console.log("targets: ");
         console.logBytes(targets);
+
+        // start broadcast real tx
+        vm.startBroadcast();
+        govHub.emergencyUpdate(key, values, targets);
+        vm.stopBroadcast();
     }
 
-    function generateEmergencyUpdateParam(string memory key, address target, uint256 newValue) external view {
+    function generateEmergencyUpdateParam(string memory key, address target, uint256 newValue) external {
         bytes memory values = abi.encodePacked(newValue);
         bytes memory targets = abi.encodePacked(target);
 
@@ -48,6 +60,20 @@ contract EmergencyOperatorScript is Helper {
 
         console.log("targets: ");
         console.logBytes(targets);
+
+        // start broadcast real tx
+        vm.startBroadcast();
+        govHub.emergencyUpdate(key, values, targets);
+        vm.stopBroadcast();
     }
 
+    function _addressListToBytes(address[] memory _addresses) internal pure returns (bytes memory) {
+        bytes memory result = new bytes(_addresses.length * 20);
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            for (uint256 j = 0; j < 20; j++) {
+                result[i * 20 + j] = bytes20(_addresses[i])[j];
+            }
+        }
+        return result;
+    }
 }
