@@ -59,7 +59,7 @@ contract GovHubTest is Test, GovHub {
 
         vm.expectEmit(true, true, false, true, BUCKET_HUB);
         emit ParamChange("BaseURI", bytes("newBucket"));
-        vm.prank(EMERGENCY_OPERATOR);
+        vm.prank(EMERGENCY_UPGRADE_OPERATOR);
         govHub.emergencyUpdate(proposal.key, proposal.values, proposal.targets);
     }
 
@@ -73,7 +73,7 @@ contract GovHubTest is Test, GovHub {
 
         vm.expectEmit(true, true, true, true, GOV_HUB);
         emit SuccessUpgrade(LIGHT_CLIENT, _newLightClient);
-        vm.prank(EMERGENCY_OPERATOR);
+        vm.prank(EMERGENCY_UPGRADE_OPERATOR);
         govHub.emergencyUpdate(proposal.key, proposal.values, proposal.targets);
     }
 
@@ -84,7 +84,7 @@ contract GovHubTest is Test, GovHub {
             targets: abi.encodePacked(BUCKET_HUB)
         });
 
-        vm.expectRevert("only Emergency Operator");
+        vm.expectRevert("only Emergency Upgrade Operator");
         govHub.emergencyUpdate(proposal.key, proposal.values, proposal.targets);
     }
 

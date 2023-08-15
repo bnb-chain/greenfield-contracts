@@ -42,7 +42,8 @@ const main = async () => {
         .replace(/BUCKET_HUB = .*/g, `BUCKET_HUB = ${proxyBucketHub};`)
         .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
         .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`)
-        .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${contracts.EmergencyOperator};`);
+        .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${contracts.EmergencyOperator};`)
+        .replace(/EMERGENCY_UPGRADE_OPERATOR = .*/g, `EMERGENCY_UPGRADE_OPERATOR = ${contracts.EmergencyUpgradeOperator};`);
 
     fs.writeFileSync(__dirname + '/../contracts/Config.sol', newConfig, 'utf8');
     await sleep(2);

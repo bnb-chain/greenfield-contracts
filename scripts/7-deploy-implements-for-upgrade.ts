@@ -74,6 +74,18 @@ const main = async () => {
     log(`values for upgrade:`);
     log(`"[${ newContracts.join(',') }]"`);
 
+
+
+    log(`params of multi-sig call:`);
+    log(`key:`);
+    log(`upgrade`);
+
+    log(`values:`);
+    log('0x' + newContracts.join('').replace(/0x/g, ''));
+
+    log(`targets:`);
+    log('0x' + targets.join('').replace(/0x/g, ''));
+
 };
 
 main()
