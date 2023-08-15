@@ -9,7 +9,8 @@ const log = console.log;
 const unit = ethers.constants.WeiPerEther;
 
 const gnfdChainId = 9000;
-let emergencyOperator = ''
+let emergencyOperator = '' // suspend / reopen / cancelTransfer
+let emergencyUpgradeOperator = '' // update params / upgrade contracts
 const initConsensusState: any = {
     chainID: 'greenfield_9000-1741',
     height: 1,
@@ -65,17 +66,32 @@ const main = async () => {
             throw new Error('emergencyOperator is not set');
         }
 
-        const code = await ethers.provider.getCode(emergencyOperator);
+        if (!emergencyUpgradeOperator) {
+            throw new Error('emergencyUpgradeOperator is not set');
+        }
+
+        let code = await ethers.provider.getCode(emergencyOperator);
         if (code.length < 10) {
             throw new Error('emergencyOperator is not multi-sig contract');
         }
+
+        code = await ethers.provider.getCode(emergencyUpgradeOperator);
+        if (code.length < 10) {
+            throw new Error('emergencyUpgradeOperator is not multi-sig contract');
+        }
+
     } else { // BSC Testnet
         if (!emergencyOperator) {
             emergencyOperator = operator.address
         }
+
+        if (!emergencyUpgradeOperator) {
+            emergencyUpgradeOperator = operator.address
+        }
     }
 
     log('emergencyOperator: ', emergencyOperator);
+    log('emergencyUpgradeOperator: ', emergencyUpgradeOperator);
 
     execSync('npx hardhat compile');
     await sleep(2);
@@ -107,6 +123,7 @@ const main = async () => {
         .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
         .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`)
         .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${emergencyOperator};`)
+        .replace(/EMERGENCY_UPGRADE_OPERATOR = .*/g, `EMERGENCY_UPGRADE_OPERATOR = ${emergencyUpgradeOperator};`)
 
     log('Set all generated contracts to Config contracts');
 
@@ -206,6 +223,8 @@ const main = async () => {
         BlockNumber: blockNumber,
 
         EmergencyOperator: emergencyOperator,
+        EmergencyUpgradeOperator: emergencyUpgradeOperator,
+
         Deployer: deployer.address,
 
         ProxyAdmin: proxyAdmin,

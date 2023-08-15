@@ -77,7 +77,7 @@ contract GovHub is Config, Initializable, IMiddleLayer {
         string memory key,
         bytes memory values,
         bytes memory targets
-    ) external onlyEmergencyOperator {
+    ) external onlyEmergencyUpgradeOperator {
         ParamChangePackage memory _proposal = ParamChangePackage(key, values, targets);
         _notifyUpdates(_proposal);
     }
@@ -114,9 +114,10 @@ contract GovHub is Config, Initializable, IMiddleLayer {
                 require(Config(target).CROSS_CHAIN() == CROSS_CHAIN, "cross chain changed after upgrade");
                 require(Config(target).PROXY_ADMIN() == PROXY_ADMIN, "proxy admin changed after upgrade");
                 require(Config(target).GOV_HUB() == GOV_HUB, "gov hub changed after upgrade");
+                require(Config(target).EMERGENCY_OPERATOR() == EMERGENCY_OPERATOR, "emergency operator changed");
                 require(
-                    Config(target).EMERGENCY_OPERATOR() == EMERGENCY_OPERATOR,
-                    "emergency operator changed after upgrade"
+                    Config(target).EMERGENCY_UPGRADE_OPERATOR() == EMERGENCY_UPGRADE_OPERATOR,
+                    "emergency upgrade operator changed"
                 );
 
                 emit SuccessUpgrade(target, newImpl);
