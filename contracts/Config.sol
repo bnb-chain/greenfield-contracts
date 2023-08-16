@@ -27,7 +27,7 @@ abstract contract Config {
     address public constant EMERGENCY_UPGRADE_OPERATOR = address(0);
 
     // PlaceHolder reserve for future usage
-    uint256[50] public ConfigSlots;
+    uint256[50] private configSlots;
 
     modifier onlyCrossChain() {
         require(msg.sender == CROSS_CHAIN, "only CrossChain contract");
