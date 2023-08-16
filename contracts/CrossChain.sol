@@ -130,7 +130,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         require(block.chainid <= type(uint16).max, "chain id overflow");
 
         relayFee = 25 * 1e13;
-        minAckRelayFee = 25 * 1e13;
+        minAckRelayFee = 130 * 1e13;
 
         chainId = uint16(block.chainid);
         gnfdChainId = _gnfdChainId;
@@ -329,6 +329,20 @@ contract CrossChain is Config, Initializable, ICrossChain {
         if (isExecutable) {
             ITokenHub(TOKEN_HUB).cancelTransferIn(attacker);
         }
+    }
+
+    function emergencyCancelTransfer(address attacker) external onlyEmergencyOperator {
+        ITokenHub(TOKEN_HUB).cancelTransferIn(attacker);
+    }
+
+    function emergencySuspend() external onlyEmergencyOperator whenNotSuspended {
+        isSuspended = true;
+        emit Suspended(msg.sender);
+    }
+
+    function emergencyReopen() external onlyEmergencyOperator whenSuspended {
+        isSuspended = false;
+        emit Reopened(msg.sender);
     }
 
     function updateParam(string calldata key, bytes calldata value) external onlyGov whenNotSuspended {

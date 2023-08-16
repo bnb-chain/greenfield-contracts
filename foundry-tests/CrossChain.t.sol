@@ -25,8 +25,8 @@ contract CrossChainTest is Helper {
         address receipt = user1;
         uint256 amount = 1 ether;
         vm.expectEmit(true, true, true, true, address(tokenHub));
-        emit TransferOutSuccess(developer, 1 ether, 250000000000000, 250000000000000);
-        tokenHub.transferOut{ value: amount + 500000000000000 }(receipt, amount);
+        emit TransferOutSuccess(developer, 1 ether, 25 * 1e13, 130 * 1e13);
+        tokenHub.transferOut{ value: amount + 155 * 1e13 }(receipt, amount);
         vm.stopPrank();
     }
 
@@ -34,6 +34,44 @@ contract CrossChainTest is Helper {
         bytes
             memory _payload = hex"eb0a94fa1a93d8fe3834d33a6e79f795859367ca1229669450e3f659803ffdf09813bdef9be4a14ad85f31f8";
         this._checkPayload(_payload);
+    }
+
+    function test_emergency_operator_correct_case_1() public {
+        require(!crossChain.isSuspended(), "emergencySuspend");
+        vm.prank(EMERGENCY_OPERATOR);
+        crossChain.emergencySuspend();
+        require(crossChain.isSuspended(), "emergencySuspend failed");
+
+        vm.startPrank(developer);
+        address receipt = user1;
+        uint256 amount = 1 ether;
+        vm.expectRevert("suspended");
+        tokenHub.transferOut{ value: amount + 155 * 1e13 }(receipt, amount);
+        vm.stopPrank();
+
+        vm.prank(EMERGENCY_OPERATOR);
+        crossChain.emergencyReopen();
+        require(!crossChain.isSuspended(), "reopen failed");
+    }
+
+    function test_emergency_operator_error_case_1() public {
+        require(!crossChain.isSuspended(), "emergencySuspend");
+        vm.expectRevert("only Emergency Operator");
+        crossChain.emergencySuspend();
+
+        vm.prank(EMERGENCY_OPERATOR);
+        crossChain.emergencySuspend();
+        require(crossChain.isSuspended(), "emergencySuspend failed");
+
+        vm.expectRevert("only Emergency Operator");
+        crossChain.emergencyReopen();
+
+        vm.prank(EMERGENCY_OPERATOR);
+        crossChain.emergencyReopen();
+        require(!crossChain.isSuspended(), "reopen failed");
+
+        vm.expectRevert("only Emergency Operator");
+        crossChain.emergencyCancelTransfer(developer);
     }
 
     function iToHex(bytes memory buffer) public pure returns (string memory) {

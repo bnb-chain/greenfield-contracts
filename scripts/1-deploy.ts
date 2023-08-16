@@ -9,6 +9,8 @@ const log = console.log;
 const unit = ethers.constants.WeiPerEther;
 
 const gnfdChainId = 9000;
+let emergencyOperator = '' // suspend / reopen / cancelTransfer
+let emergencyUpgradeOperator = '' // update params / upgrade contracts
 const initConsensusState: any = {
     chainID: 'greenfield_9000-1741',
     height: 1,
@@ -58,6 +60,39 @@ const main = async () => {
     log('network', network);
     log('operator.address: ', operator.address, toHuman(balance));
 
+    // BSC Mainnet
+    if (network.chainId === 56) {
+        if (!emergencyOperator) {
+            throw new Error('emergencyOperator is not set');
+        }
+
+        if (!emergencyUpgradeOperator) {
+            throw new Error('emergencyUpgradeOperator is not set');
+        }
+
+        let code = await ethers.provider.getCode(emergencyOperator);
+        if (code.length < 10) {
+            throw new Error('emergencyOperator is not multi-sig contract');
+        }
+
+        code = await ethers.provider.getCode(emergencyUpgradeOperator);
+        if (code.length < 10) {
+            throw new Error('emergencyUpgradeOperator is not multi-sig contract');
+        }
+
+    } else { // BSC Testnet
+        if (!emergencyOperator) {
+            emergencyOperator = operator.address
+        }
+
+        if (!emergencyUpgradeOperator) {
+            emergencyUpgradeOperator = operator.address
+        }
+    }
+
+    log('emergencyOperator: ', emergencyOperator);
+    log('emergencyUpgradeOperator: ', emergencyUpgradeOperator);
+
     execSync('npx hardhat compile');
     await sleep(2);
 
@@ -86,7 +121,9 @@ const main = async () => {
         .replace(/RELAYER_HUB = .*/g, `RELAYER_HUB = ${proxyRelayerHub};`)
         .replace(/BUCKET_HUB = .*/g, `BUCKET_HUB = ${proxyBucketHub};`)
         .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
-        .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`);
+        .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`)
+        .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${emergencyOperator};`)
+        .replace(/EMERGENCY_UPGRADE_OPERATOR = .*/g, `EMERGENCY_UPGRADE_OPERATOR = ${emergencyUpgradeOperator};`)
 
     log('Set all generated contracts to Config contracts');
 
@@ -184,6 +221,9 @@ const main = async () => {
     const deployment: any = {
         DeployCommitId: commitId,
         BlockNumber: blockNumber,
+
+        EmergencyOperator: emergencyOperator,
+        EmergencyUpgradeOperator: emergencyUpgradeOperator,
 
         Deployer: deployer.address,
 

@@ -73,6 +73,15 @@ contract GovHub is Config, Initializable, IMiddleLayer {
         revert("receive unexpected fail ack package");
     }
 
+    function emergencyUpdate(
+        string memory key,
+        bytes memory values,
+        bytes memory targets
+    ) external onlyEmergencyUpgradeOperator {
+        ParamChangePackage memory _proposal = ParamChangePackage(key, values, targets);
+        _notifyUpdates(_proposal);
+    }
+
     function _notifyUpdates(ParamChangePackage memory proposal) internal returns (uint32) {
         require(proposal.targets.length > 0 && proposal.targets.length % 20 == 0, "invalid target length");
         uint256 totalTargets = proposal.targets.length / 20;
@@ -103,6 +112,13 @@ contract GovHub is Config, Initializable, IMiddleLayer {
                     "invalid upgrade name"
                 );
                 require(Config(target).CROSS_CHAIN() == CROSS_CHAIN, "cross chain changed after upgrade");
+                require(Config(target).PROXY_ADMIN() == PROXY_ADMIN, "proxy admin changed after upgrade");
+                require(Config(target).GOV_HUB() == GOV_HUB, "gov hub changed after upgrade");
+                require(Config(target).EMERGENCY_OPERATOR() == EMERGENCY_OPERATOR, "emergency operator changed");
+                require(
+                    Config(target).EMERGENCY_UPGRADE_OPERATOR() == EMERGENCY_UPGRADE_OPERATOR,
+                    "emergency upgrade operator changed"
+                );
 
                 emit SuccessUpgrade(target, newImpl);
             }
