@@ -144,7 +144,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         );
 
         // transfer all the fee to tokenHub
-        (success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
         emit CreateSubmitted(owner, msg.sender, synPkg.name);
@@ -240,7 +240,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         );
 
         // transfer all the fee to tokenHub
-        (success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
         emit DeleteSubmitted(owner, msg.sender, id);
