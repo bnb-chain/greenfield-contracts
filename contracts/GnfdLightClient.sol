@@ -142,7 +142,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         bytes calldata _payload,
         bytes calldata _blsSignature,
         uint256 _validatorSetBitMap
-    ) external view returns (bool) {
+    ) external view onlyCrossChain returns (bool) {
         require(isRelayer[tx.origin], "tx origin is not relayer");
 
         InturnRelayer memory inturnRelayer = getInturnRelayerWithInterval();

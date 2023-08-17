@@ -33,9 +33,6 @@ contract CmnStorage is Config, PackageQueue {
     address public ERC721Token;
     address public additional;
 
-    // PlaceHolder reserve for future use
-    uint256[25] public CmnStorageSlots;
-
     /*----------------- structs -----------------*/
     // cross-chain package
     // GNFD to BSC
@@ -92,4 +89,7 @@ contract CmnStorage is Config, PackageQueue {
     event FailAckPkgReceived(uint8 indexed channelId, bytes msgBytes);
     event UnexpectedPackage(uint8 indexed channelId, bytes msgBytes);
     event ParamChange(string key, bytes value);
+
+    // PlaceHolder reserve for future use
+    uint256[50] private __reservedCmnStorageSlots;
 }

@@ -16,6 +16,10 @@ import "../../interface/IERC721NonTransferable.sol";
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as GroupHub.
 contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
+    // PlaceHolder corresponding to `Initializable` contract
+    uint8 private _initialized;
+    bool private _initializing;
+
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     /*----------------- external function -----------------*/
@@ -113,7 +117,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param name The group's name
      * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset as the `msg.sender` all the time.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
      */
     function createGroup(
         address owner,
@@ -145,10 +149,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             extraData: abi.encode(extraData)
         });
 
-        // check refund address
-        (bool success, ) = extraData.refundAddress.call("");
-        require(success && (extraData.refundAddress != address(0)), "invalid refund address");
-
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
             abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
@@ -157,7 +157,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         );
 
         // transfer all the fee to tokenHub
-        (success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
         emit CreateSubmitted(owner, msg.sender, name);
@@ -210,7 +210,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param id The group's id
      * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset as the `msg.sender` all the time.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
      */
     function deleteGroup(
         uint256 id,
@@ -246,10 +246,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             extraData: abi.encode(extraData)
         });
 
-        // check refund address
-        (bool success, ) = extraData.refundAddress.call("");
-        require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
-
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
             abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
@@ -258,7 +254,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         );
 
         // transfer all the fee to tokenHub
-        (success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
         emit DeleteSubmitted(owner, msg.sender, id);
@@ -316,7 +312,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param synPkg Package containing information of the group to be updated
      * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset as the `msg.sender` all the time.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
      */
     function updateGroup(
         UpdateGroupSynPackage memory synPkg,
@@ -353,10 +349,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         extraData.appAddress = msg.sender;
         synPkg.extraData = abi.encode(extraData);
 
-        // check refund address
-        (bool success, ) = extraData.refundAddress.call("");
-        require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
-
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
             abi.encodePacked(TYPE_UPDATE, abi.encode(synPkg)),
@@ -365,7 +357,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         );
 
         // transfer all the fee to tokenHub
-        (success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
         emit UpdateSubmitted(owner, msg.sender, synPkg.id, uint8(synPkg.opType), synPkg.members);
