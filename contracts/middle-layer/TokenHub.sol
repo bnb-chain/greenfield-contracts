@@ -64,7 +64,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
     event TransferOutSuccess(address senderAddress, uint256 amount, uint256 relayFee, uint256 ackRelayFee);
     event RefundSuccess(address refundAddress, uint256 amount, uint32 status);
     event RefundFailure(address refundAddress, uint256 amount, uint32 status);
-    event RewardTo(address to, uint256 amount);
+    event TransferTo(address to, uint256 amount);
     event ReceiveDeposit(address from, uint256 amount);
     event UnexpectedPackage(uint8 channelId, uint64 sequence, bytes msgBytes);
     event ParamChange(string key, bytes value);
@@ -205,7 +205,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         if (actualAmount > 0) {
             (bool success, ) = msg.sender.call{ gas: MAX_GAS_FOR_TRANSFER_BNB, value: actualAmount }("");
             require(success, "transfer bnb error");
-            emit RewardTo(msg.sender, actualAmount);
+            emit TransferTo(msg.sender, actualAmount);
         }
 
         return actualAmount;

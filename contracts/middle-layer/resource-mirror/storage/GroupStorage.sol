@@ -18,9 +18,6 @@ contract GroupStorage is CmnStorage {
     /*----------------- storage -----------------*/
     address public ERC1155Token;
 
-    // PlaceHolder reserve for future use
-    uint256[25] public GroupStorageSlots;
-
     // BSC to GNFD
     struct CreateGroupSynPackage {
         address creator;
@@ -56,4 +53,7 @@ contract GroupStorage is CmnStorage {
     event UpdateSubmitted(address owner, address operator, uint256 id, uint8 opType, address[] members);
     event UpdateSuccess(address indexed operator, uint256 indexed id, uint8 opType);
     event UpdateFailed(address indexed operator, uint256 indexed id, uint8 opType);
+
+    // PlaceHolder reserve for future usage
+    uint256[50] private __reservedGroupStorageSlots;
 }

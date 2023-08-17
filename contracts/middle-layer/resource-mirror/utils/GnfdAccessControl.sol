@@ -122,4 +122,7 @@ contract GnfdAccessControl is Context, IGnfdAccessControl {
             );
         }
     }
+
+    // PlaceHolder reserve for future usage
+    uint256[50] private __reservedSlots;
 }

@@ -6,8 +6,6 @@ import "./CmnStorage.sol";
 
 contract BucketStorage is CmnStorage {
     /*----------------- storage -----------------*/
-    // PlaceHolder reserve for future use
-    uint256[25] public BucketStorageSlots;
 
     // BSC to GNFD
     struct CreateBucketSynPackage {
@@ -28,4 +26,7 @@ contract BucketStorage is CmnStorage {
         Private,
         Inherit // If the bucket Visibility is inherit, it's finally set to private.
     }
+
+    // PlaceHolder reserve for future usage
+    uint256[50] private __reservedBucketStorageSlots;
 }
