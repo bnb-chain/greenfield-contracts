@@ -16,6 +16,10 @@ import "../../interface/IERC721NonTransferable.sol";
 // Because it will be used as a delegate call target.
 // NOTE: The inherited contracts order must be the same as GroupHub.
 contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
+    // PlaceHolder corresponding to `Initializable` contract
+    uint8 private _initialized;
+    bool private _initializing;
+
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
     /*----------------- external function -----------------*/
@@ -113,7 +117,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param name The group's name
      * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset as the `msg.sender` all the time.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
      */
     function createGroup(
         address owner,
@@ -144,10 +148,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             name: name,
             extraData: abi.encode(extraData)
         });
-
-        // check refund address
-        (bool success, ) = extraData.refundAddress.call("");
-        require(success && (extraData.refundAddress != address(0)), "invalid refund address");
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
@@ -210,7 +210,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param id The group's id
      * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset as the `msg.sender` all the time.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
      */
     function deleteGroup(
         uint256 id,
@@ -245,10 +245,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             id: id,
             extraData: abi.encode(extraData)
         });
-
-        // check refund address
-        (bool success, ) = extraData.refundAddress.call("");
-        require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
@@ -316,7 +312,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param synPkg Package containing information of the group to be updated
      * @param callbackGasLimit The gas limit for callback function
      * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset as the `msg.sender` all the time.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
      */
     function updateGroup(
         UpdateGroupSynPackage memory synPkg,
@@ -352,10 +348,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         // make sure the extra data is as expected
         extraData.appAddress = msg.sender;
         synPkg.extraData = abi.encode(extraData);
-
-        // check refund address
-        (bool success, ) = extraData.refundAddress.call("");
-        require(success && (extraData.refundAddress != address(0)), "invalid refund address"); // the refund address must be payable
 
         ICrossChain(CROSS_CHAIN).sendSynPackage(
             GROUP_CHANNEL_ID,
