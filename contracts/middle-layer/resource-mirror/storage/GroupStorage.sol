@@ -47,7 +47,7 @@ contract GroupStorage is CmnStorage {
     enum UpdateGroupOpType {
         AddMembers,
         RemoveMembers,
-        RenweMembers
+        RenewMembers
     }
 
     event UpdateSubmitted(address owner, address operator, uint256 id, uint8 opType, address[] members);
