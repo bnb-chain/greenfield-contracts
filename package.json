@@ -33,7 +33,7 @@
     "verify:bsc": "npx hardhat run scripts/2-verify-scan.ts --network bsc"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "4.8.3",
+    "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "4.8.3"
   },
   "devDependencies": {
