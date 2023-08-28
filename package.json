@@ -33,8 +33,8 @@
     "verify:bsc": "npx hardhat run scripts/2-verify-scan.ts --network bsc"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "4.8.3",
-    "@openzeppelin/contracts-upgradeable": "4.8.3"
+    "@openzeppelin/contracts": "4.9.3",
+    "@openzeppelin/contracts-upgradeable": "4.9.3"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
@@ -52,7 +52,7 @@
     "chai": "^4.2.0",
     "dotenv": "^16.0.3",
     "ethers": "^5.4.7",
-    "hardhat": "^2.17.0",
+    "hardhat": "^2.17.1",
     "hardhat-gas-reporter": "^1.0.8",
     "prettier": "^2.8.6",
     "prettier-plugin-solidity": "^1.1.3",
