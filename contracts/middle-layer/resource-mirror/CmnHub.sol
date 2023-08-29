@@ -48,6 +48,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         address appAddress = msg.sender;
         bytes32 pkgHash = retryQueue[appAddress].popFront();
         RetryPackage memory pkg = packageMap[pkgHash];
+        delete packageMap[pkgHash];
         IApplication(pkg.appAddress).greenfieldCall(
             pkg.status,
             channelId,
@@ -55,7 +56,6 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
             pkg.resourceId,
             pkg.callbackData
         );
-        delete packageMap[pkgHash];
     }
 
     function skipPackage() external {
