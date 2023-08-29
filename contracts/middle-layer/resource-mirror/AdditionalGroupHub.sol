@@ -268,7 +268,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      */
     function updateGroup(UpdateGroupSynPackage memory synPkg) external payable returns (bool) {
         // check synPkg
-        if (synPkg.opType == UpdateGroupOpType.AddMembers || synPkg.opType == UpdateGroupOpType.RenweMembers) {
+        if (synPkg.opType == UpdateGroupOpType.AddMembers || synPkg.opType == UpdateGroupOpType.RenewMembers) {
             require(synPkg.members.length == synPkg.memberExpiration.length, "member and expiration length mismatch");
         }
 
@@ -320,7 +320,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         ExtraData memory extraData
     ) external payable returns (bool) {
         // check synPkg
-        if (synPkg.opType == UpdateGroupOpType.AddMembers || synPkg.opType == UpdateGroupOpType.RenweMembers) {
+        if (synPkg.opType == UpdateGroupOpType.AddMembers || synPkg.opType == UpdateGroupOpType.RenewMembers) {
             require(synPkg.members.length == synPkg.memberExpiration.length, "member and expiration length mismatch");
         }
 
