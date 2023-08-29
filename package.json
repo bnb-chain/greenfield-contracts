@@ -1,6 +1,6 @@
 {
   "name": "@bnb-chain/greenfield-contracts",
-  "version": "0.1.1-alpha3",
+  "version": "0.1.1",
   "description": "Smart contracts for Greenfield and BSC Cross-Chain communication",
   "files": [
     "/contracts/**/*.sol"
@@ -60,6 +60,6 @@
     "ts-node": ">=8.0.0",
     "typechain": "^8.1.0",
     "typescript": ">=4.5.0",
-    "web3": "^1.8.2"
+    "web3": "^4.1.1"
   }
 }
