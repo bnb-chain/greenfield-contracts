@@ -293,20 +293,18 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         if (synPkg.opType == UpdateGroupOpType.AddMembers) {
             for (uint256 i = 0; i < synPkg.members.length; ++i) {
                 require(synPkg.members[i] != address(0), "invalid member address");
-                for (uint256 j = i + 1; j < synPkg.members.length; ++j) {
-                    require(synPkg.members[i] != synPkg.members[j], "duplicate member address");
-                }
+                require(
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) == 0,
+                    "member already in group"
+                );
             }
         } else {
             for (uint256 i = 0; i < synPkg.members.length; ++i) {
                 require(synPkg.members[i] != address(0), "invalid member address");
                 require(
-                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) > 0,
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) != 0,
                     "member not in group"
                 );
-                for (uint256 j = i + 1; j < synPkg.members.length; ++j) {
-                    require(synPkg.members[i] != synPkg.members[j], "duplicate member address");
-                }
             }
         }
 
@@ -373,20 +371,18 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         if (synPkg.opType == UpdateGroupOpType.AddMembers) {
             for (uint256 i = 0; i < synPkg.members.length; ++i) {
                 require(synPkg.members[i] != address(0), "invalid member address");
-                for (uint256 j = i + 1; j < synPkg.members.length; ++j) {
-                    require(synPkg.members[i] != synPkg.members[j], "duplicate member address");
-                }
+                require(
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) == 0,
+                    "member already in group"
+                );
             }
         } else {
             for (uint256 i = 0; i < synPkg.members.length; ++i) {
                 require(synPkg.members[i] != address(0), "invalid member address");
                 require(
-                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) > 0,
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) != 0,
                     "member not in group"
                 );
-                for (uint256 j = i + 1; j < synPkg.members.length; ++j) {
-                    require(synPkg.members[i] != synPkg.members[j], "duplicate member address");
-                }
             }
         }
 
