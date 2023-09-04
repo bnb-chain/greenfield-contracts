@@ -72,6 +72,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         } else if (_compareStrings(key, "AdditionalContract")) {
             require(value.length == 20, "length of additional address mismatch");
             address newAdditional = BytesToTypes.bytesToAddress(20, value);
+            require(newAdditional != address(0) && _isContract(newAdditional), "additional address is not a contract");
             additional = newAdditional;
         } else {
             revert("unknown param");
