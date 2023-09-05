@@ -9,6 +9,7 @@ import "./utils/GnfdAccessControl.sol";
 import "../../interface/IERC1155NonTransferable.sol";
 import "../../interface/IERC721NonTransferable.sol";
 import "../../interface/IGroupHub.sol";
+import "../../lib/BytesToTypes.sol";
 
 contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
@@ -94,7 +95,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (600_001, "GroupHub", "init version");
+        return (600_002, "GroupHub", "add check for updateMember");
     }
 
     function grant(address, uint32, uint256) external override {
@@ -135,6 +136,11 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
             IERC721NonTransferable(ERC721Token).setBaseURI(string(value));
         } else if (_compareStrings(key, "ERC1155BaseURI")) {
             IERC1155NonTransferable(ERC1155Token).setBaseURI(string(value));
+        } else if (_compareStrings(key, "AdditionalContract")) {
+            require(value.length == 20, "length of additional address mismatch");
+            address newAdditional = BytesToTypes.bytesToAddress(20, value);
+            require(newAdditional != address(0) && _isContract(newAdditional), "additional address is not a contract");
+            additional = newAdditional;
         } else {
             revert("unknown param");
         }

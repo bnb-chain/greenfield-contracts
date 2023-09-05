@@ -10,6 +10,7 @@ import "./utils/GnfdAccessControl.sol";
 import "../../interface/IApplication.sol";
 import "../../interface/ICrossChain.sol";
 import "../../interface/IERC721NonTransferable.sol";
+import "../../interface/IERC1155NonTransferable.sol";
 
 // Highlight: This contract must have the same storage layout as GroupHub
 // which means same state variables and same order of state variables.
@@ -286,6 +287,26 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         ) {
             require(hasRole(ROLE_UPDATE, owner, msg.sender), "no update permission");
         }
+        synPkg.operator = owner; // the operator should always be set to the owner
+
+        // check members
+        if (synPkg.opType == UpdateGroupOpType.AddMembers) {
+            for (uint256 i = 0; i < synPkg.members.length; ++i) {
+                require(synPkg.members[i] != address(0), "invalid member address");
+                require(
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) == 0,
+                    "member already in group"
+                );
+            }
+        } else {
+            for (uint256 i = 0; i < synPkg.members.length; ++i) {
+                require(synPkg.members[i] != address(0), "invalid member address");
+                require(
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) != 0,
+                    "member not in group"
+                );
+            }
+        }
 
         // make sure the extra data is as expected
         synPkg.extraData = "";
@@ -343,6 +364,26 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
                 IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
         ) {
             require(hasRole(ROLE_UPDATE, owner, msg.sender), "no update permission");
+        }
+        synPkg.operator = owner; // the operator should always be set to the owner
+
+        // check members
+        if (synPkg.opType == UpdateGroupOpType.AddMembers) {
+            for (uint256 i = 0; i < synPkg.members.length; ++i) {
+                require(synPkg.members[i] != address(0), "invalid member address");
+                require(
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) == 0,
+                    "member already in group"
+                );
+            }
+        } else {
+            for (uint256 i = 0; i < synPkg.members.length; ++i) {
+                require(synPkg.members[i] != address(0), "invalid member address");
+                require(
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) != 0,
+                    "member not in group"
+                );
+            }
         }
 
         // make sure the extra data is as expected
