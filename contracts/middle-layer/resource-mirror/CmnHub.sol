@@ -9,6 +9,7 @@ import "../../interface/IApplication.sol";
 import "../../interface/ICmnHub.sol";
 import "../../interface/IERC721NonTransferable.sol";
 import "../../interface/IMiddleLayer.sol";
+import "../../lib/BytesToTypes.sol";
 
 // DO NOT define any state variables in this contract.
 abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
@@ -68,6 +69,11 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
     function updateParam(string calldata key, bytes calldata value) external virtual onlyGov {
         if (_compareStrings(key, "BaseURI")) {
             IERC721NonTransferable(ERC721Token).setBaseURI(string(value));
+        } else if (_compareStrings(key, "AdditionalContract")) {
+            require(value.length == 20, "length of additional address mismatch");
+            address newAdditional = BytesToTypes.bytesToAddress(20, value);
+            require(newAdditional != address(0) && _isContract(newAdditional), "additional address is not a contract");
+            additional = newAdditional;
         } else {
             revert("unknown param");
         }
