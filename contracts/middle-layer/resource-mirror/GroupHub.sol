@@ -205,7 +205,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
                             TYPE_UPDATE,
                             ackPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -278,7 +278,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
                             TYPE_CREATE,
                             0,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -332,7 +332,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
                             TYPE_UPDATE,
                             synPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }

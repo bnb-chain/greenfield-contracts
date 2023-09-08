@@ -165,7 +165,7 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
                             TYPE_CREATE,
                             0,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }

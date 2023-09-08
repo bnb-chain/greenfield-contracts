@@ -148,7 +148,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
                             TYPE_CREATE,
                             ackPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -215,7 +215,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
                             TYPE_DELETE,
                             ackPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -296,7 +296,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
                             TYPE_DELETE,
                             synPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
