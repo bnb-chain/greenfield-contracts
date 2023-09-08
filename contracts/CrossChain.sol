@@ -349,11 +349,19 @@ contract CrossChain is Config, Initializable, ICrossChain {
         emit Reopened(msg.sender);
     }
 
-    function emergencyChangeSequence(bool isSendSequence, uint8 channelId, bool isIncrease) external onlyEmergencyUpgradeOperator {
+    function emergencyChangeSequence(
+        bool isSendSequence,
+        uint8 channelId,
+        bool isIncrease
+    ) external onlyEmergencyUpgradeOperator {
         if (isSendSequence) {
-            channelSendSequenceMap[channelId] = isIncrease ? channelSendSequenceMap[channelId] + 1 : channelSendSequenceMap[channelId] - 1;
+            channelSendSequenceMap[channelId] = isIncrease
+                ? channelSendSequenceMap[channelId] + 1
+                : channelSendSequenceMap[channelId] - 1;
         } else {
-            channelReceiveSequenceMap[channelId] = isIncrease ? channelReceiveSequenceMap[channelId] + 1 : channelReceiveSequenceMap[channelId] - 1;
+            channelReceiveSequenceMap[channelId] = isIncrease
+                ? channelReceiveSequenceMap[channelId] + 1
+                : channelReceiveSequenceMap[channelId] - 1;
         }
     }
 
