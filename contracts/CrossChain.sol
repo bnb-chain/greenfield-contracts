@@ -349,6 +349,14 @@ contract CrossChain is Config, Initializable, ICrossChain {
         emit Reopened(msg.sender);
     }
 
+    function emergencyChangeSequence(bool isSendSequence, uint8 channelId, bool isIncrease) external onlyEmergencyUpgradeOperator {
+        if (isSendSequence) {
+            channelSendSequenceMap[channelId] = isIncrease ? channelSendSequenceMap[channelId] + 1 : channelSendSequenceMap[channelId] - 1;
+        } else {
+            channelReceiveSequenceMap[channelId] = isIncrease ? channelReceiveSequenceMap[channelId] + 1 : channelReceiveSequenceMap[channelId] - 1;
+        }
+    }
+
     function updateParam(string calldata key, bytes calldata value) external onlyGov whenNotSuspended {
         uint256 valueLength = value.length;
         if (_compareStrings(key, "relayFee")) {
