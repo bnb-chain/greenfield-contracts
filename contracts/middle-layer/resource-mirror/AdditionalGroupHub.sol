@@ -143,6 +143,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         }
 
         // make sure the extra data is as expected
+        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
         extraData.appAddress = msg.sender;
         CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
             creator: owner,
@@ -230,6 +231,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         }
 
         // check authorization
+        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
         if (
             !(msg.sender == owner ||
@@ -387,6 +389,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         }
 
         // make sure the extra data is as expected
+        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
         extraData.appAddress = msg.sender;
         synPkg.extraData = abi.encode(extraData);
 

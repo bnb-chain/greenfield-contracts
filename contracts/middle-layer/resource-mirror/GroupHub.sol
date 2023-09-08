@@ -14,12 +14,16 @@ import "../../lib/BytesToTypes.sol";
 contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
+    /*----------------- initializer -----------------*/
     function initialize(address _ERC721_token, address _ERC1155_token, address _additional) public initializer {
-        ERC721Token = _ERC721_token;
-        ERC1155Token = _ERC1155_token;
-        additional = _additional;
+        __cmn_hub_init_unchained(_ERC721_token, _additional);
 
+        ERC1155Token = _ERC1155_token;
         channelId = GROUP_CHANNEL_ID;
+    }
+
+    function initializeV2() public reinitializer(2) {
+        __cmn_hub_init_unchained_v2(INIT_MAX_CALLBACK_DATA_LENGTH);
     }
 
     /*----------------- middle-layer app function -----------------*/

@@ -22,6 +22,20 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         reentryLock = 1;
     }
 
+    /*----------------- initializer -----------------*/
+    function __cmn_hub_init(address _ERC721_token, address _additional) internal onlyInitializing {
+        __cmn_hub_init_unchained(_ERC721_token, _additional);
+    }
+
+    function __cmn_hub_init_unchained(address _ERC721_token, address _additional) internal onlyInitializing {
+        ERC721Token = _ERC721_token;
+        additional = _additional;
+    }
+
+    function __cmn_hub_init_unchained_v2(uint256 _maxCallbackDataLength) internal onlyInitializing {
+        maxCallbackDataLength = _maxCallbackDataLength;
+    }
+
     /*----------------- middle-layer function -----------------*/
     // need to be implemented in child contract
     function handleSynPackage(uint8, bytes calldata) external virtual returns (bytes memory) {

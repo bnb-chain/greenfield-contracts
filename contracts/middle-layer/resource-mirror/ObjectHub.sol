@@ -12,11 +12,15 @@ import "../../interface/IObjectHub.sol";
 contract ObjectHub is ObjectStorage, GnfdAccessControl, CmnHub, IObjectHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
+    /*----------------- initializer -----------------*/
     function initialize(address _ERC721_token, address _additional) public initializer {
-        ERC721Token = _ERC721_token;
-        additional = _additional;
+        __cmn_hub_init_unchained(_ERC721_token, _additional);
 
         channelId = OBJECT_CHANNEL_ID;
+    }
+
+    function initializeV2() public reinitializer(2) {
+        __cmn_hub_init_unchained_v2(INIT_MAX_CALLBACK_DATA_LENGTH);
     }
 
     /*----------------- middle-layer app function -----------------*/

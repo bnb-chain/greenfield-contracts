@@ -133,6 +133,7 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
         }
 
         // make sure the extra data is as expected
+        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
         extraData.appAddress = msg.sender;
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
