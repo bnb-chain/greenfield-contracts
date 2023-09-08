@@ -129,8 +129,11 @@ contract Deployer {
         RelayerHub(payable(proxyRelayerHub)).initialize();
 
         BucketHub(payable(proxyBucketHub)).initialize(bucketToken, addBucketHub);
+        BucketHub(payable(proxyBucketHub)).initializeV2();
         ObjectHub(payable(proxyObjectHub)).initialize(objectToken, addObjectHub);
+        ObjectHub(payable(proxyObjectHub)).initializeV2();
         GroupHub(payable(proxyGroupHub)).initialize(groupToken, memberToken, addGroupHub);
+        GroupHub(payable(proxyGroupHub)).initializeV2();
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");

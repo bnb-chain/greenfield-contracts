@@ -150,7 +150,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
             require(newAdditional != address(0) && _isContract(newAdditional), "additional address is not a contract");
             additional = newAdditional;
         } else if (_compareStrings(key, "MaxCallbackDataLength")) {
-            require(value.length = 32, "length of maxCallbackDataLength mismatch");
+            require(value.length == 32, "length of maxCallbackDataLength mismatch");
             uint256 newMaxCallbackDataLength = BytesToTypes.bytesToUint256(32, value);
             require(newMaxCallbackDataLength > 0, "maxCallbackDataLength should be positive");
             maxCallbackDataLength = newMaxCallbackDataLength;
