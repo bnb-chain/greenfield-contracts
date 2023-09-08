@@ -115,6 +115,10 @@ contract CrossChain is Config, Initializable, ICrossChain {
         _;
     }
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /*----------------- external function -----------------*/
     function initialize(uint16 _gnfdChainId) public initializer {
         require(_gnfdChainId != 0, "zero _gnfdChainId");

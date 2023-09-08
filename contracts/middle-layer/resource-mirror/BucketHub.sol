@@ -12,6 +12,10 @@ import "../../interface/IERC721NonTransferable.sol";
 contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /*----------------- initializer -----------------*/
     function initialize(address _ERC721_token, address _additional) public initializer {
         __cmn_hub_init_unchained(_ERC721_token, _additional);

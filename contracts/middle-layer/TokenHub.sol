@@ -80,6 +80,10 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         _;
     }
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /*----------------- external function -----------------*/
     function initialize() public initializer {
         __ReentrancyGuard_init();

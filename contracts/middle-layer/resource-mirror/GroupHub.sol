@@ -14,6 +14,10 @@ import "../../lib/BytesToTypes.sol";
 contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /*----------------- initializer -----------------*/
     function initialize(address _ERC721_token, address _ERC1155_token, address _additional) public initializer {
         __cmn_hub_init_unchained(_ERC721_token, _additional);
@@ -145,6 +149,11 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
             address newAdditional = BytesToTypes.bytesToAddress(20, value);
             require(newAdditional != address(0) && _isContract(newAdditional), "additional address is not a contract");
             additional = newAdditional;
+        } else if (_compareStrings(key, "MaxCallbackDataLength")) {
+            require(value.length = 32, "length of maxCallbackDataLength mismatch");
+            uint256 newMaxCallbackDataLength = BytesToTypes.bytesToUint256(32, value);
+            require(newMaxCallbackDataLength > 0, "maxCallbackDataLength should be positive");
+            maxCallbackDataLength = newMaxCallbackDataLength;
         } else {
             revert("unknown param");
         }

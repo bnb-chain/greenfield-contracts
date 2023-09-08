@@ -12,6 +12,10 @@ import "../../interface/IObjectHub.sol";
 contract ObjectHub is ObjectStorage, GnfdAccessControl, CmnHub, IObjectHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /*----------------- initializer -----------------*/
     function initialize(address _ERC721_token, address _additional) public initializer {
         __cmn_hub_init_unchained(_ERC721_token, _additional);
