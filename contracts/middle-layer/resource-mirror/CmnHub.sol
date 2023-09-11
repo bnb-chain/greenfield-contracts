@@ -122,7 +122,6 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                require(gasBefore > callbackGasLimit, "insufficient gas");
                 try
                     IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
                         ackPkg.status,
@@ -189,7 +188,6 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                require(gasBefore > callbackGasLimit, "insufficient gas");
                 try
                     IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
                         ackPkg.status,
@@ -270,7 +268,6 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                require(gasBefore > callbackGasLimit, "insufficient gas");
                 try
                     IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
                         STATUS_UNEXPECTED,

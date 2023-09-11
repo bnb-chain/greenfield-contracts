@@ -183,7 +183,6 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                require(gasBefore > callbackGasLimit, "insufficient gas");
                 try
                     IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
                         ackPkg.status,
@@ -256,7 +255,6 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                require(gasBefore > callbackGasLimit, "insufficient gas");
                 try
                     IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
                         STATUS_UNEXPECTED,
@@ -310,7 +308,6 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                require(gasBefore > callbackGasLimit, "insufficient gas");
                 try
                     IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
                         STATUS_UNEXPECTED,

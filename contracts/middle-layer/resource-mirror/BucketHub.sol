@@ -138,7 +138,6 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
                 bytes memory reason;
                 bool failed;
                 uint256 gasBefore = gasleft();
-                require(gasBefore > callbackGasLimit, "insufficient gas");
                 try
                     IApplication(extraData.appAddress).greenfieldCall{ gas: callbackGasLimit }(
                         STATUS_UNEXPECTED,
