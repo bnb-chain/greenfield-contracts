@@ -27,7 +27,7 @@ contract PackageQueue {
         uint8 operationType;
         uint256 resourceId;
         bytes callbackData;
-        bytes failReason;
+        bytes failReason; // deprecated
     }
 
     event AppHandleAckPkgFailed(address indexed appAddress, bytes32 pkgHash, bytes failReason);

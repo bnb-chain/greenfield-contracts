@@ -26,12 +26,17 @@ contract CmnStorage is Config, PackageQueue {
     bytes32 public constant ROLE_CREATE = keccak256("ROLE_CREATE");
     bytes32 public constant ROLE_DELETE = keccak256("ROLE_DELETE");
 
+    uint256 public constant INIT_MAX_CALLBACK_DATA_LENGTH = 1024;
+    uint256 public constant MAX_CALLBACK_GAS_LIMIT = 20_000_000;
+
     /*----------------- storage -----------------*/
     uint8 internal reentryLock;
     uint8 public channelId;
 
     address public ERC721Token;
     address public additional;
+
+    uint256 public maxCallbackDataLength;
 
     /*----------------- structs -----------------*/
     // cross-chain package
@@ -91,5 +96,5 @@ contract CmnStorage is Config, PackageQueue {
     event ParamChange(string key, bytes value);
 
     // PlaceHolder reserve for future use
-    uint256[50] private __reservedCmnStorageSlots;
+    uint256[49] private __reservedCmnStorageSlots;
 }

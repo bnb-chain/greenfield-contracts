@@ -47,8 +47,15 @@ contract Deployer {
     address public memberToken;
 
     bool public deployed;
+    address public operator;
+
+    modifier onlyOperator() {
+        require(msg.sender == operator, "only operator");
+        _;
+    }
 
     constructor(uint16 _gnfdChainId) {
+        operator = msg.sender;
         gnfdChainId = _gnfdChainId;
 
         /*
@@ -72,48 +79,11 @@ contract Deployer {
         require(deployedProxyAdmin == proxyAdmin, "invalid proxyAdmin address");
     }
 
-    function init(address[] memory addrs) internal {
-        // use address list to avoid stack too deep
-        require(addrs.length == 15, "invalid addrs length");
-
-        require(_isContract(addrs[0]), "invalid implGovHub");
-        require(_isContract(addrs[1]), "invalid implCrossChain");
-        require(_isContract(addrs[2]), "invalid implTokenHub");
-        require(_isContract(addrs[3]), "invalid implLightClient");
-        require(_isContract(addrs[4]), "invalid implRelayerHub");
-        require(_isContract(addrs[5]), "invalid implBucketHub");
-        require(_isContract(addrs[6]), "invalid implObjectHub");
-        require(_isContract(addrs[7]), "invalid implGroupHub");
-        require(_isContract(addrs[8]), "invalid addBucketHub");
-        require(_isContract(addrs[9]), "invalid addObjectHub");
-        require(_isContract(addrs[10]), "invalid addGroupHub");
-        require(_isContract(addrs[11]), "invalid bucketToken");
-        require(_isContract(addrs[12]), "invalid objectToken");
-        require(_isContract(addrs[13]), "invalid groupToken");
-        require(_isContract(addrs[14]), "invalid memberToken");
-
-        implGovHub = addrs[0];
-        implCrossChain = addrs[1];
-        implTokenHub = addrs[2];
-        implLightClient = addrs[3];
-        implRelayerHub = addrs[4];
-        implBucketHub = addrs[5];
-        implObjectHub = addrs[6];
-        implGroupHub = addrs[7];
-        addBucketHub = addrs[8];
-        addObjectHub = addrs[9];
-        addGroupHub = addrs[10];
-        bucketToken = addrs[11];
-        objectToken = addrs[12];
-        groupToken = addrs[13];
-        memberToken = addrs[14];
-    }
-
-    function deploy(address[] memory addrs, bytes calldata _initConsensusStateBytes) public {
+    function deploy(address[] memory addrs, bytes calldata _initConsensusStateBytes) external onlyOperator {
         require(!deployed, "only not deployed");
         deployed = true;
 
-        init(addrs);
+        _init(addrs);
         initConsensusStateBytes = _initConsensusStateBytes;
 
         // 2. GovHub, transfer ownership of proxyAdmin to GovHub
@@ -159,8 +129,11 @@ contract Deployer {
         RelayerHub(payable(proxyRelayerHub)).initialize();
 
         BucketHub(payable(proxyBucketHub)).initialize(bucketToken, addBucketHub);
+        BucketHub(payable(proxyBucketHub)).initializeV2();
         ObjectHub(payable(proxyObjectHub)).initialize(objectToken, addObjectHub);
+        ObjectHub(payable(proxyObjectHub)).initializeV2();
         GroupHub(payable(proxyGroupHub)).initialize(groupToken, memberToken, addGroupHub);
+        GroupHub(payable(proxyGroupHub)).initializeV2();
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
@@ -182,11 +155,48 @@ contract Deployer {
         );
     }
 
-    function calcCreateAddress(address _deployer, uint8 _nonce) public pure returns (address) {
-        return address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), _deployer, _nonce)))));
+    function _init(address[] memory addrs) internal {
+        // use address list to avoid stack too deep
+        require(addrs.length == 15, "invalid addrs length");
+
+        require(_isContract(addrs[0]), "invalid implGovHub");
+        require(_isContract(addrs[1]), "invalid implCrossChain");
+        require(_isContract(addrs[2]), "invalid implTokenHub");
+        require(_isContract(addrs[3]), "invalid implLightClient");
+        require(_isContract(addrs[4]), "invalid implRelayerHub");
+        require(_isContract(addrs[5]), "invalid implBucketHub");
+        require(_isContract(addrs[6]), "invalid implObjectHub");
+        require(_isContract(addrs[7]), "invalid implGroupHub");
+        require(_isContract(addrs[8]), "invalid addBucketHub");
+        require(_isContract(addrs[9]), "invalid addObjectHub");
+        require(_isContract(addrs[10]), "invalid addGroupHub");
+        require(_isContract(addrs[11]), "invalid bucketToken");
+        require(_isContract(addrs[12]), "invalid objectToken");
+        require(_isContract(addrs[13]), "invalid groupToken");
+        require(_isContract(addrs[14]), "invalid memberToken");
+
+        implGovHub = addrs[0];
+        implCrossChain = addrs[1];
+        implTokenHub = addrs[2];
+        implLightClient = addrs[3];
+        implRelayerHub = addrs[4];
+        implBucketHub = addrs[5];
+        implObjectHub = addrs[6];
+        implGroupHub = addrs[7];
+        addBucketHub = addrs[8];
+        addObjectHub = addrs[9];
+        addGroupHub = addrs[10];
+        bucketToken = addrs[11];
+        objectToken = addrs[12];
+        groupToken = addrs[13];
+        memberToken = addrs[14];
     }
 
     function _isContract(address account) internal view returns (bool) {
         return account.code.length > 0;
+    }
+
+    function calcCreateAddress(address _deployer, uint8 _nonce) public pure returns (address) {
+        return address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xd6), bytes1(0x94), _deployer, _nonce)))));
     }
 }

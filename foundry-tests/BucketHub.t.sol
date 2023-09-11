@@ -264,11 +264,11 @@ contract BucketHubTest is Test, BucketHub {
         });
 
         vm.expectRevert(bytes("retry queue is not empty"));
-        bucketHub.createBucket{ value: 4e15 }(synPkg, 0, extraData);
+        bucketHub.createBucket{ value: 4e15 }(synPkg, 5000, extraData);
 
         // retry pkg
         bucketHub.retryPackage();
-        bucketHub.createBucket{ value: 4e15 }(synPkg, 0, extraData);
+        bucketHub.createBucket{ value: 4e15 }(synPkg, 5000, extraData);
 
         // skip on fail
         msgBytes = _encodeCreateAckPackage(1, 0, address(this), address(this), FailureHandleStrategy.SkipOnFail);

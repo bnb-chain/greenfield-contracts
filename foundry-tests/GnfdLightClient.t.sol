@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 
 import "contracts/GnfdLightClient.sol";
+import "../contracts/GnfdProxy.sol";
 
 contract GnfdLightClientTest is Test {
     address private developer = 0x0000000000000000000000000000000012345678;
@@ -29,6 +30,8 @@ contract GnfdLightClientTest is Test {
 
     function init() internal {
         lightClient = new GnfdLightClient();
+        address proxy = address(new GnfdProxy(address(lightClient), developer, ""));
+        lightClient = GnfdLightClient(proxy);
         lightClient.initialize(init_cs_bytes);
 
         console.log("lightClient.chainID()");

@@ -14,12 +14,20 @@ import "../../lib/BytesToTypes.sol";
 contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
-    function initialize(address _ERC721_token, address _ERC1155_token, address _additional) public initializer {
-        ERC721Token = _ERC721_token;
-        ERC1155Token = _ERC1155_token;
-        additional = _additional;
+    constructor() {
+        _disableInitializers();
+    }
 
+    /*----------------- initializer -----------------*/
+    function initialize(address _ERC721_token, address _ERC1155_token, address _additional) public initializer {
+        __cmn_hub_init_unchained(_ERC721_token, _additional);
+
+        ERC1155Token = _ERC1155_token;
         channelId = GROUP_CHANNEL_ID;
+    }
+
+    function initializeV2() public reinitializer(2) {
+        __cmn_hub_init_unchained_v2(INIT_MAX_CALLBACK_DATA_LENGTH);
     }
 
     /*----------------- middle-layer app function -----------------*/
@@ -141,6 +149,11 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
             address newAdditional = BytesToTypes.bytesToAddress(20, value);
             require(newAdditional != address(0) && _isContract(newAdditional), "additional address is not a contract");
             additional = newAdditional;
+        } else if (_compareStrings(key, "MaxCallbackDataLength")) {
+            require(value.length == 32, "length of maxCallbackDataLength mismatch");
+            uint256 newMaxCallbackDataLength = BytesToTypes.bytesToUint256(32, value);
+            require(newMaxCallbackDataLength > 0, "maxCallbackDataLength should be positive");
+            maxCallbackDataLength = newMaxCallbackDataLength;
         } else {
             revert("unknown param");
         }
@@ -200,7 +213,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
                             TYPE_UPDATE,
                             ackPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -272,7 +285,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
                             TYPE_CREATE,
                             0,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -325,7 +338,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
                             TYPE_UPDATE,
                             synPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
