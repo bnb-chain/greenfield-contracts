@@ -350,8 +350,8 @@ contract CrossChain is Config, Initializable, ICrossChain {
     }
 
     function emergencyChangeSequence(
-        bool isSendSequence,
         uint8 channelId,
+        bool isSendSequence,
         bool isIncrease
     ) external onlyEmergencyUpgradeOperator {
         if (isSendSequence) {
