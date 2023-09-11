@@ -112,6 +112,8 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
         ExtraData memory extraData
     ) external payable returns (bool) {
         // check relay fee and callback fee
+        require(callbackGasLimit > 2300, "invalid callback gas limit");
+        require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
         require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");

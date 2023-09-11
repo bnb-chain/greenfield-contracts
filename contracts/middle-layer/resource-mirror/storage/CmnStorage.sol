@@ -27,6 +27,7 @@ contract CmnStorage is Config, PackageQueue {
     bytes32 public constant ROLE_DELETE = keccak256("ROLE_DELETE");
 
     uint256 public constant INIT_MAX_CALLBACK_DATA_LENGTH = 1024;
+    uint256 public constant MAX_CALLBACK_GAS_LIMIT = 20_000_000;
 
     /*----------------- storage -----------------*/
     uint8 internal reentryLock;
