@@ -212,11 +212,11 @@ contract ObjectHubTest is Test, ObjectHub {
             callbackData: ""
         });
         vm.expectRevert(bytes("retry queue is not empty"));
-        objectHub.deleteObject{ value: 4e15 }(0, 0, extraData);
+        objectHub.deleteObject{ value: 4e15 }(0, 5000, extraData);
 
         // retry pkg
         objectHub.retryPackage();
-        objectHub.deleteObject{ value: 4e15 }(0, 0, extraData);
+        objectHub.deleteObject{ value: 4e15 }(0, 5000, extraData);
 
         // skip on fail
         msgBytes = _encodeDeleteAckPackage(0, 0, address(this), FailureHandleStrategy.SkipOnFail);
