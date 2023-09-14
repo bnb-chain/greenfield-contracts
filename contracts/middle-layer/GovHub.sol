@@ -34,6 +34,10 @@ contract GovHub is Config, Initializable, IMiddleLayer {
         bytes targets;
     }
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /*----------------- external function -----------------*/
     function initialize() public initializer {}
 

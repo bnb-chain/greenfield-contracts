@@ -22,6 +22,20 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
         reentryLock = 1;
     }
 
+    /*----------------- initializer -----------------*/
+    function __cmn_hub_init(address _ERC721_token, address _additional) internal onlyInitializing {
+        __cmn_hub_init_unchained(_ERC721_token, _additional);
+    }
+
+    function __cmn_hub_init_unchained(address _ERC721_token, address _additional) internal onlyInitializing {
+        ERC721Token = _ERC721_token;
+        additional = _additional;
+    }
+
+    function __cmn_hub_init_unchained_v2(uint256 _maxCallbackDataLength) internal onlyInitializing {
+        maxCallbackDataLength = _maxCallbackDataLength;
+    }
+
     /*----------------- middle-layer function -----------------*/
     // need to be implemented in child contract
     function handleSynPackage(uint8, bytes calldata) external virtual returns (bytes memory) {
@@ -74,6 +88,11 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
             address newAdditional = BytesToTypes.bytesToAddress(20, value);
             require(newAdditional != address(0) && _isContract(newAdditional), "additional address is not a contract");
             additional = newAdditional;
+        } else if (_compareStrings(key, "MaxCallbackDataLength")) {
+            require(value.length == 32, "length of maxCallbackDataLength mismatch");
+            uint256 newMaxCallbackDataLength = BytesToTypes.bytesToUint256(32, value);
+            require(newMaxCallbackDataLength > 0, "maxCallbackDataLength should be positive");
+            maxCallbackDataLength = newMaxCallbackDataLength;
         } else {
             revert("unknown param");
         }
@@ -133,7 +152,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
                             TYPE_CREATE,
                             ackPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -199,7 +218,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
                             TYPE_DELETE,
                             ackPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }
@@ -279,7 +298,7 @@ abstract contract CmnHub is CmnStorage, Initializable, ICmnHub, IMiddleLayer {
                             TYPE_DELETE,
                             synPkg.id,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }

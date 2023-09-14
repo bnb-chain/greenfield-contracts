@@ -61,6 +61,10 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         _;
     }
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(bytes calldata _initConsensusStateBytes) public initializer {
         uint256 ptr;
         uint256 len;

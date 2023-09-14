@@ -115,6 +115,10 @@ contract CrossChain is Config, Initializable, ICrossChain {
         _;
     }
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /*----------------- external function -----------------*/
     function initialize(uint16 _gnfdChainId) public initializer {
         require(_gnfdChainId != 0, "zero _gnfdChainId");
@@ -154,7 +158,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         channelHandlerMap[GROUP_CHANNEL_ID] = GROUP_HUB;
         registeredContractChannelMap[GROUP_HUB][GROUP_CHANNEL_ID] = true;
 
-        callbackGasPrice = 6 gwei;
+        callbackGasPrice = 4 gwei;
         batchSizeForOracle = 50;
 
         oracleSequence = -1;
@@ -343,6 +347,22 @@ contract CrossChain is Config, Initializable, ICrossChain {
     function emergencyReopen() external onlyEmergencyOperator whenSuspended {
         isSuspended = false;
         emit Reopened(msg.sender);
+    }
+
+    function emergencyChangeSequence(
+        uint8 channelId,
+        bool isSendSequence,
+        bool isIncrease
+    ) external onlyEmergencyUpgradeOperator {
+        if (isSendSequence) {
+            channelSendSequenceMap[channelId] = isIncrease
+                ? channelSendSequenceMap[channelId] + 1
+                : channelSendSequenceMap[channelId] - 1;
+        } else {
+            channelReceiveSequenceMap[channelId] = isIncrease
+                ? channelReceiveSequenceMap[channelId] + 1
+                : channelReceiveSequenceMap[channelId] - 1;
+        }
     }
 
     function updateParam(string calldata key, bytes calldata value) external onlyGov whenNotSuspended {

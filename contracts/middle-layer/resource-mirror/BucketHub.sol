@@ -12,11 +12,19 @@ import "../../interface/IERC721NonTransferable.sol";
 contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
     using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
 
+    constructor() {
+        _disableInitializers();
+    }
+
+    /*----------------- initializer -----------------*/
     function initialize(address _ERC721_token, address _additional) public initializer {
-        ERC721Token = _ERC721_token;
-        additional = _additional;
+        __cmn_hub_init_unchained(_ERC721_token, _additional);
 
         channelId = BUCKET_CHANNEL_ID;
+    }
+
+    function initializeV2() public reinitializer(2) {
+        __cmn_hub_init_unchained_v2(INIT_MAX_CALLBACK_DATA_LENGTH);
     }
 
     /*----------------- middle-layer app function -----------------*/
@@ -160,7 +168,7 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
                             TYPE_CREATE,
                             0,
                             extraData.callbackData,
-                            reason
+                            ""
                         );
                         retryQueue[extraData.appAddress].pushBack(pkgHash);
                     }

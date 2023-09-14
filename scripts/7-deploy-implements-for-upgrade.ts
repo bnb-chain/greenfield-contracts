@@ -8,9 +8,10 @@ const log = console.log;
 
 // TODO: add the contract names to be upgraded
 const newContractsToUpgrade = [
-    'CrossChain',
-    'GnfdLightClient',
-    'TokenHub',
+    'BucketHub',
+    'ObjectHub',
+    'GroupHub',
+    'AdditionalGroupHub',
 ]
 
 const main = async () => {
@@ -46,7 +47,8 @@ const main = async () => {
         .replace(/BUCKET_HUB = .*/g, `BUCKET_HUB = ${proxyBucketHub};`)
         .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
         .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`)
-        .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${contracts.EmergencyOperator};`);
+        .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${contracts.EmergencyOperator};`)
+        .replace(/EMERGENCY_UPGRADE_OPERATOR = .*/g, `EMERGENCY_UPGRADE_OPERATOR = ${contracts.EmergencyUpgradeOperator};`)
 
     fs.writeFileSync(__dirname + '/../contracts/Config.sol', newConfig, 'utf8');
     await sleep(2);
@@ -63,8 +65,18 @@ const main = async () => {
         if (name === "GnfdLightClient") name = "LightClient";
         targets.push(contracts[name]);
         newContracts.push(contract.address);
+
+        await sleep(10);
+
+        try {
+            await run('verify:verify', { address: contract.address });
+            log(name, 'impl contract verified');
+        } catch (e) {
+            log('verify error', e);
+        }
     }
 
+    log(`emergency upgrade: emergencyUpgradeOperator is EOA account`);
     log(`key for upgrade:`);
     log(`upgrade`);
 
@@ -75,8 +87,7 @@ const main = async () => {
     log(`"[${ newContracts.join(',') }]"`);
 
 
-
-    log(`params of multi-sig call:`);
+    log(`emergency upgrade: params of multi-sig call:`);
     log(`key:`);
     log(`upgrade`);
 

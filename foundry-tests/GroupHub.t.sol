@@ -277,11 +277,11 @@ contract GroupHubTest is Test, GroupHub {
         });
 
         vm.expectRevert(bytes("retry queue is not empty"));
-        groupHub.createGroup{ value: 4e15 }(address(this), "test", 0, extraData);
+        groupHub.createGroup{ value: 4e15 }(address(this), "test", 5000, extraData);
 
         // retry pkg
         groupHub.retryPackage();
-        groupHub.createGroup{ value: 4e15 }(address(this), "test", 0, extraData);
+        groupHub.createGroup{ value: 4e15 }(address(this), "test", 5000, extraData);
 
         // skip on fail
         msgBytes = _encodeCreateAckPackage(1, 0, address(this), address(this), FailureHandleStrategy.SkipOnFail);
