@@ -285,7 +285,7 @@ contract GnfdLightClientTest is Initializable, Config, ILightClient {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (400_002, "GnfdLightClient", "upgrade version");
+        return (400_123, "GnfdLightClient", "upgrade version");
     }
 
     function updateParam(string calldata key, bytes calldata value) external onlyGov {
