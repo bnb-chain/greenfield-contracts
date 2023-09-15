@@ -587,6 +587,6 @@ contract CrossChain is Config, Initializable, ICrossChain {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (200_001, "CrossChain", "init version");
+        return (200_002, "CrossChain", "add emergencyChangeSequence");
     }
 }

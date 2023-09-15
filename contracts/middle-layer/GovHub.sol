@@ -151,6 +151,6 @@ contract GovHub is Config, Initializable, IMiddleLayer {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (100_001, "GovHub", "init version");
+        return (100_002, "GovHub", "add _disableInitializers in constructor");
     }
 }
