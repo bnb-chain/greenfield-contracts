@@ -287,7 +287,7 @@ contract GnfdLightClient is Initializable, Config, ILightClient {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (400_001, "GnfdLightClient", "init version");
+        return (400_002, "GnfdLightClient", "add _disableInitializers in constructor");
     }
 
     function updateParam(string calldata key, bytes calldata value) external onlyGov {

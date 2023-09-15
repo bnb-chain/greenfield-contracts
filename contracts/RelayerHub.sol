@@ -53,6 +53,6 @@ contract RelayerHub is Config, ReentrancyGuardUpgradeable, IRelayerHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (500_001, "RelayerHub", "init version");
+        return (500_002, "RelayerHub", "add _disableInitializers in constructor");
     }
 }

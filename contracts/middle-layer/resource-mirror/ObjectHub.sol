@@ -94,7 +94,7 @@ contract ObjectHub is ObjectStorage, GnfdAccessControl, CmnHub, IObjectHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (500_002, "ObjectHub", "add support for modify addition contract");
+        return (500_003, "ObjectHub", "add _disableInitializers in constructor");
     }
 
     function grant(address, uint32, uint256) external override {
