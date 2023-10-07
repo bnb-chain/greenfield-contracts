@@ -108,19 +108,53 @@ npm run deploy:bsc
 ```
 
 ## Deployment
+
+### Greenfield Contracts on BSC
+- BSC ChainID: 56
+- BSC RPC: https://bsc-dataseed1.binance.org
+- BSC Explorer: https://bscscan.com/
+
+- Greenfield ChainID: greenfield_1017-1
+- Greenfield RPC: https://greenfield-chain.bnbchain.org:443
+- Greenfield GRPC swagger: https://greenfield-chain.bnbchain.org/openapi
+- Greenfield Storage dApp: https://dcellar.io/
+- Greenfield Explorer: http://greenfieldscan.com/
+
+
 ### Greenfield Contracts on BSC Testnet
 - BSC Testnet ChainID: 97
 - BSC Testnet RPC: https://data-seed-prebsc-1-s1.binance.org:8545/
 - BSC Testnet Explorer: https://testnet.bscscan.com/
 
 - Greenfield ChainID: greenfield_5600-1
-- Greenfield Tendermint RPC: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org
+- Greenfield RPC: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org
 - Greenfield GRPC swagger: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org/openapi
-- Greenfield EthAPI: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org
 - Greenfield Storage dApp: https://dcellar.io/
 - Greenfield Explorer: http://greenfieldscan.com/
 
 ## Contract Entrypoint
+
+### Mainnet
+
+| contract name | address                                    |
+|---------------|--------------------------------------------|
+| CrossChain    | 0x77e719b714be09F70D484AB81F70D02B0E182f7d |
+| TokenHub      | 0xeA97dF87E6c7F68C9f95A69dA79E19B834823F25 |
+| BucketHub     | 0xE909754263572F71bc6aFAc837646A93f5818573 |
+| ObjectHub     | 0x634eB9c438b8378bbdd8D0e10970Ec88db0b4d0f |
+| GroupHub      | 0xDd9af4573D64324125fCa5Ce13407be79331B7F7 |
+
+Extra:
+
+| contract name | address                                    |
+|---------------|--------------------------------------------|
+| Deployer      | 0x4763c12b21a548BCbD22a682fb15930565e27C43 |
+| ProxyAdmin    | 0xf9010DC773eE3961418C96dc67Fc5DcCB3EA2C08 |
+| LightClient   | 0x433bB48Bd86c089375e53b2E2873A9C4bC0e986B |
+| RelayerHub    | 0x31C477F05CE58bB81A9FB4b8c00560f1cBe185d1 |
+
+for full list of contracts, please refer to:
+[Deployment on BSC](https://github.com/bnb-chain/greenfield-contracts/blob/master/deployment/56-deployment.json)
 
 ### Testnet
 
@@ -140,6 +174,10 @@ Extra:
 | ProxyAdmin    | 0xdD1c0a54a9EDEa8d0821AEB5BE54c51B79fa4c2e |
 | LightClient   | 0xa9249cefF9cBc9BAC0D9167b79123b6C7413F50a |
 | RelayerHub    | 0x91cA83d95c8454277d1C297F78082B589e6E4Ea3 |
+
+for full list of contracts, please refer to:
+[Deployment on BSC Testnet](https://github.com/bnb-chain/greenfield-contracts/blob/master/deployment/97-deployment.json)
+
 
 ## Verify on BSCScan
 ```shell
@@ -223,11 +261,6 @@ cp .env.example .env
 
 ts-node scripts/6-claim-unlock-bot.ts
 ```
-
-## Disclaimer
-**The software and related documentation are under active development, all subject to potential future change without
-notification and not ready for production use. The code and security audit have not been fully completed and not ready
-for any bug bounty. We advise you to be careful and experiment on the network at your own risk. Stay safe out there.**
 
 ## Contribution
 Thank you for considering helping with the source code! We appreciate contributions from anyone on the internet, no
