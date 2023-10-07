@@ -108,15 +108,27 @@ npm run deploy:bsc
 ```
 
 ## Deployment
+
+### Greenfield Contracts on BSC
+- BSC ChainID: 56
+- BSC RPC: https://bsc-dataseed1.binance.org
+- BSC Explorer: https://bscscan.com/
+
+- Greenfield ChainID: greenfield_1017-1
+- Greenfield RPC: https://greenfield-chain.bnbchain.org:443
+- Greenfield GRPC swagger: https://greenfield-chain.bnbchain.org/openapi
+- Greenfield Storage dApp: https://dcellar.io/
+- Greenfield Explorer: http://greenfieldscan.com/
+
+
 ### Greenfield Contracts on BSC Testnet
 - BSC Testnet ChainID: 97
 - BSC Testnet RPC: https://data-seed-prebsc-1-s1.binance.org:8545/
 - BSC Testnet Explorer: https://testnet.bscscan.com/
 
 - Greenfield ChainID: greenfield_5600-1
-- Greenfield Tendermint RPC: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org
+- Greenfield RPC: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org
 - Greenfield GRPC swagger: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org/openapi
-- Greenfield EthAPI: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org
 - Greenfield Storage dApp: https://dcellar.io/
 - Greenfield Explorer: http://greenfieldscan.com/
 
