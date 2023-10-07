@@ -122,6 +122,25 @@ npm run deploy:bsc
 
 ## Contract Entrypoint
 
+### Mainnet
+
+| contract name | address                                    |
+|---------------|--------------------------------------------|
+| CrossChain    | 0x77e719b714be09F70D484AB81F70D02B0E182f7d |
+| TokenHub      | 0xeA97dF87E6c7F68C9f95A69dA79E19B834823F25 |
+| BucketHub     | 0xE909754263572F71bc6aFAc837646A93f5818573 |
+| ObjectHub     | 0x634eB9c438b8378bbdd8D0e10970Ec88db0b4d0f |
+| GroupHub      | 0xDd9af4573D64324125fCa5Ce13407be79331B7F7 |
+
+Extra:
+
+| contract name | address                                    |
+|---------------|--------------------------------------------|
+| Deployer      | 0x4763c12b21a548BCbD22a682fb15930565e27C43 |
+| ProxyAdmin    | 0xf9010DC773eE3961418C96dc67Fc5DcCB3EA2C08 |
+| LightClient   | 0x433bB48Bd86c089375e53b2E2873A9C4bC0e986B |
+| RelayerHub    | 0x31C477F05CE58bB81A9FB4b8c00560f1cBe185d1 |
+
 ### Testnet
 
 | contract name | address                                    |
@@ -223,11 +242,6 @@ cp .env.example .env
 
 ts-node scripts/6-claim-unlock-bot.ts
 ```
-
-## Disclaimer
-**The software and related documentation are under active development, all subject to potential future change without
-notification and not ready for production use. The code and security audit have not been fully completed and not ready
-for any bug bounty. We advise you to be careful and experiment on the network at your own risk. Stay safe out there.**
 
 ## Contribution
 Thank you for considering helping with the source code! We appreciate contributions from anyone on the internet, no
