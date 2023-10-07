@@ -153,6 +153,9 @@ Extra:
 | LightClient   | 0x433bB48Bd86c089375e53b2E2873A9C4bC0e986B |
 | RelayerHub    | 0x31C477F05CE58bB81A9FB4b8c00560f1cBe185d1 |
 
+for full list of contracts, please refer to:
+[Deployment on BSC](https://github.com/bnb-chain/greenfield-contracts/blob/master/deployment/56-deployment.json)
+
 ### Testnet
 
 | contract name | address                                    |
@@ -171,6 +174,10 @@ Extra:
 | ProxyAdmin    | 0xdD1c0a54a9EDEa8d0821AEB5BE54c51B79fa4c2e |
 | LightClient   | 0xa9249cefF9cBc9BAC0D9167b79123b6C7413F50a |
 | RelayerHub    | 0x91cA83d95c8454277d1C297F78082B589e6E4Ea3 |
+
+for full list of contracts, please refer to:
+[Deployment on BSC Testnet](https://github.com/bnb-chain/greenfield-contracts/blob/master/deployment/97-deployment.json)
+
 
 ## Verify on BSCScan
 ```shell
