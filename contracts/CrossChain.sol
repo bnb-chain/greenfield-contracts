@@ -140,11 +140,11 @@ contract CrossChain is Config, Initializable, ICrossChain {
         gnfdChainId = _gnfdChainId;
 
         // TODO register other channels
-        channelHandlerMap[TRANSFER_IN_CHANNEL_ID] = TOKEN_HUB;
-        registeredContractChannelMap[TOKEN_HUB][TRANSFER_IN_CHANNEL_ID] = true;
+//        channelHandlerMap[TRANSFER_IN_CHANNEL_ID] = TOKEN_HUB;
+//        registeredContractChannelMap[TOKEN_HUB][TRANSFER_IN_CHANNEL_ID] = true;
 
-        channelHandlerMap[TRANSFER_OUT_CHANNEL_ID] = TOKEN_HUB;
-        registeredContractChannelMap[TOKEN_HUB][TRANSFER_OUT_CHANNEL_ID] = true;
+//        channelHandlerMap[TRANSFER_OUT_CHANNEL_ID] = TOKEN_HUB;
+//        registeredContractChannelMap[TOKEN_HUB][TRANSFER_OUT_CHANNEL_ID] = true;
 
         channelHandlerMap[GOV_CHANNEL_ID] = GOV_HUB;
         registeredContractChannelMap[GOV_HUB][GOV_CHANNEL_ID] = true;
