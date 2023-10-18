@@ -14,8 +14,9 @@ contract BucketStorage is CmnStorage {
         BucketVisibilityType visibility;
         address paymentAddress;
         address primarySpAddress;
-        uint256 primarySpApprovalExpiredHeight;
-        bytes primarySpSignature; // TODO if the owner of the bucket is a smart contract, we are not able to get the primarySpSignature
+        uint64 primarySpApprovalExpiredHeight;
+        uint32 globalVirtualGroupFamilyId;
+        bytes primarySpSignature;
         uint64 chargedReadQuota;
         bytes extraData; // abi.encode of ExtraData
     }
