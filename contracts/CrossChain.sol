@@ -120,7 +120,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
     }
 
     /*----------------- external function -----------------*/
-    function initialize(uint16 _gnfdChainId) public initializer {
+    function initialize(uint16 _gnfdChainId, bool enableCrossChainTransfer) public initializer {
         require(_gnfdChainId != 0, "zero _gnfdChainId");
         require(PROXY_ADMIN != address(0), "zero PROXY_ADMIN");
         require(GOV_HUB != address(0), "zero GOV_HUB");
@@ -140,11 +140,13 @@ contract CrossChain is Config, Initializable, ICrossChain {
         gnfdChainId = _gnfdChainId;
 
         // TODO register other channels
-        channelHandlerMap[TRANSFER_IN_CHANNEL_ID] = TOKEN_HUB;
-        registeredContractChannelMap[TOKEN_HUB][TRANSFER_IN_CHANNEL_ID] = true;
+        if (enableCrossChainTransfer) {
+            channelHandlerMap[TRANSFER_IN_CHANNEL_ID] = TOKEN_HUB;
+            registeredContractChannelMap[TOKEN_HUB][TRANSFER_IN_CHANNEL_ID] = true;
 
-        channelHandlerMap[TRANSFER_OUT_CHANNEL_ID] = TOKEN_HUB;
-        registeredContractChannelMap[TOKEN_HUB][TRANSFER_OUT_CHANNEL_ID] = true;
+            channelHandlerMap[TRANSFER_OUT_CHANNEL_ID] = TOKEN_HUB;
+            registeredContractChannelMap[TOKEN_HUB][TRANSFER_OUT_CHANNEL_ID] = true;
+        }
 
         channelHandlerMap[GOV_CHANNEL_ID] = GOV_HUB;
         registeredContractChannelMap[GOV_HUB][GOV_CHANNEL_ID] = true;

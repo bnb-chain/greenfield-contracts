@@ -8,6 +8,7 @@ const { ethers } = require('hardhat');
 const log = console.log;
 const unit = ethers.constants.WeiPerEther;
 
+let enableCrossChainTransfer = true;
 const gnfdChainId = 9000;
 let emergencyOperator = '' // suspend / reopen / cancelTransfer
 let emergencyUpgradeOperator = '' // update params / upgrade contracts
@@ -96,7 +97,7 @@ const main = async () => {
     execSync('npx hardhat compile');
     await sleep(2);
 
-    const deployer = (await deployContract('Deployer', gnfdChainId)) as Deployer;
+    const deployer = (await deployContract('Deployer', gnfdChainId, enableCrossChainTransfer)) as Deployer;
     log('Deployer deployed', deployer.address);
 
     const proxyAdmin = await deployer.proxyAdmin();
@@ -247,6 +248,7 @@ const main = async () => {
 
         initConsensusState,
         gnfdChainId,
+        enableCrossChainTransfer,
     };
     log('all contracts', JSON.stringify(deployment, null, 2));
 
