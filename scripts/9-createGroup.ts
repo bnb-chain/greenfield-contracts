@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
 import {CrossChain, GroupHub, TokenHub} from '../typechain-types';
-import { toHuman } from './helper';
+import {toHuman, unit} from './helper';
 import {waitTx} from "../test/helper";
 const { ethers } = require('hardhat');
 const log = console.log;
@@ -25,7 +25,7 @@ const main = async () => {
     log('group send seq: ', (await crossChain.channelSendSequenceMap(6)).toString())
 
 
-    await waitTx(groupHub["createGroup(address,string)"](operator.address, 'testGroup1', { value: 1e18 }))
+    await waitTx(groupHub["createGroup(address,string)"](operator.address, 'testGroup1', { value: unit }))
     log('createGroup, done!', 'group owner', operator.address, 'group name', 'testGroup1')
 
 
