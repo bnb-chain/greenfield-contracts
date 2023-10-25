@@ -84,10 +84,16 @@ const main = async () => {
     log(`"[${ newContracts.join(',') }]"`);
 
     const govHub = (await ethers.getContractAt('GovHub', proxyGovHub)) as GovHub;
-    const tx = await govHub.emergencyUpdate('upgrade', newContracts[0], targets[0])
+    const tx = await govHub.emergencyUpdate('upgrade', newContracts[0], targets[0], {
+      gasPrice: 50e9
+    })
     const receipt = await tx.wait(1);
     log(receipt)
     log(tx.hash)
+
+    const crossChain = (await ethers.getContractAt('CrossChain', proxyCrossChain)) as CrossChain;
+    log(await crossChain.versionInfo())
+
 };
 
 main()
