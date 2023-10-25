@@ -25,7 +25,7 @@ const main = async () => {
     log('group send seq: ', (await crossChain.channelSendSequenceMap(6)).toString())
 
 
-    await waitTx(groupHub["createGroup(address,string)"](operator.address, 'testGroup1'))
+    await waitTx(groupHub["createGroup(address,string)"](operator.address, 'testGroup1', { value: 1e18 }))
     log('createGroup, done!', 'group owner', operator.address, 'group name', 'testGroup1')
 
 
