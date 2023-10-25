@@ -19,6 +19,7 @@ export async function deployContract(
 
 export async function waitTx(txRequest: Promise<ContractTransaction>): Promise<ContractReceipt> {
     const txResponse = await txRequest;
+    console.log('txHash', txResponse.hash)
     return await txResponse.wait(1);
 }
 
