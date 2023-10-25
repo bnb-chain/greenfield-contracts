@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
-import {CrossChain, GroupHub, TokenHub} from '../typechain-types';
-import {toHuman, unit} from './helper';
+import {CrossChain, TokenHub} from '../typechain-types';
+import { toHuman } from './helper';
 import {waitTx} from "../test/helper";
 const { ethers } = require('hardhat');
 const log = console.log;
@@ -17,22 +17,20 @@ const main = async () => {
     const crossChain = (await ethers.getContractAt('CrossChain', contracts.CrossChain)) as CrossChain;
     log(await crossChain.versionInfo())
 
-    const groupHub = (await ethers.getContractAt('GroupHub', contracts.GroupHub)) as GroupHub;
-    log(await groupHub.versionInfo())
+  log('before tx oracle seq: ', (await crossChain.oracleSequence()).toString())
+  log('bucket send seq: ', (await crossChain.channelSendSequenceMap(4)).toString())
+  log('group send seq: ', (await crossChain.channelSendSequenceMap(6)).toString())
 
-    log('before tx oracle seq: ', (await crossChain.oracleSequence()).toString())
+
+    await waitTx(crossChain.emergencyChangeSequence(true, 0, false, false, 1))
+    log('oracle seq - 1, done!')
+
+    await waitTx(crossChain.emergencyChangeSequence(false, 6, true, false, 2))
+    log('Group Channel seq - 2, done!')
+
+    log('after change oracle seq: ', (await crossChain.oracleSequence()).toString())
     log('bucket send seq: ', (await crossChain.channelSendSequenceMap(4)).toString())
     log('group send seq: ', (await crossChain.channelSendSequenceMap(6)).toString())
-
-
-    await waitTx(groupHub["createGroup(address,string)"](operator.address, 'testGroup22', { value: unit }))
-    log('createGroup, done!', 'group owner', operator.address, 'group name', 'testGroup1')
-
-
-    log('after tx oracle seq: ', (await crossChain.oracleSequence()).toString())
-    log('bucket send seq: ', (await crossChain.channelSendSequenceMap(4)).toString())
-    log('group send seq: ', (await crossChain.channelSendSequenceMap(6)).toString())
-
 };
 
 main()
