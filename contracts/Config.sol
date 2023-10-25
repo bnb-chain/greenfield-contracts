@@ -14,17 +14,17 @@ abstract contract Config {
 
     // contract address
     // will calculate their deployed addresses from deploy script
-    address public constant PROXY_ADMIN = address(0);
-    address public constant GOV_HUB = address(0);
-    address public constant CROSS_CHAIN = address(0);
-    address public constant TOKEN_HUB = address(0);
-    address public constant LIGHT_CLIENT = address(0);
-    address public constant RELAYER_HUB = address(0);
-    address public constant BUCKET_HUB = address(0);
-    address public constant OBJECT_HUB = address(0);
-    address public constant GROUP_HUB = address(0);
-    address public constant EMERGENCY_OPERATOR = address(0);
-    address public constant EMERGENCY_UPGRADE_OPERATOR = address(0);
+    address public constant PROXY_ADMIN = 0x9CFAFbDAB8F2e86a8a27029A5E77b2534457BeD6;
+    address public constant GOV_HUB = 0x5c5a4AA1ee2685e13EB36697088852c328d14F79;
+    address public constant CROSS_CHAIN = 0x9B95D20589055c13cD0c298C3a8D20895e9F1dA0;
+    address public constant TOKEN_HUB = 0x8a470e6C8fd3fE14b3E56681Bc59927Ca8E3a667;
+    address public constant LIGHT_CLIENT = 0x418E4adC42e6CAb02B2281d8178622A16f4c9d4d;
+    address public constant RELAYER_HUB = 0xE1f1439364F1f666E72E63f3a7Db9388016E2db6;
+    address public constant BUCKET_HUB = 0xc48BC04097224c9Cd0eb42D75D706EdA57FFD83E;
+    address public constant OBJECT_HUB = 0x12EBd3286791970BBdaCD11dba296596c1DB52dE;
+    address public constant GROUP_HUB = 0x1Ff260e40F4991D4351341352aD39086ab5d460b;
+    address public constant EMERGENCY_OPERATOR = 0x4765b1382B1a7C88EF8566A8B8386F15528dB3dA;
+    address public constant EMERGENCY_UPGRADE_OPERATOR = 0x4870829F800997B1fc6E519A4143956D7e290dd3;
 
     // PlaceHolder reserve for future usage
     uint256[50] private configSlots;

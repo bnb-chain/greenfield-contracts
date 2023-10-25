@@ -1,4 +1,4 @@
-import { Deployer } from '../typechain-types';
+import {CrossChain, Deployer, GovHub, TokenHub} from '../typechain-types';
 import { sleep, toHuman } from './helper';
 import fs from 'fs';
 import { execSync } from 'child_process';
@@ -8,10 +8,7 @@ const log = console.log;
 
 // TODO: add the contract names to be upgraded
 const newContractsToUpgrade = [
-    'BucketHub',
-    'ObjectHub',
-    'GroupHub',
-    'AdditionalGroupHub',
+    'CrossChain',
 ]
 
 const main = async () => {
@@ -86,17 +83,11 @@ const main = async () => {
     log(`values for upgrade:`);
     log(`"[${ newContracts.join(',') }]"`);
 
-
-    log(`emergency upgrade: params of multi-sig call:`);
-    log(`key:`);
-    log(`upgrade`);
-
-    log(`values:`);
-    log('0x' + newContracts.join('').replace(/0x/g, '').toLowerCase());
-
-    log(`targets:`);
-    log('0x' + targets.join('').replace(/0x/g, '').toLowerCase());
-
+    const govHub = (await ethers.getContractAt('GovHub', proxyGovHub)) as GovHub;
+    const tx = await govHub.emergencyUpdate('upgrade', newContracts[0], targets[0])
+    const receipt = await tx.wait(1);
+    log(receipt)
+    log(tx.hash)
 };
 
 main()
