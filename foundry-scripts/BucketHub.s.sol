@@ -8,7 +8,8 @@ contract BucketHubScript is Helper {
         uint8 bucketVisibilityType,
         address paymentAddress,
         address primarySpAddress,
-        uint256 primarySpApprovalExpiredHeight,
+        uint64 primarySpApprovalExpiredHeight,
+        uint32 globalVirtualGroupFamilyId,
         bytes memory primarySpSignature,
         uint64 chargedReadQuota
     ) external {
@@ -29,6 +30,7 @@ contract BucketHubScript is Helper {
             paymentAddress,
             primarySpAddress,
             primarySpApprovalExpiredHeight,
+            globalVirtualGroupFamilyId,
             primarySpSignature,
             chargedReadQuota,
             ""

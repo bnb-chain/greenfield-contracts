@@ -14,7 +14,7 @@ contract DeployerTest is TestDeployer {
     function setUp() public {}
 
     function test_calc_create_address() public {
-        deployer = new Deployer(1);
+        deployer = new Deployer(1, true);
         TestAddress testDeployer = new TestAddress();
         testDeployer.deploy();
         for (uint256 i = 0; i < 5; i++) {

@@ -83,6 +83,7 @@ contract BucketHubTest is Test, BucketHub {
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
+            globalVirtualGroupFamilyId: 0,
             primarySpSignature: "",
             chargedReadQuota: 0,
             extraData: ""
@@ -130,6 +131,7 @@ contract BucketHubTest is Test, BucketHub {
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
+            globalVirtualGroupFamilyId: 0,
             primarySpSignature: "",
             chargedReadQuota: 0,
             extraData: ""
@@ -215,6 +217,7 @@ contract BucketHubTest is Test, BucketHub {
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
+            globalVirtualGroupFamilyId: 0,
             primarySpSignature: "",
             chargedReadQuota: 0,
             extraData: abi.encode(extraData)
@@ -258,6 +261,7 @@ contract BucketHubTest is Test, BucketHub {
             paymentAddress: address(this),
             primarySpAddress: address(this),
             primarySpApprovalExpiredHeight: 0,
+            globalVirtualGroupFamilyId: 0,
             primarySpSignature: "",
             chargedReadQuota: 0,
             extraData: ""

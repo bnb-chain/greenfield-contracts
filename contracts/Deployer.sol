@@ -48,15 +48,17 @@ contract Deployer {
 
     bool public deployed;
     address public operator;
+    bool public enableCrossChainTransfer;
 
     modifier onlyOperator() {
         require(msg.sender == operator, "only operator");
         _;
     }
 
-    constructor(uint16 _gnfdChainId) {
+    constructor(uint16 _gnfdChainId, bool _enableCrossChainTransfer) {
         operator = msg.sender;
         gnfdChainId = _gnfdChainId;
+        enableCrossChainTransfer = _enableCrossChainTransfer;
 
         /*
             @dev deploy workflow
@@ -123,7 +125,7 @@ contract Deployer {
         require(deployedProxyGroupHub == proxyGroupHub, "invalid proxyGroupHub address");
 
         // 10. init contracts, set contracts addresses to GovHub
-        CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId);
+        CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId, enableCrossChainTransfer);
         TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
         RelayerHub(payable(proxyRelayerHub)).initialize();
