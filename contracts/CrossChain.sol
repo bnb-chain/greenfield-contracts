@@ -27,6 +27,10 @@ contract CrossChain is Config, Initializable, ICrossChain {
     bytes32 public constant EMPTY_CONTENT_HASH = keccak256("");
     uint256 public constant EMERGENCY_PROPOSAL_EXPIRE_PERIOD = 1 hours;
     uint256 public constant MAX_RELAY_FEE = 1 ether;
+
+    uint256 public constant BSC_CHAIN_ID = 56;
+    uint256 public constant BSC_TESTNET_CHAIN_ID = 97;
+    uint64 public constant MAX_SEQUENCE_CHANGE = 100;
     /*----------------- storage layer -----------------*/
     bool public isSuspended;
     // proposal type hash => latest emergency proposal
@@ -352,18 +356,34 @@ contract CrossChain is Config, Initializable, ICrossChain {
     }
 
     function emergencyChangeSequence(
+        bool isOracleSequence,
         uint8 channelId,
         bool isSendSequence,
-        bool isIncrease
+        bool isIncrease,
+        uint64 sequenceChange
     ) external onlyEmergencyUpgradeOperator {
+        uint256 _chainId = block.chainid;
+        require(_chainId != BSC_CHAIN_ID && _chainId != BSC_TESTNET_CHAIN_ID, "not allowed on BSC");
+        require(sequenceChange <= MAX_SEQUENCE_CHANGE, "exceed max sequence change");
+
+        // 1. oracle sequence
+        if (isOracleSequence) {
+            oracleSequence = isIncrease
+                ? oracleSequence + int64(sequenceChange)
+                : oracleSequence - int64(sequenceChange);
+
+            return;
+        }
+
+        // 2. channel sequence
         if (isSendSequence) {
             channelSendSequenceMap[channelId] = isIncrease
-                ? channelSendSequenceMap[channelId] + 1
-                : channelSendSequenceMap[channelId] - 1;
+                ? channelSendSequenceMap[channelId] + sequenceChange
+                : channelSendSequenceMap[channelId] - sequenceChange;
         } else {
             channelReceiveSequenceMap[channelId] = isIncrease
-                ? channelReceiveSequenceMap[channelId] + 1
-                : channelReceiveSequenceMap[channelId] - 1;
+                ? channelReceiveSequenceMap[channelId] + sequenceChange
+                : channelReceiveSequenceMap[channelId] - sequenceChange;
         }
     }
 
@@ -589,6 +609,6 @@ contract CrossChain is Config, Initializable, ICrossChain {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (200_002, "CrossChain", "add emergencyChangeSequence");
+        return (200_003, "CrossChain", "modify emergency change sequence");
     }
 }
