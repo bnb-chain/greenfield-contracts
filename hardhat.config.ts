@@ -1,23 +1,23 @@
-import { HardhatUserConfig } from "hardhat/config";
+import {HardhatUserConfig} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import 'dotenv/config';
 
 const config: HardhatUserConfig = {
-  solidity: {
-    compilers: [
-      {
-        version: "0.8.17",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
-          }
-        }
-      }
-    ]
-  },
+    solidity: {
+        compilers: [
+            {
+                version: "0.8.17",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200
+                    }
+                }
+            }
+        ]
+    },
 
-  networks: {
+    networks: {
         'test': {
             url: process.env.RPC_TEST || "http://127.0.0.1:8545",
             accounts: [
@@ -59,6 +59,13 @@ const config: HardhatUserConfig = {
             accounts: [
                 process.env.DeployerPrivateKey || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
             ]
+        },
+        'opbnb': {
+            url: process.env.OPBNB_RPC || 'https://opbnb-mainnet-rpc.bnbchain.org',
+            accounts: [
+                process.env.OPBNB_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
+            ],
+            gasPrice: 20e9,
         },
     },
 
