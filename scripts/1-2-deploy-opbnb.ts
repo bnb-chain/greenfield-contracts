@@ -8,7 +8,8 @@ const { ethers } = require('hardhat');
 const log = console.log;
 const unit = ethers.constants.WeiPerEther;
 
-let enableCrossChainTransfer = true;
+// @dev Caution: crosschain transfer not allowed on opbnb
+let enableCrossChainTransfer = false;
 const gnfdChainId = 9000;
 let emergencyOperator = ''; // suspend / reopen / cancelTransfer
 let emergencyUpgradeOperator = ''; // update params / upgrade contracts
@@ -66,8 +67,8 @@ const main = async () => {
     log('network', network);
     log('operator.address: ', operator.address, toHuman(balance));
 
-    // BSC Mainnet
-    if (network.chainId === 56) {
+    // OPBNB Mainnet
+    if (network.chainId === 204) {
         if (!emergencyOperator) {
             throw new Error('emergencyOperator is not set');
         }
@@ -273,8 +274,8 @@ const main = async () => {
         JSON.stringify(deployment, null, 2)
     );
 
-    // BSC Mainnet
-    if (network.chainId === 56) {
+    // opbnb Mainnet
+    if (network.chainId === 204) {
         return;
     }
 
