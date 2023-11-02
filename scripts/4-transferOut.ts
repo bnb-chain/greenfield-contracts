@@ -18,7 +18,10 @@ const main = async () => {
     const receiver = '0x0000000000000000000000000000000000001001';
     const amount = BigNumber.from(1234567);
     const relayFee = BigNumber.from(4e15);
-    const tx = await tokenHub.transferOut(receiver, amount, { value: amount.add(relayFee), gasPrice: 21e9 });
+    const tx = await tokenHub.transferOut(receiver, amount, {
+        value: amount.add(relayFee),
+        gasPrice: 21e9,
+    });
     const receipt = await tx.wait(5);
     log('txHash', tx.hash);
     log('blockNumber', receipt.blockNumber);

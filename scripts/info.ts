@@ -4,7 +4,6 @@ const { ethers } = require('hardhat');
 const log = console.log;
 
 const main = async () => {
-
     const { chainId } = await ethers.provider.getNetwork();
     log('chainId', chainId);
     const contracts: any = require(`../deployment/${chainId}-deployment.json`);

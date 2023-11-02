@@ -2,17 +2,12 @@ import { Deployer } from '../typechain-types';
 import { sleep, toHuman } from './helper';
 import fs from 'fs';
 import { execSync } from 'child_process';
-import {deployContract} from "../test/helper";
+import { deployContract } from '../test/helper';
 const { ethers, run } = require('hardhat');
 const log = console.log;
 
 // TODO: add the contract names to be upgraded
-const newContractsToUpgrade = [
-    'BucketHub',
-    'ObjectHub',
-    'GroupHub',
-    'AdditionalGroupHub',
-]
+const newContractsToUpgrade = ['BucketHub', 'ObjectHub', 'GroupHub', 'AdditionalGroupHub'];
 
 const main = async () => {
     const { chainId } = await ethers.provider.getNetwork();
@@ -48,7 +43,10 @@ const main = async () => {
         .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
         .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`)
         .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${contracts.EmergencyOperator};`)
-        .replace(/EMERGENCY_UPGRADE_OPERATOR = .*/g, `EMERGENCY_UPGRADE_OPERATOR = ${contracts.EmergencyUpgradeOperator};`)
+        .replace(
+            /EMERGENCY_UPGRADE_OPERATOR = .*/g,
+            `EMERGENCY_UPGRADE_OPERATOR = ${contracts.EmergencyUpgradeOperator};`
+        );
 
     fs.writeFileSync(__dirname + '/../contracts/Config.sol', newConfig, 'utf8');
     await sleep(2);
@@ -59,10 +57,10 @@ const main = async () => {
     const newContracts: string[] = [];
     for (let i = 0; i < newContractsToUpgrade.length; i++) {
         let name = newContractsToUpgrade[i];
-        const contract = await deployContract(operator, name)
+        const contract = await deployContract(operator, name);
         await contract.deployed();
         log(`new impl of ${name}: ${contract.address}`);
-        if (name === "GnfdLightClient") name = "LightClient";
+        if (name === 'GnfdLightClient') name = 'LightClient';
         targets.push(contracts[name]);
         newContracts.push(contract.address);
 
@@ -81,11 +79,10 @@ const main = async () => {
     log(`upgrade`);
 
     log(`targets for upgrade:`);
-    log(`"[${ targets.join(',') }]"`);
+    log(`"[${targets.join(',')}]"`);
 
     log(`values for upgrade:`);
-    log(`"[${ newContracts.join(',') }]"`);
-
+    log(`"[${newContracts.join(',')}]"`);
 
     log(`emergency upgrade: params of multi-sig call:`);
     log(`key:`);
@@ -96,7 +93,6 @@ const main = async () => {
 
     log(`targets:`);
     log('0x' + targets.join('').replace(/0x/g, '').toLowerCase());
-
 };
 
 main()
