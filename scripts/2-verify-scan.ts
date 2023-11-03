@@ -15,10 +15,15 @@ const main = async () => {
     log('operator.address: ', operator.address, toHuman(balance));
 
     const deployer = (await ethers.getContractAt('Deployer', contracts.Deployer)) as Deployer;
-    await run('verify:verify', {
-        address: contracts.Deployer,
-        constructorArguments: [contracts.gnfdChainId, contracts.enableCrossChainTransfer],
-    });
+
+    try {
+        await run('verify:verify', {
+            address: contracts.Deployer,
+            constructorArguments: [contracts.gnfdChainId, contracts.enableCrossChainTransfer],
+        });
+    } catch (e) {
+        log('verify Deployer error', e);
+    }
     const proxyAdmin = await deployer.proxyAdmin();
     const proxyGovHub = await deployer.proxyGovHub();
     const proxyCrossChain = await deployer.proxyCrossChain();
