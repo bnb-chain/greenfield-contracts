@@ -17,7 +17,7 @@ const main = async () => {
     const deployer = (await ethers.getContractAt('Deployer', contracts.Deployer)) as Deployer;
     await run('verify:verify', {
         address: contracts.Deployer,
-        constructorArguments: [contracts.gnfdChainId],
+        constructorArguments: [contracts.gnfdChainId, contracts.enableCrossChainTransfer],
     });
     const proxyAdmin = await deployer.proxyAdmin();
     const proxyGovHub = await deployer.proxyGovHub();
