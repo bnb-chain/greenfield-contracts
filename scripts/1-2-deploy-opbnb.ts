@@ -10,9 +10,13 @@ const unit = ethers.constants.WeiPerEther;
 
 // @dev Caution: crosschain transfer not allowed on opbnb
 let enableCrossChainTransfer = false;
+// TODO
 const gnfdChainId = 9000;
-let emergencyOperator = '0x62a2d596CD02CC1d41b2642552BD1eBD2b7d9198'; // suspend / reopen / cancelTransfer
-let emergencyUpgradeOperator = '0x997012FDd54A8f476ADBa5d31F6Ab58Fe24EE720'; // update params / upgrade contracts
+// TODO
+let emergencyOperator = ''; // suspend / reopen / cancelTransfer
+// TODO
+let emergencyUpgradeOperator = ''; // update params / upgrade contracts
+// TODO modify consensusStateBytes
 const initConsensusState: any = {
     chainID: 'greenfield_9000-1741',
     height: 3106395,
