@@ -10,48 +10,59 @@ const unit = ethers.constants.WeiPerEther;
 
 // @dev Caution: crosschain transfer not allowed on opbnb
 let enableCrossChainTransfer = false;
+// TODO
 const gnfdChainId = 9000;
+// TODO
 let emergencyOperator = ''; // suspend / reopen / cancelTransfer
+// TODO
 let emergencyUpgradeOperator = ''; // update params / upgrade contracts
+// TODO modify consensusStateBytes
 const initConsensusState: any = {
     chainID: 'greenfield_9000-1741',
-    height: 1,
-    nextValidatorSetHash: '0xaf6b801dda578dddfa4da1d5d67fd1b32510db24ec271346fc573e9242b01c9a',
+    height: 3106395,
+    nextValidatorSetHash: '0x3587fab24485c35a44e579ae1660c21cbb960fcd08249208ae05a46504d7ad45',
     validators: [
         {
             pubKey: '0x112b51dda2d336246bdc0cc51407ba0cb0e5087be0db5f1cdc3285bbaa8e6475',
-            votingPower: 1000,
+            votingPower: 501072,
             relayerAddress: '0x4202722cf6a34d727be762b46825b0d26b6263a0',
             relayerBlsKey:
                 '0xa9355ebf3c24bedac5a357a56feeb2cd8b6fed9f14cca15c3091f523b9fb21183b4bb31eb482a0321885e3f570721564',
         },
         {
-            pubKey: '0x48e2b2f7d9a3e7b668757d9cc0bbd28cd674c34ed1c2ed75c5de3b6a8f8cad46',
-            votingPower: 1000,
-            relayerAddress: '0x668a0acd8f6db5cae959a0e02132f4d6a672c4d7',
-            relayerBlsKey:
-                '0xa4726b542012cc8023ee07b29ab3971cc999d8751bbd16f23413968afcdb070ed66ab47e6e1842bf875bef21dfc5b8af',
-        },
-        {
             pubKey: '0x6813bfd82860d361e339bd1ae2f801b6d6ee46b8497a3d51c80b50b6160ea1cc',
-            votingPower: 1000,
+            votingPower: 1033,
             relayerAddress: '0x0dfa99423d3084c596c5e3bd6bcb4f654516517b',
             relayerBlsKey:
                 '0x8d4786703c56b300b70f085c0d0482e5d6a3c7208883f0ec8abd2de893f71d18e8f919e7ab198499201d87f92c57ebce',
         },
         {
             pubKey: '0x83ed2b763bb872e9bc148fb216fd5c93b18819670d9a946ae4b3075672d726b8',
-            votingPower: 1000,
+            votingPower: 1022,
             relayerAddress: '0x24aab6f85470ff73e3048c64083a09e980d4cb7f',
             relayerBlsKey:
                 '0x8146d231a7b2051c5f7a9c07ab6e6bfe277bd5f4a94f901fe6ee7a6b6bd8479e9e5e448de4b1b33d5ddd74194c86b385',
         },
         {
             pubKey: '0x2cc140a3f08a9c4149efd45643202f8bef2ad7eecf53e58951c6df6fd932004b',
-            votingPower: 1000,
+            votingPower: 1020,
             relayerAddress: '0x4998f6ef8d999a0f36a851bfa29dbcf0364dd656',
             relayerBlsKey:
                 '0x95c286deb3f1657664859d59876bf1ec5a288f6e66e18b37b8a2a1e6ee4a3ef8fa50784d8b758d0c3e70a7cdfe65ab5d',
+        },
+        {
+            pubKey: '0x48e2b2f7d9a3e7b668757d9cc0bbd28cd674c34ed1c2ed75c5de3b6a8f8cad46',
+            votingPower: 1014,
+            relayerAddress: '0x668a0acd8f6db5cae959a0e02132f4d6a672c4d7',
+            relayerBlsKey:
+                '0xa4726b542012cc8023ee07b29ab3971cc999d8751bbd16f23413968afcdb070ed66ab47e6e1842bf875bef21dfc5b8af',
+        },
+        {
+            pubKey: '0xb4ebd3e97d158550bc0f1eb3769d8171fcce8964d228834bc352e48289f3d0e6',
+            votingPower: 7,
+            relayerAddress: '0x10c87037e41913cfcc7373a63932917aeb01846b',
+            relayerBlsKey:
+                '0x85fe97a427b6dcde5a7753705352b7495a23cb7805787b0aa05c140551c0535a82ab5969e0ac5c7ac867a00f8b8eabe9',
         },
     ],
     consensusStateBytes:
@@ -281,7 +292,7 @@ const main = async () => {
 
     tx = await operator.sendTransaction({
         to: proxyTokenHub,
-        value: unit.mul(1000),
+        value: unit.mul(10),
     });
     await tx.wait(1);
     log('balance of TokenHub', await ethers.provider.getBalance(proxyTokenHub));
@@ -291,7 +302,7 @@ const main = async () => {
         const relayer = validators[i].relayerAddress;
         tx = await operator.sendTransaction({
             to: ethers.utils.getAddress(relayer),
-            value: unit.mul(100),
+            value: unit.mul(5),
         });
         await tx.wait(1);
     }
