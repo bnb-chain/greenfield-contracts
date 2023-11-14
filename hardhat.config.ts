@@ -69,12 +69,27 @@ const config: HardhatUserConfig = {
         },
     },
 
+
     etherscan: {
         apiKey: {
+            opBNB: process.env.OPBNB_API_KEY || '',
             bsc: process.env.BSCSCAN_APIKEY || '',
             bscTestnet: process.env.BSCSCAN_APIKEY || '',
-        }
+        },
+        customChains: [
+            {
+                network: "opBNB",
+                // chainId: 204, // opBNB Mainnet
+                chainId: 5611, // opBNB Testnet
+                urls: {
+                    // apiURL: `https://open-platform.nodereal.io/${process.env.OPBNB_API_KEY}/op-bnb-mainnet/contract/`,  // opBNB Mainnet
+                    apiURL: `https://open-platform.nodereal.io/${process.env.OPBNB_API_KEY}/op-bnb-testnet/contract/`,  // opBNB Testnet
+                    browserURL: "https://testnet.opbnbscan.com",
+                },
+            },
+        ],
     },
+
 };
 
 export default config;
