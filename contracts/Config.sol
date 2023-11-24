@@ -11,6 +11,7 @@ abstract contract Config {
     uint8 public constant BUCKET_CHANNEL_ID = 0x04;
     uint8 public constant OBJECT_CHANNEL_ID = 0x05;
     uint8 public constant GROUP_CHANNEL_ID = 0x06;
+    uint8 public constant PERMISSION_CHANNEL_ID = 0x07;
 
     // contract address
     // will calculate their deployed addresses from deploy script
