@@ -80,7 +80,7 @@ const main = async () => {
     try {
         await run('verify:verify', {
             address: proxyAdmin,
-            contract: "contracts/GnfdProxyAdmin.sol:GnfdProxyAdmin",
+            contract: 'contracts/GnfdProxyAdmin.sol:GnfdProxyAdmin',
         });
         await run('verify:verify', { address: implGovHub });
         await run('verify:verify', { address: implCrossChain });
