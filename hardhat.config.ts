@@ -61,30 +61,44 @@ const config: HardhatUserConfig = {
             ]
         },
         'opbnb': {
-            url: process.env.OPBNB_RPC || 'https://opbnb-mainnet-rpc.bnbchain.org',
-            accounts: [
-                process.env.OPBNB_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
-            ],
-            gasPrice: 20e9,
+            url: 'https://opbnb-mainnet-rpc.bnbchain.org',
+            accounts: {
+                mnemonic: process.env.OP_MN,
+            },
+            gasPrice: 1e8,
+        },
+        'opbnb-testnet': {
+            url: 'https://opbnb-testnet-rpc.bnbchain.org',
+            accounts: {
+                mnemonic: process.env.OP_MN,
+            },
+            gasPrice: 1e8,
         },
     },
-
-
     etherscan: {
         apiKey: {
-            opBNB: process.env.OPBNB_API_KEY || '',
+            // opBNB: process.env.OPBNB_API_KEY || '',
+            opBNB: process.env.OPBNB_BSCSCAN_APIKEY || '',
+            opBNBTestnet: process.env.OPBNB_BSCSCAN_APIKEY || '',
+
             bsc: process.env.BSCSCAN_APIKEY || '',
             bscTestnet: process.env.BSCSCAN_APIKEY || '',
         },
         customChains: [
             {
                 network: "opBNB",
-                // chainId: 204, // opBNB Mainnet
+                chainId: 204, // opBNB Mainnet
+                urls: {
+                    apiURL: `https://api-opbnb.bscscan.com/api`,  // opBNB Mainnet
+                    browserURL: "https://opbnb.bscscan.com",  // opBNB mainnet
+                },
+            },
+            {
+                network: "opBNBTestnet",
                 chainId: 5611, // opBNB Testnet
                 urls: {
-                    // apiURL: `https://open-platform.nodereal.io/${process.env.OPBNB_API_KEY}/op-bnb-mainnet/contract/`,  // opBNB Mainnet
-                    apiURL: `https://open-platform.nodereal.io/${process.env.OPBNB_API_KEY}/op-bnb-testnet/contract/`,  // opBNB Testnet
-                    browserURL: "https://testnet.opbnbscan.com",
+                    apiURL: `https://api-opbnb-testnet.bscscan.com/api`,  // opBNB Testnet
+                    browserURL: "https://opbnb-testnet.bscscan.com/",  // opBNB Testnet
                 },
             },
         ],
