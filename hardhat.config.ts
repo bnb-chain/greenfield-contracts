@@ -63,14 +63,14 @@ const config: HardhatUserConfig = {
         'opbnb': {
             url: 'https://opbnb-mainnet-rpc.bnbchain.org',
             accounts: {
-                mnemonic: process.env.OP_MN,
+                mnemonic: process.env.OP_MN || 'test test test test test test test test test test test test',
             },
             gasPrice: 1e8,
         },
         'opbnb-testnet': {
             url: 'https://opbnb-testnet-rpc.bnbchain.org',
             accounts: {
-                mnemonic: process.env.OP_MN,
+                mnemonic: process.env.OP_MN || 'test test test test test test test test test test test test',
             },
             gasPrice: 1e8,
         },
