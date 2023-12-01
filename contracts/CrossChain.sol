@@ -164,6 +164,9 @@ contract CrossChain is Config, Initializable, ICrossChain {
         channelHandlerMap[GROUP_CHANNEL_ID] = GROUP_HUB;
         registeredContractChannelMap[GROUP_HUB][GROUP_CHANNEL_ID] = true;
 
+        channelHandlerMap[PERMISSION_CHANNEL_ID] = PERMISSION_HUB;
+        registeredContractChannelMap[PERMISSION_HUB][PERMISSION_CHANNEL_ID] = true;
+
         callbackGasPrice = 4 gwei;
         batchSizeForOracle = 50;
 

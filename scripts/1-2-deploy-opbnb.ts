@@ -1,5 +1,5 @@
 import { Deployer } from '../typechain-types';
-import { sleep, toHuman } from './helper';
+import { setConstantsToConfig, sleep, toHuman } from './helper';
 
 const fs = require('fs');
 const { execSync } = require('child_process');
@@ -130,32 +130,23 @@ const main = async () => {
     const proxyBucketHub = await deployer.proxyBucketHub();
     const proxyObjectHub = await deployer.proxyObjectHub();
     const proxyGroupHub = await deployer.proxyGroupHub();
+    const proxyPermissionHub = await deployer.proxyPermissionHub();
 
-    const config: string = fs
-        .readFileSync(__dirname + '/../contracts/Config.sol', 'utf8')
-        .toString();
-    const newConfig: string = config
-        .replace(/PROXY_ADMIN = .*/g, `PROXY_ADMIN = ${proxyAdmin};`)
-        .replace(/GOV_HUB = .*/g, `GOV_HUB = ${proxyGovHub};`)
-        .replace(/CROSS_CHAIN = .*/g, `CROSS_CHAIN = ${proxyCrossChain};`)
-        .replace(/TOKEN_HUB = .*/g, `TOKEN_HUB = ${proxyTokenHub};`)
-        .replace(/LIGHT_CLIENT = .*/g, `LIGHT_CLIENT = ${proxyLightClient};`)
-        .replace(/RELAYER_HUB = .*/g, `RELAYER_HUB = ${proxyRelayerHub};`)
-        .replace(/BUCKET_HUB = .*/g, `BUCKET_HUB = ${proxyBucketHub};`)
-        .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
-        .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`)
-        .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${emergencyOperator};`)
-        .replace(
-            /EMERGENCY_UPGRADE_OPERATOR = .*/g,
-            `EMERGENCY_UPGRADE_OPERATOR = ${emergencyUpgradeOperator};`
-        );
-
-    log('Set all generated contracts to Config contracts');
-
-    fs.writeFileSync(__dirname + '/../contracts/Config.sol', newConfig, 'utf8');
-    await sleep(2);
-    execSync('npx hardhat compile');
-    await sleep(2);
+    // Set all generated contracts to Config contracts
+    await setConstantsToConfig({
+        proxyAdmin,
+        proxyGovHub,
+        proxyCrossChain,
+        proxyTokenHub,
+        proxyLightClient,
+        proxyRelayerHub,
+        proxyBucketHub,
+        proxyObjectHub,
+        proxyGroupHub,
+        proxyPermissionHub,
+        emergencyOperator,
+        emergencyUpgradeOperator,
+    });
 
     const implGovHub = await deployContract('GovHub');
     log('deploy implGovHub success', implGovHub.address);
@@ -181,6 +172,9 @@ const main = async () => {
     const implGroupHub = await deployContract('GroupHub');
     log('deploy implGroupHub success', implGroupHub.address);
 
+    const implPermissionHub = await deployContract('PermissionHub');
+    log('deploy implPermissionHub success', implPermissionHub.address);
+
     const addBucketHub = await deployContract('AdditionalBucketHub');
     log('deploy addBucketHub success', addBucketHub.address);
 
@@ -189,6 +183,9 @@ const main = async () => {
 
     const addGroupHub = await deployContract('AdditionalGroupHub');
     log('deploy addGroupHub success', addGroupHub.address);
+
+    const addPermissionHub = await deployContract('AdditionalPermissionHub');
+    log('deploy addPermissionHub success', addPermissionHub.address);
 
     const bucketToken = await deployContract(
         'ERC721NonTransferable',
@@ -217,6 +214,15 @@ const main = async () => {
     );
     log('deploy group token success', groupToken.address);
 
+    const permissionToken = await deployContract(
+        'ERC721NonTransferable',
+        'GreenField-PermissionToken',
+        'PERMISSION',
+        'permission',
+        proxyPermissionHub
+    );
+    log('deploy permission token  success', permissionToken.address);
+
     const memberToken = await deployContract('ERC1155NonTransferable', 'member', proxyGroupHub);
     log('deploy member token success', memberToken.address);
 
@@ -236,6 +242,10 @@ const main = async () => {
         objectToken.address,
         groupToken.address,
         memberToken.address,
+
+        implPermissionHub.address,
+        addPermissionHub.address,
+        permissionToken.address,
     ];
 
     let tx = await deployer.deploy(initAddrs, initConsensusStateBytes);

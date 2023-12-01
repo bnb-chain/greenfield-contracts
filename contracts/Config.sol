@@ -26,6 +26,7 @@ abstract contract Config {
     address public constant GROUP_HUB = address(0);
     address public constant EMERGENCY_OPERATOR = address(0);
     address public constant EMERGENCY_UPGRADE_OPERATOR = address(0);
+    address public constant PERMISSION_HUB = address(0);
 
     // PlaceHolder reserve for future usage
     uint256[50] private configSlots;

@@ -77,6 +77,33 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
     }
 
     /*----------------- external function -----------------*/
+    function createPutPolicy(bytes calldata _data) external payable returns (bool) {
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        CreatePutPolicySynPackage memory _pkg = CreatePutPolicySynPackage({
+            operator: msg.sender,
+            data: _data,
+            extraData: ""
+        });
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
+            PERMISSION_CHANNEL_ID,
+            abi.encodePacked(TYPE_CREATE, abi.encode(_pkg)),
+            relayFee,
+            _ackRelayFee
+        );
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit CreateSubmitted(msg.sender, msg.sender, string(_data));
+        return true;
+    }
+
     function createPutPolicy(bytes calldata _data, ExtraData memory _extraData) external payable returns (bool) {
         require(_extraData.failureHandleStrategy == FailureHandleStrategy.SkipOnFail, "only SkipOnFail");
 
@@ -124,8 +151,8 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
         require(
             msg.sender == owner ||
-            IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-            IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender),
+                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender),
             "invalid operator"
         );
 

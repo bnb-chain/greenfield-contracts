@@ -1,5 +1,5 @@
 import { Deployer } from '../typechain-types';
-import { sleep, toHuman } from './helper';
+import { setConstantsToConfig, sleep, toHuman } from './helper';
 import fs from 'fs';
 import { execSync } from 'child_process';
 const { ethers, run } = require('hardhat');
@@ -33,32 +33,23 @@ const main = async () => {
     const proxyBucketHub = await deployer.proxyBucketHub();
     const proxyObjectHub = await deployer.proxyObjectHub();
     const proxyGroupHub = await deployer.proxyGroupHub();
+    const proxyPermissionHub = await deployer.proxyPermissionHub();
 
-    const config: string = fs
-        .readFileSync(__dirname + '/../contracts/Config.sol', 'utf8')
-        .toString();
-    const newConfig: string = config
-        .replace(/PROXY_ADMIN = .*/g, `PROXY_ADMIN = ${proxyAdmin};`)
-        .replace(/GOV_HUB = .*/g, `GOV_HUB = ${proxyGovHub};`)
-        .replace(/CROSS_CHAIN = .*/g, `CROSS_CHAIN = ${proxyCrossChain};`)
-        .replace(/TOKEN_HUB = .*/g, `TOKEN_HUB = ${proxyTokenHub};`)
-        .replace(/LIGHT_CLIENT = .*/g, `LIGHT_CLIENT = ${proxyLightClient};`)
-        .replace(/RELAYER_HUB = .*/g, `RELAYER_HUB = ${proxyRelayerHub};`)
-        .replace(/BUCKET_HUB = .*/g, `BUCKET_HUB = ${proxyBucketHub};`)
-        .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
-        .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`)
-        .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${contracts.EmergencyOperator};`)
-        .replace(
-            /EMERGENCY_UPGRADE_OPERATOR = .*/g,
-            `EMERGENCY_UPGRADE_OPERATOR = ${contracts.EmergencyUpgradeOperator};`
-        );
-
-    fs.writeFileSync(__dirname + '/../contracts/Config.sol', newConfig, 'utf8');
-    await sleep(2);
-    execSync('npx hardhat compile');
-    await sleep(2);
-
-    log('For verification, Set all contracts from deployment to Config contract locally');
+    // Set all generated contracts to Config contracts
+    await setConstantsToConfig({
+        proxyAdmin,
+        proxyGovHub,
+        proxyCrossChain,
+        proxyTokenHub,
+        proxyLightClient,
+        proxyRelayerHub,
+        proxyBucketHub,
+        proxyObjectHub,
+        proxyGroupHub,
+        proxyPermissionHub,
+        emergencyOperator: contracts.EmergencyOperator,
+        emergencyUpgradeOperator: contracts.EmergencyUpgradeOperator,
+    });
 
     const implGovHub = await deployer.implGovHub();
     const implCrossChain = await deployer.implCrossChain();
@@ -68,13 +59,17 @@ const main = async () => {
     const implBucketHub = await deployer.implBucketHub();
     const implObjectHub = await deployer.implObjectHub();
     const implGroupHub = await deployer.implGroupHub();
+    const implPermissionHub = await deployer.implPermissionHub();
 
     const addBucketHub = await deployer.addBucketHub();
     const addObjectHub = await deployer.addObjectHub();
     const addGroupHub = await deployer.addGroupHub();
+    const addPermissionHub = await deployer.addPermissionHub();
+
     const bucketToken = await deployer.bucketToken();
     const objectToken = await deployer.objectToken();
     const groupToken = await deployer.groupToken();
+    const permissionToken = await deployer.permissionToken();
     const memberToken = await deployer.memberToken();
 
     try {
@@ -86,6 +81,7 @@ const main = async () => {
         await run('verify:verify', { address: implBucketHub });
         await run('verify:verify', { address: implObjectHub });
         await run('verify:verify', { address: implGroupHub });
+        await run('verify:verify', { address: implPermissionHub });
         log('all impl contract verified');
     } catch (e) {
         log('verify error', e);
@@ -95,6 +91,7 @@ const main = async () => {
         await run('verify:verify', { address: addBucketHub });
         await run('verify:verify', { address: addObjectHub });
         await run('verify:verify', { address: addGroupHub });
+        await run('verify:verify', { address: addPermissionHub });
 
         log('verified addBucketHub, addObjectHub, addGroupHub');
     } catch (e) {
@@ -162,6 +159,17 @@ const main = async () => {
             address: groupToken,
             constructorArguments: ['GreenField-Group', 'GROUP', 'group', proxyGroupHub],
         });
+
+        await run('verify:verify', {
+            address: permissionToken,
+            constructorArguments: [
+                'GreenField-Permission',
+                'PERMISSION',
+                'permission',
+                proxyPermissionHub,
+            ],
+        });
+
         await run('verify:verify', {
             address: memberToken,
             constructorArguments: ['member', proxyGroupHub],

@@ -6,5 +6,11 @@ import "../middle-layer/resource-mirror/storage/PermissionStorage.sol";
 
 interface IPermissionHub {
     function deletePolicy(uint256 id) external payable returns (bool);
-    function createPutPolicy(bytes calldata _data, PermissionStorage.ExtraData memory _extraData) external payable returns (bool);
+
+    function createPutPolicy(
+        bytes calldata _data,
+        PermissionStorage.ExtraData memory _extraData
+    ) external payable returns (bool);
+
+    function createPutPolicy(bytes calldata _data) external payable returns (bool);
 }
