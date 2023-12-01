@@ -73,6 +73,10 @@ const main = async () => {
     const memberToken = await deployer.memberToken();
 
     try {
+        await run('verify:verify', {
+            address: proxyAdmin,
+            contract: 'contracts/GnfdProxyAdmin.sol:GnfdProxyAdmin',
+        });
         await run('verify:verify', { address: implGovHub });
         await run('verify:verify', { address: implCrossChain });
         await run('verify:verify', { address: implTokenHub });
@@ -82,7 +86,8 @@ const main = async () => {
         await run('verify:verify', { address: implObjectHub });
         await run('verify:verify', { address: implGroupHub });
         await run('verify:verify', { address: implPermissionHub });
-        log('all impl contract verified');
+        log('proxyAdmin and all impl contract verified');
+
     } catch (e) {
         log('verify error', e);
     }
