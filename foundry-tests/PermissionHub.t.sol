@@ -118,6 +118,27 @@ contract PermissionHubTest is Test, PermissionHub {
         permissionHub.handleAckPackage(PERMISSION_CHANNEL_ID, sequence, msgBytes, 5000);
     }
 
+    function testFAck() public {
+        ExtraData memory extraData = ExtraData({
+            appAddress: address(this),
+            refundAddress: address(this),
+            failureHandleStrategy: FailureHandleStrategy.SkipOnFail,
+            callbackData: ""
+        });
+        createPolicySynPackage memory synPkg = createPolicySynPackage({
+            operator: address(this),
+            data: "",
+            extraData: abi.encode(extraData) // abi.encode of ExtraData
+        });
+        bytes memory msgBytes = abi.encodePacked(TYPE_CREATE, abi.encode(synPkg));
+        uint64 sequence = crossChain.channelReceiveSequenceMap(PERMISSION_CHANNEL_ID);
+
+        vm.expectEmit(true, true, true, false, address(this));
+        emit GreenfieldCall(STATUS_UNEXPECTED, PERMISSION_CHANNEL_ID, TYPE_CREATE, 0, "");
+        vm.prank(CROSS_CHAIN);
+        permissionHub.handleFailAckPackage(PERMISSION_CHANNEL_ID, sequence, msgBytes, 5000);
+    }
+
     /*----------------- dApp function -----------------*/
     function greenfieldCall(
         uint32 status,

@@ -19,5 +19,47 @@ contract AdditionalPermissionHub is PermissionStorage {
     uint8 private _initialized;
     bool private _initializing;
 
-    using DoubleEndedQueueUpgradeable for DoubleEndedQueueUpgradeable.Bytes32Deque;
+    /**
+     * @dev delete a policy and send cross-chain request from BSC to GNFD
+     *
+     * @param id The policy id
+     * @param _extraData The extra data for crosschain callback
+     */
+    function deletePolicy(uint256 id, ExtraData memory _extraData) external payable returns (bool) {
+        require(_extraData.failureHandleStrategy == FailureHandleStrategy.SkipOnFail, "only SkipOnFail");
+
+        // make sure the extra data is as expected
+        require(_extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
+        _extraData.appAddress = msg.sender;
+
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+        require(msg.sender == owner, "invalid operator");
+
+        // make sure the extra data is as expected
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
+            operator: owner,
+            id: id,
+            extraData: abi.encode(_extraData)
+        });
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
+            PERMISSION_CHANNEL_ID,
+            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
+            relayFee,
+            _ackRelayFee
+        );
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit DeleteSubmitted(owner, msg.sender, id);
+        return true;
+    }
 }

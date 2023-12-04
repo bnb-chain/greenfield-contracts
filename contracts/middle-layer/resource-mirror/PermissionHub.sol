@@ -109,6 +109,7 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
 
         // make sure the extra data is as expected
         require(_extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
+        _extraData.appAddress = msg.sender;
 
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
@@ -167,6 +168,10 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
 
         emit DeleteSubmitted(owner, msg.sender, id);
         return true;
+    }
+
+    function deletePolicy(uint256, ExtraData memory) external payable returns (bool) {
+        delegateAdditional();
     }
 
     /*----------------- internal function -----------------*/
