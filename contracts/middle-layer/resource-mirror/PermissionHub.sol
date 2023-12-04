@@ -149,12 +149,7 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        require(
-            msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender),
-            "invalid operator"
-        );
+        require(msg.sender == owner, "invalid operator");
 
         // make sure the extra data is as expected
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
