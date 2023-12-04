@@ -77,13 +77,13 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
     }
 
     /*----------------- external function -----------------*/
-    function createPutPolicy(bytes calldata _data) external payable returns (bool) {
+    function createPolicy(bytes calldata _data) external payable returns (bool) {
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
-        CreatePutPolicySynPackage memory _pkg = CreatePutPolicySynPackage({
+        createPolicySynPackage memory _pkg = createPolicySynPackage({
             operator: msg.sender,
             data: _data,
             extraData: ""
@@ -104,7 +104,7 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
         return true;
     }
 
-    function createPutPolicy(bytes calldata _data, ExtraData memory _extraData) external payable returns (bool) {
+    function createPolicy(bytes calldata _data, ExtraData memory _extraData) external payable returns (bool) {
         require(_extraData.failureHandleStrategy == FailureHandleStrategy.SkipOnFail, "only SkipOnFail");
 
         // make sure the extra data is as expected
@@ -115,7 +115,7 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
-        CreatePutPolicySynPackage memory _pkg = CreatePutPolicySynPackage({
+        createPolicySynPackage memory _pkg = createPolicySynPackage({
             operator: msg.sender,
             data: _data,
             extraData: abi.encode(_extraData)
@@ -180,7 +180,7 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
         uint64,
         uint256 callbackGasLimit
     ) internal returns (uint256 remainingGas, address refundAddress) {
-        CreatePutPolicySynPackage memory synPkg = abi.decode(pkgBytes, (CreatePutPolicySynPackage));
+        createPolicySynPackage memory synPkg = abi.decode(pkgBytes, (createPolicySynPackage));
 
         if (synPkg.extraData.length > 0) {
             ExtraData memory extraData = abi.decode(synPkg.extraData, (ExtraData));

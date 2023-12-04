@@ -66,7 +66,7 @@ contract PermissionHubTest is Test, PermissionHub {
     }
 
     function testCreate(uint256 id) public {
-        CreatePutPolicySynPackage memory synPkg = CreatePutPolicySynPackage({
+        createPolicySynPackage memory synPkg = createPolicySynPackage({
             operator: address(this),
             data: "",
             extraData: ""
@@ -74,7 +74,7 @@ contract PermissionHubTest is Test, PermissionHub {
 
         vm.expectEmit(true, true, true, true, address(permissionHub));
         emit CreateSubmitted(address(this), address(this), string(synPkg.data));
-        permissionHub.createPutPolicy{ value: 4e15 }("");
+        permissionHub.createPolicy{ value: 4e15 }("");
 
         bytes memory msgBytes = _encodeCreateAckPackage(0, id, address(this));
         uint64 sequence = crossChain.channelReceiveSequenceMap(PERMISSION_CHANNEL_ID);
