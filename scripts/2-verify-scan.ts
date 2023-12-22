@@ -87,7 +87,6 @@ const main = async () => {
         await run('verify:verify', { address: implGroupHub });
         await run('verify:verify', { address: implPermissionHub });
         log('proxyAdmin and all impl contract verified');
-
     } catch (e) {
         log('verify error', e);
     }
