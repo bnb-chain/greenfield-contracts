@@ -15,6 +15,7 @@ import "./middle-layer/TokenHub.sol";
 import "./middle-layer/resource-mirror/BucketHub.sol";
 import "./middle-layer/resource-mirror/ObjectHub.sol";
 import "./middle-layer/resource-mirror/GroupHub.sol";
+import "./middle-layer/resource-mirror/PermissionHub.sol";
 
 contract Deployer {
     uint16 public immutable gnfdChainId;
@@ -28,6 +29,7 @@ contract Deployer {
     address public immutable proxyBucketHub;
     address public immutable proxyObjectHub;
     address public immutable proxyGroupHub;
+    address public immutable proxyPermissionHub;
 
     bytes public initConsensusStateBytes;
     address public implGovHub;
@@ -38,12 +40,17 @@ contract Deployer {
     address public implBucketHub;
     address public implObjectHub;
     address public implGroupHub;
+    address public implPermissionHub;
+
     address public addBucketHub;
     address public addObjectHub;
     address public addGroupHub;
+    address public addPermissionHub;
+
     address public bucketToken;
     address public objectToken;
     address public groupToken;
+    address public permissionToken;
     address public memberToken;
 
     bool public deployed;
@@ -75,6 +82,9 @@ contract Deployer {
         proxyBucketHub = calcCreateAddress(address(this), uint8(7));
         proxyObjectHub = calcCreateAddress(address(this), uint8(8));
         proxyGroupHub = calcCreateAddress(address(this), uint8(9));
+
+        // @dev
+        proxyPermissionHub = calcCreateAddress(address(this), uint8(10));
 
         // 1. proxyAdmin
         address deployedProxyAdmin = address(new GnfdProxyAdmin());
@@ -124,7 +134,11 @@ contract Deployer {
         address deployedProxyGroupHub = address(new GnfdProxy(implGroupHub, proxyAdmin, ""));
         require(deployedProxyGroupHub == proxyGroupHub, "invalid proxyGroupHub address");
 
-        // 10. init contracts, set contracts addresses to GovHub
+        // 10. PermissionHub
+        address deployedProxyPermissionHub = address(new GnfdProxy(implPermissionHub, proxyAdmin, ""));
+        require(deployedProxyPermissionHub == proxyPermissionHub, "invalid proxyPermissionHub address");
+
+        // 11. init contracts, set contracts addresses to GovHub
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId, enableCrossChainTransfer);
         TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
@@ -136,6 +150,8 @@ contract Deployer {
         ObjectHub(payable(proxyObjectHub)).initializeV2();
         GroupHub(payable(proxyGroupHub)).initialize(groupToken, memberToken, addGroupHub);
         GroupHub(payable(proxyGroupHub)).initializeV2();
+        PermissionHub(payable(proxyPermissionHub)).initialize(permissionToken, addPermissionHub);
+        PermissionHub(payable(proxyPermissionHub)).initializeV2();
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
@@ -159,7 +175,7 @@ contract Deployer {
 
     function _init(address[] memory addrs) internal {
         // use address list to avoid stack too deep
-        require(addrs.length == 15, "invalid addrs length");
+        require(addrs.length == 18, "invalid addrs length");
 
         require(_isContract(addrs[0]), "invalid implGovHub");
         require(_isContract(addrs[1]), "invalid implCrossChain");
@@ -177,6 +193,10 @@ contract Deployer {
         require(_isContract(addrs[13]), "invalid groupToken");
         require(_isContract(addrs[14]), "invalid memberToken");
 
+        require(_isContract(addrs[15]), "invalid implPermissionHub");
+        require(_isContract(addrs[16]), "invalid addPermissionHub");
+        require(_isContract(addrs[17]), "invalid permissionToken");
+
         implGovHub = addrs[0];
         implCrossChain = addrs[1];
         implTokenHub = addrs[2];
@@ -192,6 +212,10 @@ contract Deployer {
         objectToken = addrs[12];
         groupToken = addrs[13];
         memberToken = addrs[14];
+
+        implPermissionHub = addrs[15];
+        addPermissionHub = addrs[16];
+        permissionToken = addrs[17];
     }
 
     function _isContract(address account) internal view returns (bool) {
