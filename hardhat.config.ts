@@ -50,9 +50,10 @@ const config: HardhatUserConfig = {
         },
         'bsc': {
             url: process.env.BSC_RPC || 'https://bsc-dataseed1.binance.org',
-            accounts: [
-                process.env.DeployerPrivateKey || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
-            ]
+            accounts: {
+                mnemonic: process.env.BSC_MN || 'test test test test test test test test test test test test',
+            },
+            gasPrice: 3.1 * 1e9
         },
         'goerli': {
             url: process.env.GOERLI_RPC || 'https://rpc.ankr.com/eth_goerli',
