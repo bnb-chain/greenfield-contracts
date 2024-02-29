@@ -66,12 +66,10 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         require(acCode == 0, "invalid authorization code");
     }
 
-    /**
-     * @dev create a bucket and send cross-chain request from BSC to GNFD
-     *
-     * @param synPkg Package containing information of the bucket to be created
-     */
-    function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
+    function encodeCreateBucket(
+        address sender,
+        CreateBucketSynPackage memory synPkg
+    ) public payable returns (uint8, bytes memory, uint256, uint256, address) {
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
@@ -79,25 +77,33 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
 
         // check authorization
         address owner = synPkg.creator;
-        if (msg.sender != owner) {
-            require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
+        if (sender != owner) {
+            require(hasRole(ROLE_CREATE, owner, sender), "no permission to create");
         }
 
         // make sure the extra data is as expected
         synPkg.extraData = "";
 
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            BUCKET_CHANNEL_ID,
-            abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
-        );
-
         // transfer all the fee to tokenHub
         (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
-        emit CreateSubmitted(owner, msg.sender, synPkg.name);
+        emit CreateSubmitted(synPkg.creator, msg.sender, synPkg.name);
+
+        return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
+    }
+
+    /**
+     * @dev create a bucket and send cross-chain request from BSC to GNFD
+     *
+     * @param synPkg Package containing information of the bucket to be created
+     */
+    function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
+            msg.sender,
+            synPkg
+        );
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
         return true;
     }
 

@@ -12,6 +12,7 @@ abstract contract Config {
     uint8 public constant OBJECT_CHANNEL_ID = 0x05;
     uint8 public constant GROUP_CHANNEL_ID = 0x06;
     uint8 public constant PERMISSION_CHANNEL_ID = 0x07;
+    uint8 public constant MULTI_MESSAGE_CHANNEL_ID = 0x08;
 
     // contract address
     // will calculate their deployed addresses from deploy script
@@ -27,6 +28,7 @@ abstract contract Config {
     address public constant EMERGENCY_OPERATOR = address(0);
     address public constant EMERGENCY_UPGRADE_OPERATOR = address(0);
     address public constant PERMISSION_HUB = address(0);
+    address public constant MULTI_MESSAGE = address(0);
 
     // PlaceHolder reserve for future usage
     uint256[50] private configSlots;
