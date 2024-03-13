@@ -9,6 +9,9 @@ import "./CmnHub.sol";
 import "./storage/MultiStorage.sol";
 
 contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
+    uint8 public constant ACK_PACKAGE = 0x01;
+    uint8 public constant FAIL_ACK_PACKAGE = 0x02;
+
     mapping(address => bool) public whitelistTargets;
 
     constructor() {
@@ -24,7 +27,6 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
         whitelistTargets[BUCKET_HUB] = true;
         whitelistTargets[GROUP_HUB] = true;
         whitelistTargets[OBJECT_HUB] = true;
-        whitelistTargets[PERMISSION_HUB] = true;
         whitelistTargets[TOKEN_HUB] = true;
     }
 
@@ -55,8 +57,11 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
             (bool success, bytes memory result) = target.call{ value: value }(data);
             require(success, "call reverted");
 
-            (, , uint256 _relayFee, uint256 _ackRelayFee, address sender) = abi.decode(result, (uint8, bytes, uint256, uint256, address));
-            require(msg.sender == sender, "invalid sender");
+            (, , uint256 _relayFee, uint256 _ackRelayFee, address _sender) = abi.decode(
+                result,
+                (uint8, bytes, uint256, uint256, address)
+            );
+            require(msg.sender == _sender, "invalid sender");
 
             _totalRelayFee += _relayFee;
             _totalAckRelayFee += _ackRelayFee;
@@ -79,20 +84,34 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
 
     function handleAckPackage(
         uint8,
-        uint64 sequence,
+        uint64,
         bytes calldata msgBytes,
-        uint256 callbackGasLimit
+        uint256
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         uint8 opType = uint8(msgBytes[0]);
-        bytes memory pkgBytes = msgBytes[1:];
+        require(opType == TYPE_MULTI_MESSAGE, "invalid opType");
 
-        if (opType == TYPE_CREATE) {
-            (remainingGas, refundAddress) = _handleCreateAckPackage(pkgBytes, sequence, callbackGasLimit);
-        } else if (opType == TYPE_DELETE) {
-            (remainingGas, refundAddress) = _handleDeleteAckPackage(pkgBytes, sequence, callbackGasLimit);
-        } else {
-            revert("unexpected operation type");
+        bytes[] memory payloads = abi.decode(msgBytes[1:], (bytes[]));
+        for (uint256 i = 0; i < payloads.length; i++) {
+            ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(payloads[i], ACK_PACKAGE);
         }
+        return (0, address(0));
+    }
+
+    function handleFailAckPackage(
+        uint8,
+        uint64,
+        bytes calldata msgBytes,
+        uint256
+    ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
+        uint8 opType = uint8(msgBytes[0]);
+        require(opType == TYPE_MULTI_MESSAGE, "invalid opType");
+
+        bytes[] memory payloads = abi.decode(msgBytes[1:], (bytes[]));
+        for (uint256 i = 0; i < payloads.length; i++) {
+            ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(payloads[i], FAIL_ACK_PACKAGE);
+        }
+        return (0, address(0));
     }
 
     function versionInfo()
