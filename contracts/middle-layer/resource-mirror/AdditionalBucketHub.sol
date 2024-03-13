@@ -66,6 +66,45 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         require(acCode == 0, "invalid authorization code");
     }
 
+    /**
+     * @dev create a bucket and send cross-chain request from BSC to GNFD
+     *
+     * @param synPkg Package containing information of the bucket to be created
+     */
+    function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
+            msg.sender,
+            synPkg
+        );
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    /**
+     * @dev create a bucket and send cross-chain request from BSC to GNFD.
+     * Callback function will be called when the request is processed.
+     *
+     * @param synPkg Package containing information of the bucket to be created
+     * @param callbackGasLimit The gas limit for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
+     */
+    function createBucket(
+        CreateBucketSynPackage memory synPkg,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
+            msg.sender,
+            synPkg,
+            callbackGasLimit,
+            extraData
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
     function encodeCreateBucket(
         address sender,
         CreateBucketSynPackage memory synPkg
@@ -91,20 +130,6 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         emit CreateSubmitted(owner, msg.sender, synPkg.name);
 
         return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
-    }
-
-    /**
-     * @dev create a bucket and send cross-chain request from BSC to GNFD
-     *
-     * @param synPkg Package containing information of the bucket to be created
-     */
-    function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
-        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
-            msg.sender,
-            synPkg
-        );
-        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
-        return true;
     }
 
     function encodeCreateBucket(
@@ -148,31 +173,6 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         require(success, "transfer to tokenHub failed");
 
         return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
-    }
-
-    /**
-     * @dev create a bucket and send cross-chain request from BSC to GNFD.
-     * Callback function will be called when the request is processed.
-     *
-     * @param synPkg Package containing information of the bucket to be created
-     * @param callbackGasLimit The gas limit for callback function
-     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
-     */
-    function createBucket(
-        CreateBucketSynPackage memory synPkg,
-        uint256 callbackGasLimit,
-        ExtraData memory extraData
-    ) external payable returns (bool) {
-        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
-            msg.sender,
-            synPkg,
-            callbackGasLimit,
-            extraData
-        );
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
-        return true;
     }
 
     /**

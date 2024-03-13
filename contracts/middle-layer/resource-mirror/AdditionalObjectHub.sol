@@ -58,6 +58,58 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
         require(acCode == 0, "invalid authorization code");
     }
 
+    /**
+     * @dev delete a object and send cross-chain request from BSC to GNFD
+     *
+     * @param id The object id
+     */
+    function deleteObject(uint256 id) external payable returns (bool) {
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+
+        // make sure the extra data is as expected
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeDeleteObject(
+            msg.sender,
+            synPkg
+        );
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    /**
+     * @dev delete a object and send cross-chain request from BSC to GNFD
+     * Callback function will be called when the request is processed
+     *
+     * @param id The bucket's id
+     * @param callbackGasLimit The gas limit for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
+     */
+    function deleteObject(
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable returns (bool) {
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+        extraData.appAddress = msg.sender;
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
+            operator: owner,
+            id: id,
+            extraData: abi.encode(extraData)
+        });
+
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeDeleteObject(
+            msg.sender,
+            synPkg,
+            callbackGasLimit,
+            extraData
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
     function encodeDeleteObject(
         address sender,
         CmnDeleteSynPackage memory synPkg
@@ -87,24 +139,6 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
         }
 
         return (OBJECT_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
-    }
-
-    /**
-     * @dev delete a object and send cross-chain request from BSC to GNFD
-     *
-     * @param id The object id
-     */
-    function deleteObject(uint256 id) external payable returns (bool) {
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-
-        // make sure the extra data is as expected
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
-        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeDeleteObject(
-            msg.sender,
-            synPkg
-        );
-        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
-        return true;
     }
 
     function encodeDeleteObject(
@@ -155,39 +189,5 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
         require(success, "transfer to tokenHub failed");
 
         return (OBJECT_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
-    }
-
-    /**
-     * @dev delete a object and send cross-chain request from BSC to GNFD
-     * Callback function will be called when the request is processed
-     *
-     * @param id The bucket's id
-     * @param callbackGasLimit The gas limit for callback function
-     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
-     */
-    function deleteObject(
-        uint256 id,
-        uint256 callbackGasLimit,
-        ExtraData memory extraData
-    ) external payable returns (bool) {
-        // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        extraData.appAddress = msg.sender;
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
-            operator: owner,
-            id: id,
-            extraData: abi.encode(extraData)
-        });
-
-        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeDeleteObject(
-            msg.sender,
-            synPkg,
-            callbackGasLimit,
-            extraData
-        );
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
-        return true;
     }
 }

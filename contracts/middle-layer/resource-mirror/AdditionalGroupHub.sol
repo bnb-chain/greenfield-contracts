@@ -75,6 +75,25 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         require(acCode == 0, "invalid authorization code");
     }
 
+    /**
+     * @dev create a group and send cross-chain request from BSC to GNFD
+     *
+     * @param owner The group's owner
+     * @param name The group's name
+     */
+    function createGroup(address owner, string memory name) external payable returns (bool) {
+        // make sure the extra data is as expected
+        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({ creator: owner, name: name, extraData: "" });
+
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateGroup(
+            msg.sender,
+            synPkg
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
     function encodeCreateGroup(
         address sender,
         CreateGroupSynPackage memory synPkg
@@ -96,25 +115,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
 
         emit CreateSubmitted(owner, msg.sender, synPkg.name);
         return (GROUP_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
-    }
-
-    /**
-     * @dev create a group and send cross-chain request from BSC to GNFD
-     *
-     * @param owner The group's owner
-     * @param name The group's name
-     */
-    function createGroup(address owner, string memory name) external payable returns (bool) {
-        // make sure the extra data is as expected
-        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({ creator: owner, name: name, extraData: "" });
-
-        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateGroup(
-            msg.sender,
-            synPkg
-        );
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
-        return true;
     }
 
     function encodeCreateBucket(
