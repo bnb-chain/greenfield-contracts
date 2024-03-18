@@ -98,6 +98,11 @@ contract CrossChain is Config, Initializable, ICrossChain {
         _;
     }
 
+    modifier onlyMultiMessage() {
+        require(msg.sender == MULTI_MESSAGE, "only multiMessage");
+        _;
+    }
+
     modifier whenSuspended() {
         require(isSuspended, "not suspended");
         _;
@@ -166,6 +171,9 @@ contract CrossChain is Config, Initializable, ICrossChain {
 
         channelHandlerMap[PERMISSION_CHANNEL_ID] = PERMISSION_HUB;
         registeredContractChannelMap[PERMISSION_HUB][PERMISSION_CHANNEL_ID] = true;
+
+        channelHandlerMap[MULTI_MESSAGE_CHANNEL_ID] = MULTI_MESSAGE;
+        registeredContractChannelMap[MULTI_MESSAGE][MULTI_MESSAGE_CHANNEL_ID] = true;
 
         callbackGasPrice = 4 gwei;
         batchSizeForOracle = 50;
@@ -485,6 +493,76 @@ contract CrossChain is Config, Initializable, ICrossChain {
         }
 
         emit ParamChange(key, value);
+    }
+
+    function handleAckPackageFromMultiMessage(
+        bytes calldata _payload,
+        uint8 _packageType
+    ) external whenNotSuspended onlyMultiMessage {
+        (
+            bool success,
+            uint8 channelId,
+            uint64 sequence,
+            uint8 packageType,
+            ,
+            uint256 _maxRelayFee,
+            ,
+            bytes memory packageLoad
+        ) = _checkPayload(_payload);
+        if (!success) {
+            emit UnsupportedPackage(sequence, channelId, _payload);
+            return;
+        }
+        emit ReceivedPackage(packageType, sequence, channelId);
+        // 1-2 check if the channel is supported
+        require(packageType == _packageType, "invalid packageType");
+        address _handler = channelHandlerMap[channelId];
+        require(_handler != address(0), "channel is not supported");
+
+        uint256 _minAckRelayFee = minAckRelayFee;
+        uint256 _maxCallbackFee = _maxRelayFee > _minAckRelayFee ? _maxRelayFee - _minAckRelayFee : 0;
+        uint256 _callbackGasLimit = _maxCallbackFee / callbackGasPrice;
+
+        uint256 _refundFee;
+        address _refundAddress;
+        if (packageType == ACK_PACKAGE) {
+            try IMiddleLayer(_handler).handleAckPackage(channelId, 0, packageLoad, _callbackGasLimit) returns (
+                uint256 remainingGas,
+                address refundAddress
+            ) {
+                _refundFee = remainingGas * callbackGasPrice;
+                if (_refundFee > _maxCallbackFee) {
+                    _refundFee = _maxCallbackFee;
+                }
+                _refundAddress = refundAddress;
+            } catch Error(string memory reason) {
+                emit UnexpectedRevertInPackageHandler(_handler, reason);
+            } catch (bytes memory lowLevelData) {
+                emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
+            }
+        } else if (packageType == FAIL_ACK_PACKAGE) {
+            try IMiddleLayer(_handler).handleFailAckPackage(channelId, 0, packageLoad, _callbackGasLimit) returns (
+                uint256 remainingGas,
+                address refundAddress
+            ) {
+                _refundFee = remainingGas * callbackGasPrice;
+                if (_refundFee > _maxCallbackFee) {
+                    _refundFee = _maxCallbackFee;
+                }
+                _refundAddress = refundAddress;
+            } catch Error(string memory reason) {
+                emit UnexpectedRevertInPackageHandler(_handler, reason);
+            } catch (bytes memory lowLevelData) {
+                emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
+            }
+        } else {
+            // should not happen, still protect
+            revert("Unknown Package Type");
+        }
+
+        if (_refundAddress != address(0)) {
+            ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
+        }
     }
 
     /*----------------- internal function -----------------*/

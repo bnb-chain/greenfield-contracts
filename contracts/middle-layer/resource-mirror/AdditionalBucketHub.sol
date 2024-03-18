@@ -72,32 +72,11 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
      * @param synPkg Package containing information of the bucket to be created
      */
     function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
-        // check relay fee
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        address owner = synPkg.creator;
-        if (msg.sender != owner) {
-            require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
-        }
-
-        // make sure the extra data is as expected
-        synPkg.extraData = "";
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            BUCKET_CHANNEL_ID,
-            abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
+            msg.sender,
+            synPkg
         );
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit CreateSubmitted(owner, msg.sender, synPkg.name);
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
         return true;
     }
 
@@ -115,6 +94,50 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
+            msg.sender,
+            synPkg,
+            callbackGasLimit,
+            extraData
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    function encodeCreateBucket(
+        address sender,
+        CreateBucketSynPackage memory synPkg
+    ) public payable returns (uint8, bytes memory, uint256, uint256, address) {
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        // check authorization
+        address owner = synPkg.creator;
+        if (sender != owner) {
+            require(hasRole(ROLE_CREATE, owner, sender), "no permission to create");
+        }
+
+        // make sure the extra data is as expected
+        synPkg.extraData = "";
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit CreateSubmitted(owner, msg.sender, synPkg.name);
+
+        return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
+    }
+
+    function encodeCreateBucket(
+        address sender,
+        CreateBucketSynPackage memory synPkg,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) public payable returns (uint8, bytes memory, uint256, uint256, address) {
         // check relay fee and callback fee
         require(callbackGasLimit > 2300, "invalid callback gas limit");
         require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
@@ -125,33 +148,31 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
 
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
+            require(retryQueue[sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
-        address owner = synPkg.creator;
-        if (msg.sender != owner) {
-            require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
+        address _sender = sender;
+        {
+            address _owner = synPkg.creator;
+            string memory _name = synPkg.name;
+            if (_sender != _owner) {
+                require(hasRole(ROLE_CREATE, _owner, _sender), "no permission to create");
+            }
+
+            // make sure the extra data is as expected
+            require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
+            extraData.appAddress = _sender;
+            synPkg.extraData = abi.encode(extraData);
+
+            emit CreateSubmitted(_owner, _sender, _name);
         }
-
-        // make sure the extra data is as expected
-        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        extraData.appAddress = msg.sender;
-        synPkg.extraData = abi.encode(extraData);
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            BUCKET_CHANNEL_ID,
-            abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
-        );
 
         // transfer all the fee to tokenHub
         (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
-        emit CreateSubmitted(owner, msg.sender, synPkg.name);
-        return true;
+        return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
     }
 
     /**

@@ -8,4 +8,6 @@ interface ICrossChain {
     function getRelayFees() external returns (uint256 relayFee, uint256 minAckRelayFee);
 
     function callbackGasPrice() external returns (uint256);
+
+    function handleAckPackageFromMultiMessage(bytes memory _payload, uint8 _packageType) external;
 }
