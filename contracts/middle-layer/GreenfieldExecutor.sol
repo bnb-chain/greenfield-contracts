@@ -8,22 +8,48 @@ import "../interface/ICrossChain.sol";
 import "../interface/IGreenfieldExecutor.sol";
 
 contract GreenfieldExecutor is Config, Initializable, IGreenfieldExecutor {
+    enum MsgType {
+        Unspecified,
+        CreatePaymentAccount,
+        Deposit,
+        DisableRefund,
+        UpdateParams,
+        Withdraw,
+        MigrateBucket,
+        CancelMigrateBucket,
+        CompleteMigrateBucket,
+        RejectMigrateBucket,
+        UpdateBucketInfo,
+        ToggleSPAsDelegatedAgent,
+        DiscontinueBucket,
+        SetBucketFlowRateLimit,
+        CopyObject,
+        DiscontinueObject,
+        UpdateObjectInfo,
+        LeaveGroup,
+        UpdateGroupExtra,
+        SetTag,
+        CancelUpdateObjectContent
+    }
+
     constructor() {
         _disableInitializers();
     }
     function initialize() public initializer {}
 
-    function execute(bytes[] calldata _data) external payable override returns (bool) {
-        uint256 _length = _data.length;
+    function execute(MsgType[] calldata _msgTypes, bytes[] calldata _msgBytes) external payable override returns (bool) {
+        uint256 _length = _msgTypes.length;
         require(_length > 0, "empty data");
+        require(_length == _msgBytes.length, "length not match");
 
         (uint256 relayFee, ) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value == (relayFee * _length), "not enough value");
 
         // generate packages
-        bytes[] memory messages = new bytes[](_data.length);
+        bytes[] memory messages = new bytes[](_msgBytes.length);
         for (uint256 i = 0; i < _length; ++i) {
-            messages[i] = abi.encode(_data[i], msg.sender);
+            require(_msgTypes[i] != MsgType.Unspecified, "invalid message type");
+            messages[i] = abi.encode(msg.sender, _msgTypes[i], _msgBytes[i]);
         }
 
         // send sync package
