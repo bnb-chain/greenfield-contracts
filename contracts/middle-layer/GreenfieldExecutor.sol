@@ -8,42 +8,41 @@ import "../interface/ICrossChain.sol";
 import "../interface/IGreenfieldExecutor.sol";
 
 contract GreenfieldExecutor is Config, Initializable, IGreenfieldExecutor {
-    enum MsgType {
-        Unspecified,
-        CreatePaymentAccount,
-        Deposit,
-        DisableRefund,
-        UpdateParams,
-        Withdraw,
-        MigrateBucket,
-        CancelMigrateBucket,
-        CompleteMigrateBucket,
-        RejectMigrateBucket,
-        UpdateBucketInfo,
-        ToggleSPAsDelegatedAgent,
-        DiscontinueBucket,
-        SetBucketFlowRateLimit,
-        CopyObject,
-        DiscontinueObject,
-        UpdateObjectInfo,
-        LeaveGroup,
-        UpdateGroupExtra,
-        SetTag,
-        CancelUpdateObjectContent
-    }
+    // Supported message types and its corresponding number
+    // 1: CreatePaymentAccount
+    // 2: Deposit
+    // 3: DisableRefund
+    // 4: UpdateParams
+    // 5: Withdraw
+    // 6: MigrateBucket
+    // 7: CancelMigrateBucket
+    // 8: CompleteMigrateBucket
+    // 9: RejectMigrateBucket
+    // 10: UpdateBucketInfo
+    // 11: ToggleSPAsDelegatedAgent
+    // 12: DiscontinueBucket
+    // 13: SetBucketFlowRateLimit
+    // 14: CopyObject
+    // 15: DiscontinueObject
+    // 16: UpdateObjectInfo
+    // 17: LeaveGroup
+    // 18: UpdateGroupExtra
+    // 19: SetTag
+    // 20: CancelUpdateObjectContent
 
     constructor() {
         _disableInitializers();
     }
+
     function initialize() public initializer {}
 
-    function execute(MsgType[] calldata _msgTypes, bytes[] calldata _msgBytes) external payable override returns (bool) {
+    function execute(uint8[] calldata _msgTypes, bytes[] calldata _msgBytes) external payable override returns (bool) {
         uint256 _length = _msgTypes.length;
         require(_length > 0, "empty data");
         require(_length == _msgBytes.length, "length not match");
 
         (uint256 relayFee, ) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value == (relayFee * _length), "not enough value");
+        require(msg.value == relayFee, "invalid value for relay fee");
 
         // generate packages
         bytes[] memory messages = new bytes[](_msgBytes.length);
