@@ -119,6 +119,7 @@ const main = async () => {
     const proxyObjectHub = await deployer.proxyObjectHub();
     const proxyGroupHub = await deployer.proxyGroupHub();
     const proxyPermissionHub = await deployer.proxyPermissionHub();
+    const proxyGreenfieldExecutor = await deployer.proxyGreenfieldExecutor();
 
     // Set all generated contracts to Config contracts
     await setConstantsToConfig({
@@ -132,6 +133,7 @@ const main = async () => {
         proxyObjectHub,
         proxyGroupHub,
         proxyPermissionHub,
+        proxyGreenfieldExecutor,
         emergencyOperator,
         emergencyUpgradeOperator,
     });
@@ -162,6 +164,9 @@ const main = async () => {
 
     const implPermissionHub = await deployContract('PermissionHub');
     log('deploy implPermissionHub success', implPermissionHub.address);
+
+    const implGreenfieldExecutor = await deployContract('GreenfieldExecutor');
+    log('deploy implGreenfieldExecutor success', implGreenfieldExecutor.address);
 
     const addBucketHub = await deployContract('AdditionalBucketHub');
     log('deploy addBucketHub success', addBucketHub.address);
@@ -234,6 +239,7 @@ const main = async () => {
         implPermissionHub.address,
         addPermissionHub.address,
         permissionToken.address,
+        implGreenfieldExecutor.address,
     ];
 
     let tx = await deployer.deploy(initAddrs, initConsensusStateBytes);
@@ -260,6 +266,7 @@ const main = async () => {
         ObjectHub: proxyObjectHub,
         GroupHub: proxyGroupHub,
         PermissionHub: proxyPermissionHub,
+        GreenfieldExecutor: proxyGreenfieldExecutor,
 
         AdditionalBucketHub: addBucketHub.address,
         AdditionalObjectHub: addObjectHub.address,
