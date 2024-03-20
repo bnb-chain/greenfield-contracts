@@ -12,23 +12,22 @@ contract GreenfieldExecutor is Config, Initializable, IGreenfieldExecutor {
     // 1: CreatePaymentAccount
     // 2: Deposit
     // 3: DisableRefund
-    // 4: UpdateParams
-    // 5: Withdraw
-    // 6: MigrateBucket
-    // 7: CancelMigrateBucket
-    // 8: CompleteMigrateBucket
-    // 9: RejectMigrateBucket
-    // 10: UpdateBucketInfo
-    // 11: ToggleSPAsDelegatedAgent
-    // 12: DiscontinueBucket
-    // 13: SetBucketFlowRateLimit
-    // 14: CopyObject
-    // 15: DiscontinueObject
-    // 16: UpdateObjectInfo
-    // 17: LeaveGroup
-    // 18: UpdateGroupExtra
-    // 19: SetTag
-    // 20: CancelUpdateObjectContent
+    // 4: Withdraw
+    // 5: MigrateBucket
+    // 6: CancelMigrateBucket
+    // 7: CompleteMigrateBucket
+    // 8: RejectMigrateBucket
+    // 9: UpdateBucketInfo
+    // 10: ToggleSPAsDelegatedAgent
+    // 11: DiscontinueBucket
+    // 12: SetBucketFlowRateLimit
+    // 13: CopyObject
+    // 14: DiscontinueObject
+    // 15: UpdateObjectInfo
+    // 16: LeaveGroup
+    // 17: UpdateGroupExtra
+    // 18: SetTag
+    // 19: CancelUpdateObjectContent
 
     constructor() {
         _disableInitializers();
