@@ -46,7 +46,7 @@ contract GreenfieldExecutor is Config, Initializable, IGreenfieldExecutor {
         // generate packages
         bytes[] memory messages = new bytes[](_msgBytes.length);
         for (uint256 i = 0; i < _length; ++i) {
-            require(_msgTypes[i] != MsgType.Unspecified, "invalid message type");
+            require(_msgTypes[i] != 0, "invalid message type");
             messages[i] = abi.encode(msg.sender, _msgTypes[i], _msgBytes[i]);
         }
 
