@@ -6,8 +6,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../Config.sol";
 import "../interface/ICrossChain.sol";
 import "../interface/IGreenfieldExecutor.sol";
+import "../interface/IMiddleLayer.sol";
 
-contract GreenfieldExecutor is Config, Initializable, IGreenfieldExecutor {
+contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldExecutor {
     // Supported message types and its corresponding number
     // 1: CreatePaymentAccount
     // 2: Deposit
@@ -15,19 +16,13 @@ contract GreenfieldExecutor is Config, Initializable, IGreenfieldExecutor {
     // 4: Withdraw
     // 5: MigrateBucket
     // 6: CancelMigrateBucket
-    // 7: CompleteMigrateBucket
-    // 8: RejectMigrateBucket
-    // 9: UpdateBucketInfo
-    // 10: ToggleSPAsDelegatedAgent
-    // 11: DiscontinueBucket
-    // 12: SetBucketFlowRateLimit
-    // 13: CopyObject
-    // 14: DiscontinueObject
-    // 15: UpdateObjectInfo
-    // 16: LeaveGroup
-    // 17: UpdateGroupExtra
-    // 18: SetTag
-    // 19: CancelUpdateObjectContent
+    // 7: UpdateBucketInfo
+    // 8: ToggleSPAsDelegatedAgent
+    // 9: SetBucketFlowRateLimit
+    // 10: CopyObject
+    // 11: UpdateObjectInfo
+    // 12: UpdateGroupExtra
+    // 13: SetTag
 
     constructor() {
         _disableInitializers();
@@ -63,5 +58,27 @@ contract GreenfieldExecutor is Config, Initializable, IGreenfieldExecutor {
         returns (uint256 version, string memory name, string memory description)
     {
         return (1_000_001, "GreenfieldExecutor", "init");
+    }
+
+    function handleSynPackage(uint8, bytes calldata) external returns (bytes memory responsePayload) {
+        revert("receive unexpected syn package");
+    }
+
+    function handleAckPackage(
+        uint8,
+        uint64,
+        bytes calldata,
+        uint256
+    ) external returns (uint256 remainingGas, address refundAddress) {
+        revert("receive unexpected ack package");
+    }
+
+    function handleFailAckPackage(
+        uint8,
+        uint64,
+        bytes calldata,
+        uint256
+    ) external returns (uint256 remainingGas, address refundAddress) {
+        revert("receive unexpected fail ack package");
     }
 }
