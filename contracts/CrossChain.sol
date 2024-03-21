@@ -557,6 +557,9 @@ contract CrossChain is Config, Initializable, ICrossChain {
 
         if (_refundAddress != address(0)) {
             ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
+
+            address _relayer = tx.origin; // only EOA account
+            IRelayerHub(RELAYER_HUB).addReward(_relayer, _maxRelayFee - _refundFee);
         }
     }
 
