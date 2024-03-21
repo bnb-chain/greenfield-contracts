@@ -504,7 +504,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
             ,
             bytes memory packageLoad
         ) = _checkPayload(_payload);
-        if (!success) {
+        if (!success || sequence != 0) {
             emit UnsupportedPackage(sequence, channelId, _payload);
             return;
         }
