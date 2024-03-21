@@ -177,55 +177,6 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         return _prepareDeleteBucket(sender, id, callbackGasLimit, extraData);
     }
 
-    function _prepareDeleteBucket(
-        address sender,
-        uint256 id,
-        uint256 callbackGasLimit,
-        ExtraData memory extraData
-    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
-        // check relay fee and callback fee
-        require(callbackGasLimit > 2300, "invalid callback gas limit");
-        require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
-        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        address _sender = sender;
-        uint256 _id = id;
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(_id);
-
-        // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[_sender].empty(), "retry queue is not empty");
-        }
-
-        if (
-            !(_sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(_id) == _sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
-        ) {
-            require(hasRole(ROLE_DELETE, owner, _sender), "no permission to delete");
-        }
-
-        // make sure the extra data is as expected
-        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        extraData.appAddress = _sender;
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
-            operator: owner,
-            id: _id,
-            extraData: abi.encode(extraData)
-        });
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit DeleteSubmitted(owner, _sender, _id);
-        return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
-    }
-
     function _prepareCreateBucket(
         address sender,
         CreateBucketSynPackage memory synPkg
@@ -329,4 +280,54 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
 
         return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
     }
+
+    function _prepareDeleteBucket(
+        address sender,
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        // check relay fee and callback fee
+        require(callbackGasLimit > 2300, "invalid callback gas limit");
+        require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        // check authorization
+        address _sender = sender;
+        uint256 _id = id;
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(_id);
+
+        // check package queue
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
+            require(retryQueue[_sender].empty(), "retry queue is not empty");
+        }
+
+        if (
+            !(_sender == owner ||
+        IERC721NonTransferable(ERC721Token).getApproved(_id) == _sender ||
+            IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
+        ) {
+            require(hasRole(ROLE_DELETE, owner, _sender), "no permission to delete");
+        }
+
+        // make sure the extra data is as expected
+        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
+        extraData.appAddress = _sender;
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
+            operator: owner,
+            id: _id,
+            extraData: abi.encode(extraData)
+        });
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit DeleteSubmitted(owner, _sender, _id);
+        return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
+    }
+
 }
