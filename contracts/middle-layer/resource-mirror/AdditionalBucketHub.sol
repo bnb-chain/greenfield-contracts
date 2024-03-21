@@ -307,8 +307,8 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
 
         if (
             !(_sender == owner ||
-        IERC721NonTransferable(ERC721Token).getApproved(_id) == _sender ||
-            IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
+                IERC721NonTransferable(ERC721Token).getApproved(_id) == _sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
         ) {
             require(hasRole(ROLE_DELETE, owner, _sender), "no permission to delete");
         }
@@ -329,5 +329,4 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         emit DeleteSubmitted(owner, _sender, _id);
         return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
     }
-
 }
