@@ -72,7 +72,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
      * @param synPkg Package containing information of the bucket to be created
      */
     function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
-        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = prepareCreateBucket(
             msg.sender,
             synPkg
         );
@@ -94,7 +94,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
-        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = prepareCreateBucket(
             msg.sender,
             synPkg,
             callbackGasLimit,
@@ -105,7 +105,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         return true;
     }
 
-    function encodeCreateBucket(
+    function prepareCreateBucket(
         address sender,
         CreateBucketSynPackage memory synPkg
     ) public payable returns (uint8, bytes memory, uint256, uint256, address) {
@@ -132,7 +132,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
     }
 
-    function encodeCreateBucket(
+    function prepareCreateBucket(
         address sender,
         CreateBucketSynPackage memory synPkg,
         uint256 callbackGasLimit,
