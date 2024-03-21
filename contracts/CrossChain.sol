@@ -98,11 +98,6 @@ contract CrossChain is Config, Initializable, ICrossChain {
         _;
     }
 
-    modifier onlyMultiMessage() {
-        require(msg.sender == MULTI_MESSAGE, "only multiMessage");
-        _;
-    }
-
     modifier whenSuspended() {
         require(isSuspended, "not suspended");
         _;
