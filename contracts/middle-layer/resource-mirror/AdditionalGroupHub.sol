@@ -270,7 +270,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
             require(success, "transfer to tokenHub failed");
 
             CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({ creator: owner, name: name, extraData: "" });
-            emit CreateSubmitted(owner, msg.sender, synPkg.name);
+            emit CreateSubmitted(owner, _sender, synPkg.name);
 
             return (
                 GROUP_CHANNEL_ID,
