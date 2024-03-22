@@ -183,6 +183,15 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         return true;
     }
 
+    function prepareDeleteGroup(
+        address sender,
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareDeleteGroup(sender, id, callbackGasLimit, extraData);
+    }
+
     /**
      * @dev update a group's member and send cross-chain request from BSC to GNFD
      *
