@@ -60,7 +60,7 @@ contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldE
         return (1_000_001, "GreenfieldExecutor", "init");
     }
 
-    function handleSynPackage(uint8, bytes calldata) external returns (bytes memory responsePayload) {
+    function handleSynPackage(uint8, bytes calldata) external pure returns (bytes memory responsePayload) {
         revert("receive unexpected syn package");
     }
 
@@ -69,7 +69,7 @@ contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldE
         uint64,
         bytes calldata,
         uint256
-    ) external returns (uint256 remainingGas, address refundAddress) {
+    ) external pure returns (uint256 remainingGas, address refundAddress) {
         revert("receive unexpected ack package");
     }
 
@@ -78,7 +78,7 @@ contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldE
         uint64,
         bytes calldata,
         uint256
-    ) external returns (uint256 remainingGas, address refundAddress) {
+    ) external pure returns (uint256 remainingGas, address refundAddress) {
         revert("receive unexpected fail ack package");
     }
 }
