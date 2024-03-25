@@ -72,12 +72,19 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
      * @param synPkg Package containing information of the bucket to be created
      */
     function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
-        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreateBucket(
             msg.sender,
             synPkg
         );
         ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
         return true;
+    }
+
+    function prepareCreateBucket(
+        address sender,
+        CreateBucketSynPackage memory synPkg
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareCreateBucket(sender, synPkg);
     }
 
     /**
@@ -94,7 +101,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
-        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = encodeCreateBucket(
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreateBucket(
             msg.sender,
             synPkg,
             callbackGasLimit,
@@ -105,10 +112,75 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         return true;
     }
 
-    function encodeCreateBucket(
+    function prepareCreateBucket(
+        address sender,
+        CreateBucketSynPackage memory synPkg,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareCreateBucket(sender, synPkg, callbackGasLimit, extraData);
+    }
+
+    /**
+     * @dev delete a bucket and send cross-chain request from BSC to GNFD
+     *
+     * @param id The bucket's id
+     */
+    function deleteBucket(uint256 id) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteBucket(
+            msg.sender,
+            id
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    function prepareDeleteBucket(
+        address sender,
+        uint256 id
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareDeleteBucket(sender, id);
+    }
+
+    /**
+     * @dev delete a bucket and send cross-chain request from BSC to GNFD.
+     * Callback function will be called when the request is processed.
+     *
+     * @param id The bucket's id
+     * @param callbackGasLimit The gas limit for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
+     */
+    function deleteBucket(
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteBucket(
+            msg.sender,
+            id,
+            callbackGasLimit,
+            extraData
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    function prepareDeleteBucket(
+        address sender,
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareDeleteBucket(sender, id, callbackGasLimit, extraData);
+    }
+
+    function _prepareCreateBucket(
         address sender,
         CreateBucketSynPackage memory synPkg
-    ) public payable returns (uint8, bytes memory, uint256, uint256, address) {
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
@@ -132,12 +204,12 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
     }
 
-    function encodeCreateBucket(
+    function _prepareCreateBucket(
         address sender,
         CreateBucketSynPackage memory synPkg,
         uint256 callbackGasLimit,
         ExtraData memory extraData
-    ) public payable returns (uint8, bytes memory, uint256, uint256, address) {
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
         // check relay fee and callback fee
         require(callbackGasLimit > 2300, "invalid callback gas limit");
         require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
@@ -175,58 +247,46 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
     }
 
-    /**
-     * @dev delete a bucket and send cross-chain request from BSC to GNFD
-     *
-     * @param id The bucket's id
-     */
-    function deleteBucket(uint256 id) external payable returns (bool) {
+    function _prepareDeleteBucket(
+        address sender,
+        uint256 id
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
         require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
         // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
-        ) {
-            require(hasRole(ROLE_DELETE, owner, msg.sender), "no permission to delete");
+        CmnDeleteSynPackage memory synPkg;
+        {
+            address _sender = sender;
+            address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+            if (
+                !(_sender == owner ||
+                    IERC721NonTransferable(ERC721Token).getApproved(id) == _sender ||
+                    IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
+            ) {
+                require(hasRole(ROLE_DELETE, owner, _sender), "no permission to delete");
+            }
+
+            synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
+
+            // transfer all the fee to tokenHub
+            (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+            require(success, "transfer to tokenHub failed");
+
+            emit DeleteSubmitted(owner, _sender, id);
         }
 
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            BUCKET_CHANNEL_ID,
-            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
-        );
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit DeleteSubmitted(owner, msg.sender, id);
-        return true;
+        return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
     }
 
-    /**
-     * @dev delete a bucket and send cross-chain request from BSC to GNFD.
-     * Callback function will be called when the request is processed.
-     *
-     * @param id The bucket's id
-     * @param callbackGasLimit The gas limit for callback function
-     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
-     */
-    function deleteBucket(
+    function _prepareDeleteBucket(
+        address sender,
         uint256 id,
         uint256 callbackGasLimit,
         ExtraData memory extraData
-    ) external payable returns (bool) {
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
         // check relay fee and callback fee
         require(callbackGasLimit > 2300, "invalid callback gas limit");
         require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
@@ -235,42 +295,38 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
+        // check authorization
+        address _sender = sender;
+        uint256 _id = id;
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(_id);
+
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
+            require(retryQueue[_sender].empty(), "retry queue is not empty");
         }
 
-        // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
         if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
+            !(_sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(_id) == _sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
         ) {
-            require(hasRole(ROLE_DELETE, owner, msg.sender), "no permission to delete");
+            require(hasRole(ROLE_DELETE, owner, _sender), "no permission to delete");
         }
 
         // make sure the extra data is as expected
         require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        extraData.appAddress = msg.sender;
+        extraData.appAddress = _sender;
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
-            id: id,
+            id: _id,
             extraData: abi.encode(extraData)
         });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            BUCKET_CHANNEL_ID,
-            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
-        );
 
         // transfer all the fee to tokenHub
         (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
-        emit DeleteSubmitted(owner, msg.sender, id);
-        return true;
+        emit DeleteSubmitted(owner, _sender, _id);
+        return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
     }
 }

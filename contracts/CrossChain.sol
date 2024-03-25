@@ -98,11 +98,6 @@ contract CrossChain is Config, Initializable, ICrossChain {
         _;
     }
 
-    modifier onlyMultiMessage() {
-        require(msg.sender == MULTI_MESSAGE, "only multiMessage");
-        _;
-    }
-
     modifier whenSuspended() {
         require(isSuspended, "not suspended");
         _;
@@ -499,27 +494,22 @@ contract CrossChain is Config, Initializable, ICrossChain {
     }
 
     function handleAckPackageFromMultiMessage(
-        bytes calldata _payload,
-        uint8 _packageType
+        bytes calldata _multiMessagePayload,
+        uint8 _packageType,
+        uint64 _multiMessageSequence
     ) external whenNotSuspended onlyMultiMessage {
-        (
-            bool success,
-            uint8 channelId,
-            uint64 sequence,
-            uint8 packageType,
-            ,
-            uint256 _maxRelayFee,
-            ,
-            bytes memory packageLoad
-        ) = _checkPayload(_payload);
-        if (!success) {
-            emit UnsupportedPackage(sequence, channelId, _payload);
+        uint8 _channelId = uint8(_multiMessagePayload[0]);
+        if (_multiMessagePayload.length < 33) {
+            emit UnsupportedPackage(_multiMessageSequence, _channelId, _multiMessagePayload);
             return;
         }
-        emit ReceivedPackage(packageType, sequence, channelId);
+
+        uint256 _maxRelayFee = abi.decode(_multiMessagePayload[1:33], (uint256));
+        bytes memory _packageLoad = _multiMessagePayload[33:];
+        emit ReceivedPackage(_packageType, _multiMessageSequence, _channelId);
+
         // 1-2 check if the channel is supported
-        require(packageType == _packageType, "invalid packageType");
-        address _handler = channelHandlerMap[channelId];
+        address _handler = channelHandlerMap[_channelId];
         require(_handler != address(0), "channel is not supported");
 
         uint256 _minAckRelayFee = minAckRelayFee;
@@ -528,8 +518,8 @@ contract CrossChain is Config, Initializable, ICrossChain {
 
         uint256 _refundFee;
         address _refundAddress;
-        if (packageType == ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleAckPackage(channelId, 0, packageLoad, _callbackGasLimit) returns (
+        if (_packageType == ACK_PACKAGE) {
+            try IMiddleLayer(_handler).handleAckPackage(_channelId, _multiMessageSequence, _packageLoad, _callbackGasLimit) returns (
                 uint256 remainingGas,
                 address refundAddress
             ) {
@@ -543,8 +533,8 @@ contract CrossChain is Config, Initializable, ICrossChain {
             } catch (bytes memory lowLevelData) {
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
-        } else if (packageType == FAIL_ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleFailAckPackage(channelId, 0, packageLoad, _callbackGasLimit) returns (
+        } else if (_packageType == FAIL_ACK_PACKAGE) {
+            try IMiddleLayer(_handler).handleFailAckPackage(_channelId, _multiMessageSequence, _packageLoad, _callbackGasLimit) returns (
                 uint256 remainingGas,
                 address refundAddress
             ) {
@@ -565,6 +555,9 @@ contract CrossChain is Config, Initializable, ICrossChain {
 
         if (_refundAddress != address(0)) {
             ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
+
+            address _relayer = tx.origin; // relayer is the EOA account
+            IRelayerHub(RELAYER_HUB).addReward(_relayer, _maxRelayFee - _refundFee);
         }
     }
 

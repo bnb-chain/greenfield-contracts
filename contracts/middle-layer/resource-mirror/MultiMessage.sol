@@ -19,8 +19,8 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
     }
 
     /*----------------- initializer -----------------*/
-    function initialize(address _ERC721_token, address _additional) public initializer {
-        __cmn_hub_init_unchained(_ERC721_token, _additional);
+    function initialize() public initializer {
+        __cmn_hub_init_unchained(address(0), address(0));
 
         channelId = MULTI_MESSAGE_CHANNEL_ID;
 
@@ -84,32 +84,34 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
 
     function handleAckPackage(
         uint8,
-        uint64,
+        uint64 sequence,
         bytes calldata msgBytes,
         uint256
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        uint8 opType = uint8(msgBytes[0]);
-        require(opType == TYPE_MULTI_MESSAGE, "invalid opType");
-
-        bytes[] memory payloads = abi.decode(msgBytes[1:], (bytes[]));
+        bytes[] memory payloads = abi.decode(msgBytes, (bytes[]));
+        bytes memory _sequenceBytes;
+        uint64 _multiMessageSequence;
         for (uint256 i = 0; i < payloads.length; i++) {
-            ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(payloads[i], ACK_PACKAGE);
+            _sequenceBytes = abi.encodePacked(hex'ff', uint16(i), uint40(sequence));
+            _multiMessageSequence = abi.decode(_sequenceBytes, (uint64));
+            ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(payloads[i], ACK_PACKAGE, _multiMessageSequence);
         }
         return (0, address(0));
     }
 
     function handleFailAckPackage(
         uint8,
-        uint64,
+        uint64 sequence,
         bytes calldata msgBytes,
         uint256
     ) external override onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
-        uint8 opType = uint8(msgBytes[0]);
-        require(opType == TYPE_MULTI_MESSAGE, "invalid opType");
-
-        bytes[] memory payloads = abi.decode(msgBytes[1:], (bytes[]));
+        bytes[] memory payloads = abi.decode(msgBytes, (bytes[]));
+        bytes memory _sequenceBytes;
+        uint64 _multiMessageSequence;
         for (uint256 i = 0; i < payloads.length; i++) {
-            ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(payloads[i], FAIL_ACK_PACKAGE);
+            _sequenceBytes = abi.encodePacked(hex'ff', uint16(i), uint40(sequence));
+            _multiMessageSequence = abi.decode(_sequenceBytes, (uint64));
+            ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(payloads[i], FAIL_ACK_PACKAGE, _multiMessageSequence);
         }
         return (0, address(0));
     }

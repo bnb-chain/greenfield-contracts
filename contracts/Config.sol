@@ -55,6 +55,11 @@ abstract contract Config {
         _;
     }
 
+    modifier onlyMultiMessage() {
+        require(msg.sender == MULTI_MESSAGE, "only multiMessage");
+        _;
+    }
+
     function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
         return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
     }

@@ -119,6 +119,7 @@ const main = async () => {
     const proxyObjectHub = await deployer.proxyObjectHub();
     const proxyGroupHub = await deployer.proxyGroupHub();
     const proxyPermissionHub = await deployer.proxyPermissionHub();
+    const proxyMultiMessage = await deployer.proxyMultiMessage();
     const proxyGreenfieldExecutor = await deployer.proxyGreenfieldExecutor();
 
     // Set all generated contracts to Config contracts
@@ -133,6 +134,7 @@ const main = async () => {
         proxyObjectHub,
         proxyGroupHub,
         proxyPermissionHub,
+        proxyMultiMessage,
         proxyGreenfieldExecutor,
         emergencyOperator,
         emergencyUpgradeOperator,
@@ -164,6 +166,9 @@ const main = async () => {
 
     const implPermissionHub = await deployContract('PermissionHub');
     log('deploy implPermissionHub success', implPermissionHub.address);
+
+    const implMultiMessage = await deployContract('MultiMessage');
+    log('deploy implMultiMessage success', implMultiMessage.address);
 
     const implGreenfieldExecutor = await deployContract('GreenfieldExecutor');
     log('deploy implGreenfieldExecutor success', implGreenfieldExecutor.address);
@@ -239,6 +244,7 @@ const main = async () => {
         implPermissionHub.address,
         addPermissionHub.address,
         permissionToken.address,
+        implMultiMessage.address,
         implGreenfieldExecutor.address,
     ];
 
@@ -266,6 +272,7 @@ const main = async () => {
         ObjectHub: proxyObjectHub,
         GroupHub: proxyGroupHub,
         PermissionHub: proxyPermissionHub,
+        MultiMessage: proxyMultiMessage,
         GreenfieldExecutor: proxyGreenfieldExecutor,
 
         AdditionalBucketHub: addBucketHub.address,
