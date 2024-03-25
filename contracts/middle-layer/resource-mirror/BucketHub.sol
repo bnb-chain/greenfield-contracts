@@ -127,6 +127,38 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
         delegateAdditional();
     }
 
+    function prepareCreateBucket(
+        address,
+        CreateBucketSynPackage memory
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareCreateBucket(
+        address,
+        CreateBucketSynPackage memory,
+        uint256,
+        ExtraData memory
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeleteBucket(
+        address,
+        uint256
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeleteBucket(
+        address,
+        uint256,
+        uint256,
+        ExtraData memory
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
     /*----------------- internal function -----------------*/
     function _handleCreateFailAckPackage(
         bytes memory pkgBytes,
