@@ -138,16 +138,48 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
         delegateAdditional();
     }
 
-    function prepareCreateGroup(address sender, address owner, string memory name)external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+    function prepareCreateGroup(address, address, string memory)external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
     function prepareCreateGroup(
-        address sender,
-        address owner,
-        string memory name,
-        uint256 callbackGasLimit,
-        ExtraData memory extraData
+        address,
+        address,
+        string memory,
+        uint256,
+        ExtraData memory
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeleteGroup(
+        address,
+        uint256
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address){
+        delegateAdditional();
+    }
+
+    function prepareDeleteGroup(
+        address,
+        uint256,
+        uint256,
+        ExtraData memory
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareUpdateGroup(
+        address,
+        UpdateGroupSynPackage memory
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address){
+        delegateAdditional();
+    }
+
+    function prepareUpdateGroup(
+        address,
+        UpdateGroupSynPackage memory,
+        uint256,
+        ExtraData memory
     ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
