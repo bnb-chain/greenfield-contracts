@@ -29,6 +29,7 @@ export async function setConstantsToConfig(contracts: any) {
     const proxyGroupHub = contracts.proxyGroupHub;
 
     const proxyPermissionHub = contracts.proxyPermissionHub;
+    const proxyMultiMessage = contracts.proxyMultiMessage;
     const emergencyOperator = contracts.emergencyOperator;
     const emergencyUpgradeOperator = contracts.emergencyUpgradeOperator;
 
@@ -47,6 +48,7 @@ export async function setConstantsToConfig(contracts: any) {
         .replace(/OBJECT_HUB = .*/g, `OBJECT_HUB = ${proxyObjectHub};`)
         .replace(/GROUP_HUB = .*/g, `GROUP_HUB = ${proxyGroupHub};`)
         .replace(/PERMISSION_HUB = .*/g, `PERMISSION_HUB = ${proxyPermissionHub};`)
+        .replace(/MULTI_MESSAGE = .*/g, `MULTI_MESSAGE = ${proxyMultiMessage};`)
         .replace(/EMERGENCY_OPERATOR = .*/g, `EMERGENCY_OPERATOR = ${emergencyOperator};`)
         .replace(
             /EMERGENCY_UPGRADE_OPERATOR = .*/g,

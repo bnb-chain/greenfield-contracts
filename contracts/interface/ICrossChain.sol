@@ -9,5 +9,5 @@ interface ICrossChain {
 
     function callbackGasPrice() external returns (uint256);
 
-    function handleAckPackageFromMultiMessage(bytes memory _payload, uint8 _packageType) external;
+    function handleAckPackageFromMultiMessage(bytes calldata _multiMessagePayload, uint8 _packageType, uint64 _multiMessageSequence) external;
 }

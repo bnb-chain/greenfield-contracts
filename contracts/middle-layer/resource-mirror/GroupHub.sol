@@ -138,6 +138,20 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
         delegateAdditional();
     }
 
+    function prepareCreateGroup(address sender, address owner, string memory name)external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareCreateGroup(
+        address sender,
+        address owner,
+        string memory name,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
     /*----------------- update param -----------------*/
     function updateParam(string calldata key, bytes calldata value) external override onlyGov {
         if (_compareStrings(key, "ERC721BaseURI")) {
