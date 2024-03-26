@@ -173,6 +173,34 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
      * @param amount The amount to transfer
      */
     function transferOut(address recipient, uint256 amount) external payable override returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareTransferOut(
+            msg.sender,
+            recipient,
+            amount
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(
+            _channelId,
+            _msgBytes,
+            _relayFee,
+            _ackRelayFee
+        );
+        return true;
+    }
+
+    function prepareTransferOut(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareTransferOut(sender, recipient, amount);
+    }
+
+    function _prepareTransferOut(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
 
         require(
@@ -181,21 +209,15 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         );
         uint256 _ackRelayFee = msg.value - amount - relayFee;
 
+        address _sender = sender;
         TransferOutSynPackage memory transOutSynPkg = TransferOutSynPackage({
             amount: amount,
             recipient: recipient,
-            refundAddr: msg.sender
+            refundAddr: _sender
         });
 
-        address _crosschain = CROSS_CHAIN;
-        ICrossChain(_crosschain).sendSynPackage(
-            TRANSFER_OUT_CHANNEL_ID,
-            _encodeTransferOutSynPackage(transOutSynPkg),
-            relayFee,
-            _ackRelayFee
-        );
-        emit TransferOutSuccess(msg.sender, amount, relayFee, _ackRelayFee);
-        return true;
+        emit TransferOutSuccess(_sender, amount, relayFee, _ackRelayFee);
+        return (TRANSFER_OUT_CHANNEL_ID, _encodeTransferOutSynPackage(transOutSynPkg), relayFee, _ackRelayFee, _sender);
     }
 
     function claimRelayFee(uint256 amount) external override onlyRelayerHub returns (uint256) {
