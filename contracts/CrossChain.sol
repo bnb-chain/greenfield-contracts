@@ -170,6 +170,9 @@ contract CrossChain is Config, Initializable, ICrossChain {
         channelHandlerMap[MULTI_MESSAGE_CHANNEL_ID] = MULTI_MESSAGE;
         registeredContractChannelMap[MULTI_MESSAGE][MULTI_MESSAGE_CHANNEL_ID] = true;
 
+        channelHandlerMap[GNFD_EXECUTOR_CHANNEL_ID] = GNFD_EXECUTOR;
+        registeredContractChannelMap[GNFD_EXECUTOR][GNFD_EXECUTOR_CHANNEL_ID] = true;
+
         callbackGasPrice = 4 gwei;
         batchSizeForOracle = 50;
 

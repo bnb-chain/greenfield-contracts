@@ -17,6 +17,7 @@ import "./middle-layer/resource-mirror/ObjectHub.sol";
 import "./middle-layer/resource-mirror/GroupHub.sol";
 import "./middle-layer/resource-mirror/PermissionHub.sol";
 import "./middle-layer/resource-mirror/MultiMessage.sol";
+import "./middle-layer/GreenfieldExecutor.sol";
 
 contract Deployer {
     uint16 public immutable gnfdChainId;
@@ -32,6 +33,7 @@ contract Deployer {
     address public immutable proxyGroupHub;
     address public immutable proxyPermissionHub;
     address public immutable proxyMultiMessage;
+    address public immutable proxyGreenfieldExecutor;
 
     bytes public initConsensusStateBytes;
     address public implGovHub;
@@ -44,6 +46,7 @@ contract Deployer {
     address public implGroupHub;
     address public implPermissionHub;
     address public implMultiMessage;
+    address public implGreenfieldExecutor;
 
     address public addBucketHub;
     address public addObjectHub;
@@ -89,6 +92,7 @@ contract Deployer {
         // @dev
         proxyPermissionHub = calcCreateAddress(address(this), uint8(10));
         proxyMultiMessage = calcCreateAddress(address(this), uint8(11));
+        proxyGreenfieldExecutor = calcCreateAddress(address(this), uint8(12));
 
         // 1. proxyAdmin
         address deployedProxyAdmin = address(new GnfdProxyAdmin());
@@ -146,7 +150,11 @@ contract Deployer {
         address deployedProxyMultiMessage = address(new GnfdProxy(implMultiMessage, proxyAdmin, ""));
         require(deployedProxyMultiMessage == proxyMultiMessage, "invalid proxyMultiMessage address");
 
-        // 12. init contracts, set contracts addresses to GovHub
+        // 12. GreenfieldExecutor
+        address deployedProxyGreenfieldExecutor = address(new GnfdProxy(implGreenfieldExecutor, proxyAdmin, ""));
+        require(deployedProxyGreenfieldExecutor == proxyGreenfieldExecutor, "invalid proxyGreenfieldExecutor address");
+
+        // 13. init contracts, set contracts addresses to GovHub
         CrossChain(payable(proxyCrossChain)).initialize(gnfdChainId, enableCrossChainTransfer);
         TokenHub(payable(proxyTokenHub)).initialize();
         GnfdLightClient(payable(proxyLightClient)).initialize(_initConsensusStateBytes);
@@ -160,8 +168,10 @@ contract Deployer {
         GroupHub(payable(proxyGroupHub)).initializeV2();
         PermissionHub(payable(proxyPermissionHub)).initialize(permissionToken, addPermissionHub);
         PermissionHub(payable(proxyPermissionHub)).initializeV2();
+
         MultiMessage(payable(proxyMultiMessage)).initialize();
         MultiMessage(payable(proxyMultiMessage)).initializeV2();
+        GreenfieldExecutor(payable(proxyGreenfieldExecutor)).initialize();
 
         require(Config(deployedProxyCrossChain).PROXY_ADMIN() == proxyAdmin, "invalid proxyAdmin address on Config");
         require(Config(deployedProxyCrossChain).GOV_HUB() == proxyGovHub, "invalid proxyGovHub address on Config");
@@ -212,6 +222,7 @@ contract Deployer {
         require(_isContract(addrs[17]), "invalid permissionToken");
 
         require(_isContract(addrs[18]), "invalid multiMessage");
+        require(_isContract(addrs[19]), "invalid greenfieldExecutor");
 
         implGovHub = addrs[0];
         implCrossChain = addrs[1];
@@ -234,6 +245,7 @@ contract Deployer {
         permissionToken = addrs[17];
 
         implMultiMessage = addrs[18];
+        implGreenfieldExecutor = addrs[19];
     }
 
     function _isContract(address account) internal view returns (bool) {
