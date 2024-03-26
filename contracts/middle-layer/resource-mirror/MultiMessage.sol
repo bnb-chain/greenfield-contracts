@@ -111,7 +111,11 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
         for (uint256 i = 0; i < payloads.length; i++) {
             _sequenceBytes = abi.encodePacked(hex'ff', uint16(i), uint40(sequence));
             _multiMessageSequence = abi.decode(_sequenceBytes, (uint64));
-            ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(payloads[i], FAIL_ACK_PACKAGE, _multiMessageSequence);
+            ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(
+                payloads[i],
+                FAIL_ACK_PACKAGE,
+                _multiMessageSequence
+            );
         }
         return (0, address(0));
     }

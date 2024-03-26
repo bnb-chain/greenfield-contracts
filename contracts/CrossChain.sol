@@ -496,6 +496,15 @@ contract CrossChain is Config, Initializable, ICrossChain {
         uint64 _multiMessageSequence
     ) external whenNotSuspended onlyMultiMessage {
         uint8 _channelId = uint8(_multiMessagePayload[0]);
+        require(
+            _channelId == TRANSFER_OUT_CHANNEL_ID ||
+                _channelId == BUCKET_CHANNEL_ID ||
+                _channelId == OBJECT_CHANNEL_ID ||
+                _channelId == GROUP_CHANNEL_ID ||
+                _channelId == PERMISSION_CHANNEL_ID,
+            "invalid channelId"
+        );
+
         if (_multiMessagePayload.length < 33) {
             emit UnsupportedPackage(_multiMessageSequence, _channelId, _multiMessagePayload);
             return;
@@ -516,10 +525,14 @@ contract CrossChain is Config, Initializable, ICrossChain {
         uint256 _refundFee;
         address _refundAddress;
         if (_packageType == ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleAckPackage(_channelId, _multiMessageSequence, _packageLoad, _callbackGasLimit) returns (
-                uint256 remainingGas,
-                address refundAddress
-            ) {
+            try
+                IMiddleLayer(_handler).handleAckPackage(
+                    _channelId,
+                    _multiMessageSequence,
+                    _packageLoad,
+                    _callbackGasLimit
+                )
+            returns (uint256 remainingGas, address refundAddress) {
                 _refundFee = remainingGas * callbackGasPrice;
                 if (_refundFee > _maxCallbackFee) {
                     _refundFee = _maxCallbackFee;
@@ -531,10 +544,14 @@ contract CrossChain is Config, Initializable, ICrossChain {
                 emit UnexpectedFailureAssertionInPackageHandler(_handler, lowLevelData);
             }
         } else if (_packageType == FAIL_ACK_PACKAGE) {
-            try IMiddleLayer(_handler).handleFailAckPackage(_channelId, _multiMessageSequence, _packageLoad, _callbackGasLimit) returns (
-                uint256 remainingGas,
-                address refundAddress
-            ) {
+            try
+                IMiddleLayer(_handler).handleFailAckPackage(
+                    _channelId,
+                    _multiMessageSequence,
+                    _packageLoad,
+                    _callbackGasLimit
+                )
+            returns (uint256 remainingGas, address refundAddress) {
                 _refundFee = remainingGas * callbackGasPrice;
                 if (_refundFee > _maxCallbackFee) {
                     _refundFee = _maxCallbackFee;

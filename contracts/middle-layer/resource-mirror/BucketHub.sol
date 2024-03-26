@@ -130,7 +130,7 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
     function prepareCreateBucket(
         address,
         CreateBucketSynPackage memory
-    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
@@ -139,14 +139,14 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
         CreateBucketSynPackage memory,
         uint256,
         ExtraData memory
-    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
     function prepareDeleteBucket(
         address,
         uint256
-    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
@@ -155,7 +155,7 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
         uint256,
         uint256,
         ExtraData memory
-    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 

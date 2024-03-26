@@ -138,7 +138,11 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
         delegateAdditional();
     }
 
-    function prepareCreateGroup(address, address, string memory)external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+    function prepareCreateGroup(
+        address,
+        address,
+        string memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
@@ -148,14 +152,14 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
         string memory,
         uint256,
         ExtraData memory
-    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
     function prepareDeleteGroup(
         address,
         uint256
-    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address){
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
@@ -164,14 +168,14 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
         uint256,
         uint256,
         ExtraData memory
-    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
     function prepareUpdateGroup(
         address,
         UpdateGroupSynPackage memory
-    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address){
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
@@ -180,7 +184,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
         UpdateGroupSynPackage memory,
         uint256,
         ExtraData memory
-    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
