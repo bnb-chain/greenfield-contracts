@@ -179,12 +179,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
             amount
         );
 
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            _channelId,
-            _msgBytes,
-            _relayFee,
-            _ackRelayFee
-        );
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
         return true;
     }
 

@@ -7,6 +7,7 @@ import "../../interface/ICrossChain.sol";
 import "../../interface/IMultiMessage.sol";
 import "./CmnHub.sol";
 import "./storage/MultiStorage.sol";
+import "lib/forge-std/src/console.sol";
 
 contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
     uint8 public constant ACK_PACKAGE = 0x01;
@@ -67,9 +68,13 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
             _totalAckRelayFee += _ackRelayFee;
 
             messages[i] = result;
+            console.log("messages[i]", i);
+            console.logBytes(result);
         }
         require(_totalValue == msg.value, "invalid msg.value");
         require(_totalRelayFee + _totalAckRelayFee == msg.value, "invalid total relayFee");
+
+        console.logBytes(abi.encode(messages));
 
         // send sync package
         ICrossChain(CROSS_CHAIN).sendSynPackage(
@@ -92,7 +97,7 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
         bytes memory _sequenceBytes;
         uint64 _multiMessageSequence;
         for (uint256 i = 0; i < payloads.length; i++) {
-            _sequenceBytes = abi.encodePacked(hex'ff', uint16(i), uint40(sequence));
+            _sequenceBytes = abi.encodePacked(hex"ff", uint16(i), uint40(sequence));
             _multiMessageSequence = abi.decode(_sequenceBytes, (uint64));
             ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(payloads[i], ACK_PACKAGE, _multiMessageSequence);
         }
@@ -109,7 +114,7 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
         bytes memory _sequenceBytes;
         uint64 _multiMessageSequence;
         for (uint256 i = 0; i < payloads.length; i++) {
-            _sequenceBytes = abi.encodePacked(hex'ff', uint16(i), uint40(sequence));
+            _sequenceBytes = abi.encodePacked(hex"ff", uint16(i), uint40(sequence));
             _multiMessageSequence = abi.decode(_sequenceBytes, (uint64));
             ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(
                 payloads[i],

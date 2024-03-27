@@ -19,6 +19,50 @@ contract AdditionalPermissionHub is PermissionStorage {
     uint8 private _initialized;
     bool private _initializing;
 
+    function createPolicy(bytes calldata _data) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreatePolicy(
+            msg.sender,
+            _data
+        );
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    function prepareCreatePolicy(
+        address sender,
+        bytes calldata _data
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareCreatePolicy(sender, _data);
+    }
+
+    function createPolicy(bytes calldata _data, ExtraData memory _extraData) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreatePolicy(
+            msg.sender,
+            _data,
+            _extraData
+        );
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    function prepareCreatePolicy(
+        address sender,
+        bytes calldata _data,
+        ExtraData memory _extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareCreatePolicy(sender, _data, _extraData);
+    }
+
+    function deletePolicy(uint256 id) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeletePolicy(
+            msg.sender,
+            id
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
     /**
      * @dev delete a policy and send cross-chain request from BSC to GNFD
      *
@@ -26,11 +70,73 @@ contract AdditionalPermissionHub is PermissionStorage {
      * @param _extraData The extra data for crosschain callback
      */
     function deletePolicy(uint256 id, ExtraData memory _extraData) external payable returns (bool) {
-        require(_extraData.failureHandleStrategy == FailureHandleStrategy.SkipOnFail, "only SkipOnFail");
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeletePolicy(
+            msg.sender,
+            id,
+            _extraData
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    function prepareDeletePolicy(
+        address sender,
+        uint256 id
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareDeletePolicy(sender, id);
+    }
+
+    function prepareDeletePolicy(
+        address sender,
+        uint256 id,
+        ExtraData memory extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareDeletePolicy(sender, id, extraData);
+    }
+
+    function _prepareDeletePolicy(
+        address sender,
+        uint256 id
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        address _sender = sender;
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+        require(_sender == owner, "invalid operator");
 
         // make sure the extra data is as expected
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit DeleteSubmitted(owner, _sender, id);
+        return (
+            PERMISSION_CHANNEL_ID,
+            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
+            relayFee,
+            _ackRelayFee,
+            _sender
+        );
+    }
+
+    function _prepareDeletePolicy(
+        address sender,
+        uint256 id,
+        ExtraData memory _extraData
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        require(_extraData.failureHandleStrategy == FailureHandleStrategy.SkipOnFail, "only SkipOnFail");
+
+        address _sender = sender;
+        // make sure the extra data is as expected
         require(_extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        _extraData.appAddress = msg.sender;
+        _extraData.appAddress = _sender;
 
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
@@ -39,7 +145,7 @@ contract AdditionalPermissionHub is PermissionStorage {
 
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        require(msg.sender == owner, "invalid operator");
+        require(_sender == owner, "invalid operator");
 
         // make sure the extra data is as expected
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
@@ -48,18 +154,84 @@ contract AdditionalPermissionHub is PermissionStorage {
             extraData: abi.encode(_extraData)
         });
 
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit DeleteSubmitted(owner, _sender, id);
+        return (
             PERMISSION_CHANNEL_ID,
             abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
             relayFee,
-            _ackRelayFee
+            _ackRelayFee,
+            _sender
         );
+    }
+
+    function _prepareCreatePolicy(
+        address sender,
+        bytes memory _data
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        address _sender = sender;
+        createPolicySynPackage memory synPkg = createPolicySynPackage({
+            operator: _sender,
+            data: _data,
+            extraData: ""
+        });
 
         // transfer all the fee to tokenHub
         (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
-        emit DeleteSubmitted(owner, msg.sender, id);
-        return true;
+        emit CreateSubmitted(_sender, _sender, string(_data));
+        return (
+            PERMISSION_CHANNEL_ID,
+            abi.encodePacked(TYPE_CREATE, abi.encode(synPkg, _data)),
+            relayFee,
+            _ackRelayFee,
+            _sender
+        );
+    }
+
+    function _prepareCreatePolicy(
+        address sender,
+        bytes memory _data,
+        ExtraData memory _extraData
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        require(_extraData.failureHandleStrategy == FailureHandleStrategy.SkipOnFail, "only SkipOnFail");
+
+        address _sender = sender;
+        // make sure the extra data is as expected
+        require(_extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
+        _extraData.appAddress = _sender;
+
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        createPolicySynPackage memory synPkg = createPolicySynPackage({
+            operator: _sender,
+            data: _data,
+            extraData: abi.encode(_extraData)
+        });
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit CreateSubmitted(_sender, _sender, string(_data));
+        return (
+            PERMISSION_CHANNEL_ID,
+            abi.encodePacked(TYPE_CREATE, abi.encode(synPkg, _data)),
+            relayFee,
+            _ackRelayFee,
+            _sender
+        );
     }
 }
