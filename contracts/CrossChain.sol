@@ -498,6 +498,11 @@ contract CrossChain is Config, Initializable, ICrossChain {
         uint8 _packageType,
         uint64 _multiMessageSequence
     ) external whenNotSuspended onlyMultiMessage {
+        if (_multiMessagePayload.length < 33) {
+            emit UnsupportedPackage(_multiMessageSequence, MULTI_MESSAGE_CHANNEL_ID, _multiMessagePayload);
+            return;
+        }
+
         uint8 _channelId = uint8(_multiMessagePayload[0]);
         require(
             _channelId == TRANSFER_OUT_CHANNEL_ID ||
@@ -507,11 +512,6 @@ contract CrossChain is Config, Initializable, ICrossChain {
                 _channelId == PERMISSION_CHANNEL_ID,
             "invalid channelId"
         );
-
-        if (_multiMessagePayload.length < 33) {
-            emit UnsupportedPackage(_multiMessageSequence, _channelId, _multiMessagePayload);
-            return;
-        }
 
         uint256 _maxRelayFee = abi.decode(_multiMessagePayload[1:33], (uint256));
         bytes memory _packageLoad = _multiMessagePayload[33:];
