@@ -64,37 +64,19 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
      * @param id The object id
      */
     function deleteObject(uint256 id) external payable returns (bool) {
-        // check relay fee
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
-        ) {
-            require(hasRole(ROLE_DELETE, owner, msg.sender), "no permission to delete");
-        }
-
-        // make sure the extra data is as expected
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            OBJECT_CHANNEL_ID,
-            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteObject(
+            msg.sender,
+            id
         );
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit DeleteSubmitted(owner, msg.sender, id);
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
         return true;
+    }
+
+    function prepareDeleteObject(
+        address sender,
+        uint256 id
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareDeleteObject(sender, id);
     }
 
     /**
@@ -111,6 +93,78 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteObject(
+            msg.sender,
+            id,
+            callbackGasLimit,
+            extraData
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    function prepareDeleteObject(
+        address sender,
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareDeleteObject(sender, id, callbackGasLimit, extraData);
+    }
+
+    function _prepareDeleteObject(
+        address sender,
+        uint256 id
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+
+        // make sure the extra data is as expected
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
+
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        // check authorization
+        address _sender = sender;
+        if (
+            !(_sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(id) == _sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
+        ) {
+            require(hasRole(ROLE_DELETE, owner, _sender), "no permission to delete");
+        }
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit DeleteSubmitted(owner, _sender, id);
+
+        return (OBJECT_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
+    }
+
+    function _prepareDeleteObject(
+        address sender,
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        uint256 _id = id;
+
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(_id);
+        address _sender = sender;
+        if (
+            !(_sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(id) == _sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
+        ) {
+            require(hasRole(ROLE_DELETE, owner, _sender), "no permission to delete");
+        }
+
         // check relay fee and callback fee
         require(callbackGasLimit > 2300, "invalid callback gas limit");
         require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
@@ -119,42 +173,39 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
         require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
-        // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
+        {
+            address _owner = owner;
+            // check package queue
+            if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
+                require(retryQueue[_sender].empty(), "retry queue is not empty");
+            }
+
+            // make sure the extra data is as expected
+            require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
+
+            // check authorization
+            if (
+                !(_sender == _owner ||
+                    IERC721NonTransferable(ERC721Token).getApproved(_id) == _sender ||
+                    IERC721NonTransferable(ERC721Token).isApprovedForAll(_owner, _sender))
+            ) {
+                require(hasRole(ROLE_DELETE, _owner, _sender), "no permission to delete");
+            }
+
+            emit DeleteSubmitted(_owner, _sender, _id);
+
+            // transfer all the fee to tokenHub
+            (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+            require(success, "transfer to tokenHub failed");
         }
 
-        // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
-        ) {
-            require(hasRole(ROLE_DELETE, owner, msg.sender), "no permission to delete");
-        }
-
-        // make sure the extra data is as expected
-        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        extraData.appAddress = msg.sender;
+        extraData.appAddress = _sender;
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
-            id: id,
+            id: _id,
             extraData: abi.encode(extraData)
         });
 
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            OBJECT_CHANNEL_ID,
-            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
-        );
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit DeleteSubmitted(owner, msg.sender, id);
-        return true;
+        return (OBJECT_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
     }
 }

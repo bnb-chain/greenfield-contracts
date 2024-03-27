@@ -87,6 +87,22 @@ contract ObjectHub is ObjectStorage, GnfdAccessControl, CmnHub, IObjectHub {
         emit FailAckPkgReceived(channelId, msgBytes);
     }
 
+    function prepareDeleteObject(
+        address,
+        uint256
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeleteObject(
+        address,
+        uint256,
+        uint256,
+        ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
     /*----------------- external function -----------------*/
     function versionInfo()
         external

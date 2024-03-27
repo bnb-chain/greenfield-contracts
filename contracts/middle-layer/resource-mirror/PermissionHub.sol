@@ -77,100 +77,42 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
     }
 
     /*----------------- external function -----------------*/
-    function createPolicy(bytes calldata _data) external payable returns (bool) {
-        // check relay fee
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        createPolicySynPackage memory _pkg = createPolicySynPackage({
-            operator: msg.sender,
-            data: _data,
-            extraData: ""
-        });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            PERMISSION_CHANNEL_ID,
-            abi.encodePacked(TYPE_CREATE, abi.encode(_pkg)),
-            relayFee,
-            _ackRelayFee
-        );
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit CreateSubmitted(msg.sender, msg.sender, string(_data));
-        return true;
+    function createPolicy(bytes calldata) external payable returns (bool) {
+        delegateAdditional();
     }
 
-    function createPolicy(bytes calldata _data, ExtraData memory _extraData) external payable returns (bool) {
-        require(_extraData.failureHandleStrategy == FailureHandleStrategy.SkipOnFail, "only SkipOnFail");
-
-        // make sure the extra data is as expected
-        require(_extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        _extraData.appAddress = msg.sender;
-
-        // check relay fee
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        createPolicySynPackage memory _pkg = createPolicySynPackage({
-            operator: msg.sender,
-            data: _data,
-            extraData: abi.encode(_extraData)
-        });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            PERMISSION_CHANNEL_ID,
-            abi.encodePacked(TYPE_CREATE, abi.encode(_pkg)),
-            relayFee,
-            _ackRelayFee
-        );
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit CreateSubmitted(msg.sender, msg.sender, string(_data));
-        return true;
+    function createPolicy(bytes calldata, ExtraData memory) external payable returns (bool) {
+        delegateAdditional();
     }
 
-    /**
-     * @dev delete a policy and send cross-chain request from BSC to GNFD
-     *
-     * @param id The policy id
-     */
-    function deletePolicy(uint256 id) external payable returns (bool) {
-        // check relay fee
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        require(msg.sender == owner, "invalid operator");
-
-        // make sure the extra data is as expected
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            PERMISSION_CHANNEL_ID,
-            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
-        );
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit DeleteSubmitted(owner, msg.sender, id);
-        return true;
+    function deletePolicy(uint256) external payable returns (bool) {
+        delegateAdditional();
     }
 
     function deletePolicy(uint256, ExtraData memory) external payable returns (bool) {
+        delegateAdditional();
+    }
+
+    function prepareCreatePolicy(address, bytes calldata) external payable returns (bool) {
+        delegateAdditional();
+    }
+
+    function prepareCreatePolicy(address, bytes calldata, ExtraData memory) external payable returns (bool) {
+        delegateAdditional();
+    }
+
+    function prepareDeletePolicy(
+        address,
+        uint256
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeletePolicy(
+        address,
+        uint256,
+        ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 
