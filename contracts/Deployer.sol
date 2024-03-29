@@ -199,7 +199,7 @@ contract Deployer {
 
     function _init(address[] memory addrs) internal {
         // use address list to avoid stack too deep
-        require(addrs.length == 19, "invalid addrs length");
+        require(addrs.length == 20, "invalid addrs length");
 
         require(_isContract(addrs[0]), "invalid implGovHub");
         require(_isContract(addrs[1]), "invalid implCrossChain");
