@@ -72,7 +72,7 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
             console.logBytes(result);
         }
         require(_totalValue == msg.value, "invalid msg.value");
-        require(_totalRelayFee + _totalAckRelayFee == msg.value, "invalid total relayFee");
+        require(_totalRelayFee + _totalAckRelayFee <= msg.value, "invalid total relayFee");
 
         console.logBytes(abi.encode(messages));
 
