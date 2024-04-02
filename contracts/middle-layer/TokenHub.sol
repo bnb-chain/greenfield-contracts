@@ -19,6 +19,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
 
     uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 5000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
+    uint256 public constant MAX_TRANSFER_BNB_FROM_MULTI_MESSAGE = 1e18;
 
     /*----------------- storage layer -----------------*/
     uint256 public largeTransferLimit;
@@ -188,6 +189,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         address recipient,
         uint256 amount
     ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        require(amount <= MAX_TRANSFER_BNB_FROM_MULTI_MESSAGE, "amount too large");
         return _prepareTransferOut(sender, recipient, amount);
     }
 
