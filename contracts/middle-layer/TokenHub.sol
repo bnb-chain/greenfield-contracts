@@ -20,6 +20,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
     uint256 public constant MAX_GAS_FOR_TRANSFER_BNB = 5000;
     uint256 public constant REWARD_UPPER_LIMIT = 1e18;
     uint256 public constant MAX_TRANSFER_BNB_FROM_MULTI_MESSAGE = 1e17;
+    uint64 public constant MIN_SEQUENCE_FROM_MULTI_MESSAGE = uint64(0xff00000000000000);
 
     /*----------------- storage layer -----------------*/
     uint256 public largeTransferLimit;
@@ -129,7 +130,8 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         uint256
     ) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
-            _handleTransferOutAckPackage(msgBytes);
+            bool fromMultiMessage = sequence > MIN_SEQUENCE_FROM_MULTI_MESSAGE;
+            _handleTransferOutAckPackage(msgBytes, fromMultiMessage);
         } else {
             emit UnexpectedPackage(channelId, sequence, msgBytes);
         }
@@ -150,7 +152,8 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         uint256
     ) external onlyCrossChain returns (uint256 remainingGas, address refundAddress) {
         if (channelId == TRANSFER_OUT_CHANNEL_ID) {
-            _handleTransferOutFailAckPackage(msgBytes);
+            bool fromMultiMessage = sequence > MIN_SEQUENCE_FROM_MULTI_MESSAGE;
+            _handleTransferOutFailAckPackage(msgBytes, fromMultiMessage);
         } else {
             emit UnexpectedPackage(channelId, sequence, msgBytes);
         }
@@ -348,13 +351,17 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         return (transOutAckPkg, true);
     }
 
-    function _handleTransferOutAckPackage(bytes memory msgBytes) internal {
+    function _handleTransferOutAckPackage(bytes memory msgBytes, bool fromMultiMessage) internal {
         (TransferOutAckPackage memory transOutAckPkg, bool decodeSuccess) = _decodeTransferOutAckPackage(msgBytes);
         require(decodeSuccess, "unrecognized transferOut ack package");
-        _doRefund(transOutAckPkg);
+        _doRefund(transOutAckPkg, fromMultiMessage);
     }
 
-    function _doRefund(TransferOutAckPackage memory transOutAckPkg) internal {
+    function _doRefund(TransferOutAckPackage memory transOutAckPkg, bool fromMultiMessage) internal {
+        if (fromMultiMessage) {
+            require(transOutAckPkg.refundAmount <= MAX_TRANSFER_BNB_FROM_MULTI_MESSAGE, "invalid refund amount from multi message");
+        }
+
         (bool success, ) = transOutAckPkg.refundAddr.call{
             gas: MAX_GAS_FOR_TRANSFER_BNB,
             value: transOutAckPkg.refundAmount
@@ -373,13 +380,13 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         return (transOutSynPkg, true);
     }
 
-    function _handleTransferOutFailAckPackage(bytes memory msgBytes) internal {
+    function _handleTransferOutFailAckPackage(bytes memory msgBytes, bool fromMultiMessage) internal {
         TransferOutSynPackage memory transOutSynPkg = abi.decode(msgBytes, (TransferOutSynPackage));
         TransferOutAckPackage memory transOutAckPkg;
         transOutAckPkg.refundAmount = transOutSynPkg.amount;
         transOutAckPkg.refundAddr = transOutSynPkg.refundAddr;
         transOutAckPkg.status = TRANSFER_IN_FAILURE_UNKNOWN;
-        _doRefund(transOutAckPkg);
+        _doRefund(transOutAckPkg, fromMultiMessage);
     }
 
     function _encodeTransferOutSynPackage(
