@@ -47,7 +47,8 @@ const config: HardhatUserConfig = {
             url: process.env.BSC_TESTNET_RPC || 'https://data-seed-prebsc-1-s1.binance.org:8545/',
             accounts: [
                 process.env.DeployerPrivateKey || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
-            ]
+            ],
+            gasPrice: 10e9,
         },
         'bsc': {
             url: process.env.BSC_RPC || 'https://bsc-dataseed1.binance.org',

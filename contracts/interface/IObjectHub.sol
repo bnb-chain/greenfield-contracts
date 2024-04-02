@@ -12,4 +12,16 @@ interface IObjectHub {
         uint256 callbackGasLimit,
         CmnStorage.ExtraData memory extraData
     ) external payable returns (bool);
+
+    function prepareDeleteObject(
+        address sender,
+        uint256 id
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address);
+
+    function prepareDeleteObject(
+        address sender,
+        uint256 id,
+        uint256 callbackGasLimit,
+        CmnStorage.ExtraData memory extraData
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address);
 }

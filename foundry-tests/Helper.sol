@@ -21,11 +21,11 @@ contract Helper is Test, BucketStorage, GroupStorage {
     BucketHub public bucketHub;
     ObjectHub public objectHub;
     GroupHub public groupHub;
+    MultiMessage public multiMessage;
 
     uint256 public totalRelayFee;
 
     constructor() {
-        vm.createSelectFork("local");
         deployer = Deployer(getDeployer());
         proxyAdmin = ProxyAdmin(payable(deployer.proxyAdmin()));
         govHub = GovHub(payable(deployer.proxyGovHub()));
@@ -36,6 +36,7 @@ contract Helper is Test, BucketStorage, GroupStorage {
         bucketHub = BucketHub(payable(deployer.proxyBucketHub()));
         objectHub = ObjectHub(payable(deployer.proxyObjectHub()));
         groupHub = GroupHub(payable(deployer.proxyGroupHub()));
+        multiMessage = MultiMessage(payable(deployer.proxyMultiMessage()));
 
         console.log('block.chainid', block.chainid);
         console.log('block.number', block.number);
@@ -50,6 +51,7 @@ contract Helper is Test, BucketStorage, GroupStorage {
         vm.label(deployer.proxyBucketHub(), "BUCKET_HUB");
         vm.label(deployer.proxyObjectHub(), "OBJECT_HUB");
         vm.label(deployer.proxyGroupHub(), "GROUP_HUB");
+        vm.label(deployer.proxyMultiMessage(), "MULTI_MESSAGE");
 
         vm.label(deployer.implGovHub(), "implGovHub");
         vm.label(deployer.implCrossChain(), "implCrossChain");

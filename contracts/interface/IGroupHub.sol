@@ -29,4 +29,20 @@ interface IGroupHub {
         uint256 callbackGasLimit,
         CmnStorage.ExtraData memory extraData
     ) external payable returns (bool);
+
+    function prepareCreateGroup(
+        address sender,
+        address owner,
+        string memory name
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address);
+
+    function prepareDeleteGroup(
+        address sender,
+        uint256 id
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address);
+
+    function prepareUpdateGroup(
+        address sender,
+        GroupStorage.UpdateGroupSynPackage memory synPkg
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address);
 }

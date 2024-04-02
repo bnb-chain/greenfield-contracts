@@ -305,6 +305,9 @@ contract CrossChain is Config, Initializable, ICrossChain {
                 revert("Unknown Package Type");
             }
 
+            // Each message from multi-message is already refunded in `handleAckPackageFromMultiMessage`
+            if (channelId == MULTI_MESSAGE_CHANNEL_ID) return;
+
             if (_refundAddress != address(0)) {
                 ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
             } else {
@@ -498,7 +501,7 @@ contract CrossChain is Config, Initializable, ICrossChain {
         uint8 _packageType,
         uint64 _multiMessageSequence
     ) external whenNotSuspended onlyMultiMessage {
-        if (_multiMessagePayload.length < 33) {
+        if (_multiMessagePayload.length <= 33) {
             emit UnsupportedPackage(_multiMessageSequence, MULTI_MESSAGE_CHANNEL_ID, _multiMessagePayload);
             return;
         }
@@ -572,10 +575,12 @@ contract CrossChain is Config, Initializable, ICrossChain {
 
         if (_refundAddress != address(0)) {
             ITokenHub(TOKEN_HUB).refundCallbackGasFee(_refundAddress, _refundFee);
-
-            address _relayer = tx.origin; // relayer is the EOA account
-            IRelayerHub(RELAYER_HUB).addReward(_relayer, _maxRelayFee - _refundFee);
+        } else {
+            _refundFee = 0;
         }
+
+        address _relayer = tx.origin; // relayer is the EOA account
+        IRelayerHub(RELAYER_HUB).addReward(_relayer, _maxRelayFee - _refundFee);
     }
 
     /*----------------- internal function -----------------*/
