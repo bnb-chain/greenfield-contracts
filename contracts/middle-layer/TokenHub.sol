@@ -359,7 +359,10 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
 
     function _doRefund(TransferOutAckPackage memory transOutAckPkg, bool fromMultiMessage) internal {
         if (fromMultiMessage) {
-            require(transOutAckPkg.refundAmount <= MAX_TRANSFER_BNB_FROM_MULTI_MESSAGE, "invalid refund amount from multi message");
+            require(
+                transOutAckPkg.refundAmount <= MAX_TRANSFER_BNB_FROM_MULTI_MESSAGE,
+                "invalid refund amount from multi message"
+            );
         }
 
         (bool success, ) = transOutAckPkg.refundAddr.call{
