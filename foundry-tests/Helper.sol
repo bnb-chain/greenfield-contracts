@@ -26,6 +26,7 @@ contract Helper is Test, BucketStorage, GroupStorage {
     uint256 public totalRelayFee;
 
     constructor() {
+        vm.createSelectFork("local");
         deployer = Deployer(getDeployer());
         proxyAdmin = ProxyAdmin(payable(deployer.proxyAdmin()));
         govHub = GovHub(payable(deployer.proxyGovHub()));

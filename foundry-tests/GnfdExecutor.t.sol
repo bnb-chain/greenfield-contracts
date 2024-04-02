@@ -37,7 +37,7 @@ contract GnfdExecutorTest is Test, GreenfieldExecutor {
         msgBytes[0] = hex"0a2a307866333946643665353161616438384636463463653661423838323732373963666646623932323636";
 
         vm.expectEmit(false, false, true, false, address(crossChain));
-        emit CrossChainPackage(0, 0, 0, 0, GNFD_EXECUTOR_CHANNEL_ID, hex"");
-        gnfdExecutor.execute(msgTypes, msgBytes);
+        emit CrossChainPackage(0, 0, 0, 0, GNFD_EXECUTOR_CHANNEL_ID, "");
+        gnfdExecutor.execute{ value: 25 * 1e13 }(msgTypes, msgBytes);
     }
 }
