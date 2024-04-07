@@ -14,6 +14,9 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
 
     mapping(address => bool) public whitelistTargets;
 
+    event MultiMessageSent(address indexed sender, address[] targets, bytes[] data, uint256[] values);
+    event AckMultiMessageReceived(uint8 packageType, uint64 sequence, bytes[] payloads);
+
     constructor() {
         _disableInitializers();
     }
@@ -80,6 +83,7 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
             _totalAckRelayFee
         );
 
+        emit MultiMessageSent(msg.sender, _targets, _data, _values);
         return true;
     }
 
@@ -97,6 +101,8 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
 
             ICrossChain(CROSS_CHAIN).handleAckPackageFromMultiMessage(payloads[i], ACK_PACKAGE, _multiMessageSequence);
         }
+
+        emit AckMultiMessageReceived(ACK_PACKAGE, sequence, payloads);
         return (0, address(0));
     }
 
@@ -116,6 +122,8 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
                 _multiMessageSequence
             );
         }
+
+        emit AckMultiMessageReceived(FAIL_ACK_PACKAGE, sequence, payloads);
         return (0, address(0));
     }
 
