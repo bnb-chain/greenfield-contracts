@@ -34,6 +34,8 @@ const main = async () => {
     const proxyObjectHub = await deployer.proxyObjectHub();
     const proxyGroupHub = await deployer.proxyGroupHub();
     const proxyPermissionHub = await deployer.proxyPermissionHub();
+    const proxyMultiMessage = await deployer.proxyMultiMessage();
+    const proxyGreenfieldExecutor = await deployer.proxyGreenfieldExecutor();
 
     // Set all generated contracts to Config contracts
     await setConstantsToConfig({
@@ -47,6 +49,8 @@ const main = async () => {
         proxyObjectHub,
         proxyGroupHub,
         proxyPermissionHub,
+        proxyMultiMessage,
+        proxyGreenfieldExecutor,
         emergencyOperator: contracts.EmergencyOperator,
         emergencyUpgradeOperator: contracts.EmergencyUpgradeOperator,
     });
@@ -60,6 +64,8 @@ const main = async () => {
     const implObjectHub = await deployer.implObjectHub();
     const implGroupHub = await deployer.implGroupHub();
     const implPermissionHub = await deployer.implPermissionHub();
+    const implMultiMessage = await deployer.implMultiMessage();
+    const implGnfdExecutor = await deployer.implGreenfieldExecutor();
 
     const addBucketHub = await deployer.addBucketHub();
     const addObjectHub = await deployer.addObjectHub();
@@ -86,6 +92,8 @@ const main = async () => {
         await run('verify:verify', { address: implObjectHub });
         await run('verify:verify', { address: implGroupHub });
         await run('verify:verify', { address: implPermissionHub });
+        await run('verify:verify', { address: implMultiMessage });
+        await run('verify:verify', { address: implGnfdExecutor });
         log('proxyAdmin and all impl contract verified');
     } catch (e) {
         log('verify error', e);
@@ -141,6 +149,21 @@ const main = async () => {
         await run('verify:verify', {
             address: proxyGroupHub,
             constructorArguments: [implGroupHub, proxyAdmin, '0x'],
+            contract: 'contracts/GnfdProxy.sol:GnfdProxy',
+        });
+        await run('verify:verify', {
+            address: proxyPermissionHub,
+            constructorArguments: [implPermissionHub, proxyAdmin, '0x'],
+            contract: 'contracts/GnfdProxy.sol:GnfdProxy',
+        });
+        await run('verify:verify', {
+            address: proxyMultiMessage,
+            constructorArguments: [implMultiMessage, proxyAdmin, '0x'],
+            contract: 'contracts/GnfdProxy.sol:GnfdProxy',
+        });
+        await run('verify:verify', {
+            address: proxyGreenfieldExecutor,
+            constructorArguments: [implGnfdExecutor, proxyAdmin, '0x'],
             contract: 'contracts/GnfdProxy.sol:GnfdProxy',
         });
 
