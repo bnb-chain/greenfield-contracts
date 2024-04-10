@@ -56,6 +56,9 @@ const main = async () => {
         )
     );
 
+    const implCrossChain = await deployContract('CrossChain');
+    log('new implCrossChain deployed', implCrossChain.address);
+
     try {
         await run('verify:verify', {
             address: multiMessageDeployer.address,
@@ -63,7 +66,8 @@ const main = async () => {
         });
         await run('verify:verify', { address: implMultiMessage.address });
         await run('verify:verify', { address: implGreenfieldExecutor.address });
-        log('implMultiMessage and implGreenfieldExecutor contracts verified');
+        await run('verify:verify', { address: implCrossChain.address });
+        log('implCrossChain, implMultiMessage and implGreenfieldExecutor contracts verified');
     } catch (e) {
         log('verify error', e);
     }
