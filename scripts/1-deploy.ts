@@ -309,7 +309,7 @@ const main = async () => {
 
     tx = await operator.sendTransaction({
         to: proxyTokenHub,
-        value: unit.mul(1000),
+        value: unit.mul(1).div(4),
     });
     await tx.wait(1);
     log('balance of TokenHub', await ethers.provider.getBalance(proxyTokenHub));
@@ -319,7 +319,7 @@ const main = async () => {
         const relayer = validators[i].relayerAddress;
         tx = await operator.sendTransaction({
             to: ethers.utils.getAddress(relayer),
-            value: unit.mul(100),
+            value: unit.mul(1).div(5),
         });
         await tx.wait(1);
     }
