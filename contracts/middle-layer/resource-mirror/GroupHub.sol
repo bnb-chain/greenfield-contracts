@@ -103,7 +103,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (600_003, "GroupHub", "support multi-message");
+        return (600_004, "GroupHub", "support multi-message");
     }
 
     function grant(address, uint32, uint256) external override {
