@@ -166,6 +166,6 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (800_001, "PermissionHub", "init");
+        return (800_001, "PermissionHub", "support multi-message");
     }
 }

@@ -97,9 +97,9 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
         returns (uint256 version, string memory name, string memory description)
     {
         return (
-            400_004,
+            400_005,
             "BucketHub",
-            "commit-id: 4f7a41f67778eadb6899ccbc5ea65087119febbf, add globalVirtualGroupFamilyId to CreateBucketSynPackage"
+            "support multi-message"
         );
     }
 

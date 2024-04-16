@@ -59,6 +59,33 @@ const main = async () => {
     const implCrossChain = await deployContract('CrossChain');
     log('new implCrossChain deployed', implCrossChain.address);
 
+    const implGroupHub = await deployContract('GroupHub');
+    log('new implGroupHub deployed', implGroupHub.address);
+
+    const addGroupHub = await deployContract('AdditionalGroupHub');
+    log('new addGroupHub deployed', addGroupHub.address);
+
+    const implBucketHub = await deployContract('BucketHub');
+    log('new BucketHub deployed', implBucketHub.address);
+
+    const addBucketHub = await deployContract('AdditionalBucketHub');
+    log('new addBucketHub deployed', addBucketHub.address);
+
+    const implObjectHub = await deployContract('ObjectHub');
+    log('new ObjectHub deployed', implObjectHub.address);
+
+    const addObjectHub = await deployContract('AdditionalObjectHub');
+    log('new addObjectHub deployed', addObjectHub.address);
+
+    const implPermissionHub = await deployContract('PermissionHub');
+    log('new PermissionHub deployed', implPermissionHub.address);
+
+    const addPermissionHub = await deployContract('AdditionalPermissionHub');
+    log('new addPermissionHub deployed', addPermissionHub.address);
+
+    const implTokenHub = await deployContract('TokenHub');
+    log('new TokenHub deployed', implTokenHub.address);
+
     try {
         await run('verify:verify', {
             address: multiMessageDeployer.address,
@@ -67,7 +94,18 @@ const main = async () => {
         await run('verify:verify', { address: implMultiMessage.address });
         await run('verify:verify', { address: implGreenfieldExecutor.address });
         await run('verify:verify', { address: implCrossChain.address });
-        log('implCrossChain, implMultiMessage and implGreenfieldExecutor contracts verified');
+
+        await run('verify:verify', { address: implGroupHub.address });
+        await run('verify:verify', { address: addGroupHub.address });
+        await run('verify:verify', { address: implBucketHub.address });
+        await run('verify:verify', { address: addBucketHub.address });
+        await run('verify:verify', { address: implObjectHub.address });
+        await run('verify:verify', { address: addObjectHub.address });
+        await run('verify:verify', { address: implPermissionHub.address });
+        await run('verify:verify', { address: addPermissionHub.address });
+        await run('verify:verify', { address: implTokenHub.address });
+
+        log('contracts verified');
     } catch (e) {
         log('verify error', e);
     }
