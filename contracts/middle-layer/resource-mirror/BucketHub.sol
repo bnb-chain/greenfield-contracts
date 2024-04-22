@@ -96,11 +96,7 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (
-            400_005,
-            "BucketHub",
-            "support multi-message"
-        );
+        return (400_005, "BucketHub", "support multi-message");
     }
 
     function grant(address, uint32, uint256) external override {
