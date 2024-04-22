@@ -96,11 +96,7 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (
-            400_004,
-            "BucketHub",
-            "commit-id: 4f7a41f67778eadb6899ccbc5ea65087119febbf, add globalVirtualGroupFamilyId to CreateBucketSynPackage"
-        );
+        return (400_005, "BucketHub", "support multi-message");
     }
 
     function grant(address, uint32, uint256) external override {
