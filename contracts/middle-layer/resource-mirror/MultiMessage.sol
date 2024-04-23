@@ -12,6 +12,9 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
     uint8 public constant ACK_PACKAGE = 0x01;
     uint8 public constant FAIL_ACK_PACKAGE = 0x02;
 
+    uint256 public constant MAX_MESSAGE_COUNT = 10;
+    uint256 public constant MAX_MESSAGE_BYTES = 1024;
+
     mapping(address => bool) public whitelistTargets;
 
     event MultiMessageSent(address indexed sender, address[] targets, bytes[] data, uint256[] values);
@@ -43,20 +46,24 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
         bytes[] calldata _data,
         uint256[] calldata _values
     ) external payable returns (bool) {
-        require(_targets.length == _data.length, "length mismatch");
-        require(_targets.length == _values.length, "length mismatch");
+        uint256 _length = _targets.length;
+        require(_length > 0, "empty data");
+        require(_length <= MAX_MESSAGE_COUNT, "too many messages");
+        require(_length == _data.length, "length mismatch");
+        require(_length == _values.length, "length mismatch");
 
         // generate packages
         uint256 _totalValue = 0;
         uint256 _totalRelayFee = 0;
         uint256 _totalAckRelayFee = 0;
-        bytes[] memory messages = new bytes[](_targets.length);
-        for (uint256 i = 0; i < _targets.length; ++i) {
+        bytes[] memory messages = new bytes[](_length);
+        for (uint256 i = 0; i < _length; ++i) {
             address target = _targets[i];
             require(whitelistTargets[target], "only whitelist");
             uint256 value = _values[i];
             _totalValue += value;
             bytes calldata data = _data[i];
+            require(data.length <= MAX_MESSAGE_BYTES, "too large message bytes");
 
             (bool success, bytes memory result) = target.call{ value: value }(data);
             require(success, "call reverted");
