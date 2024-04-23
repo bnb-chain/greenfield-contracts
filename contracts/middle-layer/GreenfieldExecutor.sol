@@ -9,6 +9,9 @@ import "../interface/IGreenfieldExecutor.sol";
 import "../interface/IMiddleLayer.sol";
 
 contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldExecutor {
+    uint256 public constant MAX_MESSAGE_COUNT = 10;
+    uint256 public constant MAX_MESSAGE_BYTES = 1024;
+
     constructor() {
         _disableInitializers();
     }
@@ -39,6 +42,7 @@ contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldE
     function execute(uint8[] calldata _msgTypes, bytes[] calldata _msgBytes) external payable override returns (bool) {
         uint256 _length = _msgTypes.length;
         require(_length > 0, "empty data");
+        require(_length <= MAX_MESSAGE_COUNT, "too many messages");
         require(_length == _msgBytes.length, "length not match");
 
         (uint256 relayFee, ) = ICrossChain(CROSS_CHAIN).getRelayFees();
@@ -48,6 +52,7 @@ contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldE
         bytes[] memory messages = new bytes[](_msgBytes.length);
         for (uint256 i = 0; i < _length; ++i) {
             require(_msgTypes[i] != 0, "invalid message type");
+            require(_msgBytes[i].length <= MAX_MESSAGE_BYTES, "too large message bytes");
             messages[i] = abi.encode(msg.sender, _msgTypes[i], _msgBytes[i]);
         }
 
