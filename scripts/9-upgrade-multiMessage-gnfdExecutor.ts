@@ -1,15 +1,16 @@
-import { MultiMessageDeployer } from '../typechain-types';
-import { setConstantsToConfig, sleep, toHuman } from './helper';
+import {MultiMessageDeployer} from '../typechain-types';
+import {setConstantsToConfig, toHuman} from './helper';
 import fs from 'fs';
-import { execSync } from 'child_process';
-import { waitTx } from '../test/helper';
-const { ethers, run } = require('hardhat');
+import {execSync} from 'child_process';
+import {waitTx} from '../test/helper';
+
+const {ethers, run} = require('hardhat');
 const log = console.log;
 
 const main = async () => {
     const commitId = await getCommitId();
 
-    const { chainId } = await ethers.provider.getNetwork();
+    const {chainId} = await ethers.provider.getNetwork();
     log('chainId', chainId);
     const deployFile = `${__dirname}/../deployment/${chainId}-deployment.json`
     let contracts: any = require(deployFile);
@@ -52,7 +53,7 @@ const main = async () => {
         multiMessageDeployer.deploy(
             implMultiMessage.address,
             implGreenfieldExecutor.address,
-            { gasLimit: 5000000 }
+            {gasLimit: 5000000}
         )
     );
 
@@ -91,24 +92,24 @@ const main = async () => {
             address: multiMessageDeployer.address,
             constructorArguments: [contracts.Deployer, '0x' + commitId],
         });
-        await run('verify:verify', { address: implMultiMessage.address });
-        await run('verify:verify', { address: implGreenfieldExecutor.address });
-        await run('verify:verify', { address: implCrossChain.address });
+        await run('verify:verify', {address: implMultiMessage.address});
+        await run('verify:verify', {address: implGreenfieldExecutor.address});
+        await run('verify:verify', {address: implCrossChain.address});
 
-        await run('verify:verify', { address: implGroupHub.address });
-        await run('verify:verify', { address: addGroupHub.address });
-        await run('verify:verify', { address: implBucketHub.address });
-        await run('verify:verify', { address: addBucketHub.address });
-        await run('verify:verify', { address: implObjectHub.address });
-        await run('verify:verify', { address: addObjectHub.address });
-        await run('verify:verify', { address: implPermissionHub.address });
-        await run('verify:verify', { address: addPermissionHub.address });
-        await run('verify:verify', { address: implTokenHub.address });
-
+        await run('verify:verify', {address: implGroupHub.address});
+        await run('verify:verify', {address: addGroupHub.address});
+        await run('verify:verify', {address: implBucketHub.address});
+        await run('verify:verify', {address: addBucketHub.address});
+        await run('verify:verify', {address: implObjectHub.address});
+        await run('verify:verify', {address: addObjectHub.address});
+        await run('verify:verify', {address: implPermissionHub.address});
+        await run('verify:verify', {address: addPermissionHub.address});
+        await run('verify:verify', {address: implTokenHub.address});
         log('contracts verified');
     } catch (e) {
         log('verify error', e);
     }
+
     fs.writeFileSync(deployFile, JSON.stringify(contracts, null, 2));
 };
 
