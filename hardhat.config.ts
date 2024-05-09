@@ -40,19 +40,22 @@ const config: HardhatUserConfig = {
                 '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
                 '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',  // relayer
                 '0x23400f0b4857a2228218fa74fbcac1f2285c03e60d590afe8fa3dc93692aa7be', // faucet
-            ]
+            ],
+            gasPrice: 10 * 1e9
         },
         'bsc-testnet': {
             url: process.env.BSC_TESTNET_RPC || 'https://data-seed-prebsc-1-s1.binance.org:8545/',
             accounts: [
                 process.env.DeployerPrivateKey || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
-            ]
+            ],
+            gasPrice: 10e9,
         },
         'bsc': {
             url: process.env.BSC_RPC || 'https://bsc-dataseed1.binance.org',
-            accounts: [
-                process.env.DeployerPrivateKey || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // developer
-            ]
+            accounts: {
+                mnemonic: process.env.BSC_MN || 'test test test test test test test test test test test test',
+            },
+            gasPrice: 3.1 * 1e9
         },
         'goerli': {
             url: process.env.GOERLI_RPC || 'https://rpc.ankr.com/eth_goerli',

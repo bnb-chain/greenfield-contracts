@@ -103,7 +103,7 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (600_003, "GroupHub", "add _disableInitializers in constructor");
+        return (600_004, "GroupHub", "support multi-message");
     }
 
     function grant(address, uint32, uint256) external override {
@@ -135,6 +135,56 @@ contract GroupHub is GroupStorage, GnfdAccessControl, CmnHub, IGroupHub {
     }
 
     function updateGroup(UpdateGroupSynPackage memory, uint256, ExtraData memory) external payable returns (bool) {
+        delegateAdditional();
+    }
+
+    function prepareCreateGroup(
+        address,
+        address,
+        string memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareCreateGroup(
+        address,
+        address,
+        string memory,
+        uint256,
+        ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeleteGroup(
+        address,
+        uint256
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeleteGroup(
+        address,
+        uint256,
+        uint256,
+        ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareUpdateGroup(
+        address,
+        UpdateGroupSynPackage memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareUpdateGroup(
+        address,
+        UpdateGroupSynPackage memory,
+        uint256,
+        ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 

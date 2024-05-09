@@ -96,11 +96,7 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (
-            400_004,
-            "BucketHub",
-            "commit-id: 4f7a41f67778eadb6899ccbc5ea65087119febbf, add globalVirtualGroupFamilyId to CreateBucketSynPackage"
-        );
+        return (400_005, "BucketHub", "support multi-message");
     }
 
     function grant(address, uint32, uint256) external override {
@@ -124,6 +120,38 @@ contract BucketHub is BucketStorage, GnfdAccessControl, CmnHub, IBucketHub {
     }
 
     function deleteBucket(uint256, uint256, ExtraData memory) external payable returns (bool) {
+        delegateAdditional();
+    }
+
+    function prepareCreateBucket(
+        address,
+        CreateBucketSynPackage memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareCreateBucket(
+        address,
+        CreateBucketSynPackage memory,
+        uint256,
+        ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeleteBucket(
+        address,
+        uint256
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeleteBucket(
+        address,
+        uint256,
+        uint256,
+        ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
         delegateAdditional();
     }
 

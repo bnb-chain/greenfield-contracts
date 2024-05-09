@@ -20,4 +20,28 @@ interface IBucketHub {
         uint256 callbackGasLimit,
         CmnStorage.ExtraData memory extraData
     ) external payable returns (bool);
+
+    function prepareCreateBucket(
+        address,
+        BucketStorage.CreateBucketSynPackage memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address);
+
+    function prepareCreateBucket(
+        address,
+        BucketStorage.CreateBucketSynPackage memory,
+        uint256,
+        CmnStorage.ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address);
+
+    function prepareDeleteBucket(
+        address,
+        uint256
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address);
+
+    function prepareDeleteBucket(
+        address,
+        uint256,
+        uint256,
+        CmnStorage.ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address);
 }

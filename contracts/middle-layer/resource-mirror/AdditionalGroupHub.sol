@@ -82,32 +82,22 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param name The group's name
      */
     function createGroup(address owner, string memory name) external payable returns (bool) {
-        // check relay fee
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        if (msg.sender != owner) {
-            require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
-        }
-
-        // make sure the extra data is as expected
-        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({ creator: owner, name: name, extraData: "" });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID,
-            abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreateGroup(
+            msg.sender,
+            owner,
+            name
         );
 
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit CreateSubmitted(owner, msg.sender, name);
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
         return true;
+    }
+
+    function prepareCreateGroup(
+        address sender,
+        address owner,
+        string memory name
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareCreateGroup(sender, owner, name);
     }
 
     /**
@@ -126,46 +116,26 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
-        // check relay fee and callback fee
-        require(callbackGasLimit > 2300, "invalid callback gas limit");
-        require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
-        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
-        }
-
-        // check authorization
-        if (msg.sender != owner) {
-            require(hasRole(ROLE_CREATE, owner, msg.sender), "no permission to create");
-        }
-
-        // make sure the extra data is as expected
-        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        extraData.appAddress = msg.sender;
-        CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
-            creator: owner,
-            name: name,
-            extraData: abi.encode(extraData)
-        });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID,
-            abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreateGroup(
+            msg.sender,
+            owner,
+            name,
+            callbackGasLimit,
+            extraData
         );
 
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit CreateSubmitted(owner, msg.sender, name);
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
         return true;
+    }
+
+    function prepareCreateGroup(
+        address sender,
+        address owner,
+        string memory name,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareCreateGroup(sender, owner, name, callbackGasLimit, extraData);
     }
 
     /**
@@ -174,37 +144,19 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param id The group's id
      */
     function deleteGroup(uint256 id) external payable returns (bool) {
-        // check relay fee
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
-        ) {
-            require(hasRole(ROLE_DELETE, owner, msg.sender), "no delete permission");
-        }
-
-        // make sure the extra data is as expected
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID,
-            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteGroup(
+            msg.sender,
+            id
         );
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit DeleteSubmitted(owner, msg.sender, id);
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
         return true;
+    }
+
+    function prepareDeleteGroup(
+        address sender,
+        uint256 id
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareDeleteGroup(sender, id);
     }
 
     /**
@@ -221,51 +173,23 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         uint256 callbackGasLimit,
         ExtraData memory extraData
     ) external payable returns (bool) {
-        // check relay fee and callback fee
-        require(callbackGasLimit > 2300, "invalid callback gas limit");
-        require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
-        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
-        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
-        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
-        uint256 _ackRelayFee = msg.value - relayFee;
-
-        // check package queue
-        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
-        }
-
-        // check authorization
-        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
-        if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
-        ) {
-            require(hasRole(ROLE_DELETE, owner, msg.sender), "no delete permission");
-        }
-
-        // make sure the extra data is as expected
-        extraData.appAddress = msg.sender;
-        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
-            operator: owner,
-            id: id,
-            extraData: abi.encode(extraData)
-        });
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID,
-            abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteGroup(
+            msg.sender,
+            id,
+            callbackGasLimit,
+            extraData
         );
-
-        // transfer all the fee to tokenHub
-        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
-        require(success, "transfer to tokenHub failed");
-
-        emit DeleteSubmitted(owner, msg.sender, id);
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
         return true;
+    }
+
+    function prepareDeleteGroup(
+        address sender,
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareDeleteGroup(sender, id, callbackGasLimit, extraData);
     }
 
     /**
@@ -274,6 +198,229 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      * @param synPkg Package containing information of the group to be updated
      */
     function updateGroup(UpdateGroupSynPackage memory synPkg) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareUpdateGroup(
+            msg.sender,
+            synPkg
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    function prepareUpdateGroup(
+        address sender,
+        UpdateGroupSynPackage memory synPkg
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareUpdateGroup(sender, synPkg);
+    }
+
+    /**
+     * @dev update a group's member and send cross-chain request from BSC to GNFD
+     * Callback function will be called when the request is processed.
+     *
+     * @param synPkg Package containing information of the group to be updated
+     * @param callbackGasLimit The gas limit for callback function
+     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
+     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
+     */
+    function updateGroup(
+        UpdateGroupSynPackage memory synPkg,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable returns (bool) {
+        (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareUpdateGroup(
+            msg.sender,
+            synPkg,
+            callbackGasLimit,
+            extraData
+        );
+
+        ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
+        return true;
+    }
+
+    function prepareUpdateGroup(
+        address sender,
+        UpdateGroupSynPackage memory synPkg,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) external payable onlyMultiMessage returns (uint8, bytes memory, uint256, uint256, address) {
+        return _prepareUpdateGroup(sender, synPkg, callbackGasLimit, extraData);
+    }
+
+    function _prepareCreateGroup(
+        address sender,
+        address owner,
+        string memory name
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        {
+            address _sender = sender;
+            // check authorization
+            if (_sender != owner) {
+                require(hasRole(ROLE_CREATE, owner, _sender), "no permission to create");
+            }
+
+            // transfer all the fee to tokenHub
+            (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+            require(success, "transfer to tokenHub failed");
+
+            CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({ creator: owner, name: name, extraData: "" });
+            emit CreateSubmitted(owner, _sender, synPkg.name);
+
+            return (
+                GROUP_CHANNEL_ID,
+                abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
+                relayFee,
+                _ackRelayFee,
+                _sender
+            );
+        }
+    }
+
+    function _prepareCreateGroup(
+        address sender,
+        address owner,
+        string memory name,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        // check relay fee and callback fee
+        require(callbackGasLimit > 2300, "invalid callback gas limit");
+        require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        {
+            address _sender = sender;
+            address _owner = owner;
+            string memory _name = name;
+            // check package queue
+            if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
+                require(retryQueue[_sender].empty(), "retry queue is not empty");
+            }
+
+            // check authorization
+            if (_sender != _owner) {
+                require(hasRole(ROLE_CREATE, _owner, _sender), "no permission to create");
+            }
+
+            // make sure the extra data is as expected
+            require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
+            extraData.appAddress = _sender;
+
+            CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
+                creator: _owner,
+                name: _name,
+                extraData: abi.encode(extraData)
+            });
+
+            emit CreateSubmitted(_owner, _sender, _name);
+
+            // transfer all the fee to tokenHub
+            (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+            require(success, "transfer to tokenHub failed");
+
+            return (
+                GROUP_CHANNEL_ID,
+                abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)),
+                relayFee,
+                _ackRelayFee,
+                _sender
+            );
+        }
+    }
+
+    function _prepareDeleteGroup(
+        address sender,
+        uint256 id
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        // check relay fee
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        require(msg.value >= relayFee + minAckRelayFee, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        address _sender = sender;
+        // check authorization
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
+        if (
+            !(_sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(id) == _sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
+        ) {
+            require(hasRole(ROLE_DELETE, owner, _sender), "no delete permission");
+        }
+
+        // make sure the extra data is as expected
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({ operator: owner, id: id, extraData: "" });
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit DeleteSubmitted(owner, _sender, id);
+
+        return (GROUP_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
+    }
+
+    function _prepareDeleteGroup(
+        address sender,
+        uint256 id,
+        uint256 callbackGasLimit,
+        ExtraData memory extraData
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
+        // check relay fee and callback fee
+        require(callbackGasLimit > 2300, "invalid callback gas limit");
+        require(callbackGasLimit <= MAX_CALLBACK_GAS_LIMIT, "invalid callback gas limit");
+        (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
+        uint256 callbackGasPrice = ICrossChain(CROSS_CHAIN).callbackGasPrice();
+        require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
+        uint256 _ackRelayFee = msg.value - relayFee;
+
+        uint256 _id = id;
+        address _sender = sender;
+        // check package queue
+        if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
+            require(retryQueue[_sender].empty(), "retry queue is not empty");
+        }
+
+        // check authorization
+        require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(_id);
+        if (
+            !(_sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(_id) == _sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
+        ) {
+            require(hasRole(ROLE_DELETE, owner, _sender), "no delete permission");
+        }
+
+        // make sure the extra data is as expected
+        extraData.appAddress = _sender;
+        CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
+            operator: owner,
+            id: _id,
+            extraData: abi.encode(extraData)
+        });
+
+        // transfer all the fee to tokenHub
+        (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
+        require(success, "transfer to tokenHub failed");
+
+        emit DeleteSubmitted(owner, _sender, _id);
+        return (GROUP_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
+    }
+
+    function _prepareUpdateGroup(
+        address sender,
+        UpdateGroupSynPackage memory synPkg
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
         // check synPkg
         if (synPkg.opType == UpdateGroupOpType.AddMembers || synPkg.opType == UpdateGroupOpType.RenewMembers) {
             require(synPkg.members.length == synPkg.memberExpiration.length, "member and expiration length mismatch");
@@ -287,11 +434,11 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         // check authorization
         address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
         if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(synPkg.id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
+            !(sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(synPkg.id) == sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, sender))
         ) {
-            require(hasRole(ROLE_UPDATE, owner, msg.sender), "no update permission");
+            require(hasRole(ROLE_UPDATE, owner, sender), "no update permission");
         }
         synPkg.operator = owner; // the operator should always be set to the owner
 
@@ -317,35 +464,20 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         // make sure the extra data is as expected
         synPkg.extraData = "";
 
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID,
-            abi.encodePacked(TYPE_UPDATE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
-        );
-
         // transfer all the fee to tokenHub
         (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
-        emit UpdateSubmitted(owner, msg.sender, synPkg.id, uint8(synPkg.opType), synPkg.members);
-        return true;
+        emit UpdateSubmitted(owner, sender, synPkg.id, uint8(synPkg.opType), synPkg.members);
+        return (GROUP_CHANNEL_ID, abi.encodePacked(TYPE_UPDATE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
     }
 
-    /**
-     * @dev update a group's member and send cross-chain request from BSC to GNFD
-     * Callback function will be called when the request is processed.
-     *
-     * @param synPkg Package containing information of the group to be updated
-     * @param callbackGasLimit The gas limit for callback function
-     * @param extraData Extra data for callback function. The `appAddress` in `extraData` will be ignored.
-     * It will be reset to the `msg.sender` all the time. And make sure the `refundAddress` is payable.
-     */
-    function updateGroup(
+    function _prepareUpdateGroup(
+        address sender,
         UpdateGroupSynPackage memory synPkg,
         uint256 callbackGasLimit,
         ExtraData memory extraData
-    ) external payable returns (bool) {
+    ) internal returns (uint8, bytes memory, uint256, uint256, address) {
         // check synPkg
         if (synPkg.opType == UpdateGroupOpType.AddMembers || synPkg.opType == UpdateGroupOpType.RenewMembers) {
             require(synPkg.members.length == synPkg.memberExpiration.length, "member and expiration length mismatch");
@@ -359,36 +491,41 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         require(msg.value >= relayFee + minAckRelayFee + callbackGasLimit * callbackGasPrice, "not enough fee");
         uint256 _ackRelayFee = msg.value - relayFee;
 
+        address _sender = sender;
+
         // check package queue
         if (extraData.failureHandleStrategy == FailureHandleStrategy.BlockOnFail) {
-            require(retryQueue[msg.sender].empty(), "retry queue is not empty");
+            require(retryQueue[_sender].empty(), "retry queue is not empty");
         }
 
         // check authorization
-        address owner = IERC721NonTransferable(ERC721Token).ownerOf(synPkg.id);
+        uint256 id = synPkg.id;
+        address owner = IERC721NonTransferable(ERC721Token).ownerOf(id);
         if (
-            !(msg.sender == owner ||
-                IERC721NonTransferable(ERC721Token).getApproved(synPkg.id) == msg.sender ||
-                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, msg.sender))
+            !(_sender == owner ||
+                IERC721NonTransferable(ERC721Token).getApproved(id) == _sender ||
+                IERC721NonTransferable(ERC721Token).isApprovedForAll(owner, _sender))
         ) {
-            require(hasRole(ROLE_UPDATE, owner, msg.sender), "no update permission");
+            require(hasRole(ROLE_UPDATE, owner, _sender), "no update permission");
         }
         synPkg.operator = owner; // the operator should always be set to the owner
 
         // check members
-        if (synPkg.opType == UpdateGroupOpType.AddMembers) {
-            for (uint256 i = 0; i < synPkg.members.length; ++i) {
-                require(synPkg.members[i] != address(0), "invalid member address");
+        UpdateGroupSynPackage memory _synPkg = synPkg;
+
+        if (_synPkg.opType == UpdateGroupOpType.AddMembers) {
+            for (uint256 i = 0; i < _synPkg.members.length; ++i) {
+                require(_synPkg.members[i] != address(0), "invalid member address");
                 require(
-                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) == 0,
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(_synPkg.members[i], _synPkg.id) == 0,
                     "member already in group"
                 );
             }
         } else {
-            for (uint256 i = 0; i < synPkg.members.length; ++i) {
-                require(synPkg.members[i] != address(0), "invalid member address");
+            for (uint256 i = 0; i < _synPkg.members.length; ++i) {
+                require(_synPkg.members[i] != address(0), "invalid member address");
                 require(
-                    IERC1155NonTransferable(ERC1155Token).balanceOf(synPkg.members[i], synPkg.id) != 0,
+                    IERC1155NonTransferable(ERC1155Token).balanceOf(_synPkg.members[i], _synPkg.id) != 0,
                     "member not in group"
                 );
             }
@@ -396,21 +533,14 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
 
         // make sure the extra data is as expected
         require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        extraData.appAddress = msg.sender;
-        synPkg.extraData = abi.encode(extraData);
-
-        ICrossChain(CROSS_CHAIN).sendSynPackage(
-            GROUP_CHANNEL_ID,
-            abi.encodePacked(TYPE_UPDATE, abi.encode(synPkg)),
-            relayFee,
-            _ackRelayFee
-        );
+        extraData.appAddress = _sender;
+        _synPkg.extraData = abi.encode(extraData);
 
         // transfer all the fee to tokenHub
         (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
-        emit UpdateSubmitted(owner, msg.sender, synPkg.id, uint8(synPkg.opType), synPkg.members);
-        return true;
+        emit UpdateSubmitted(owner, _sender, id, uint8(_synPkg.opType), _synPkg.members);
+        return (GROUP_CHANNEL_ID, abi.encodePacked(TYPE_UPDATE, abi.encode(_synPkg)), relayFee, _ackRelayFee, _sender);
     }
 }

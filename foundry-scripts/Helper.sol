@@ -20,6 +20,7 @@ contract Helper is Script, BucketStorage, GroupStorage {
     BucketHub public bucketHub;
     ObjectHub public objectHub;
     GroupHub public groupHub;
+    MultiMessage public multiMessage;
 
     uint256 public totalRelayFee;
 
@@ -34,6 +35,7 @@ contract Helper is Script, BucketStorage, GroupStorage {
         bucketHub = BucketHub(payable(deployer.proxyBucketHub()));
         objectHub = ObjectHub(payable(deployer.proxyObjectHub()));
         groupHub = GroupHub(payable(deployer.proxyGroupHub()));
+        multiMessage = MultiMessage(payable(deployer.proxyMultiMessage()));
 
         uint256 relayFee = crossChain.relayFee();
         uint256 minAckRelayFee = crossChain.minAckRelayFee();

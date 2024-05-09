@@ -87,6 +87,22 @@ contract ObjectHub is ObjectStorage, GnfdAccessControl, CmnHub, IObjectHub {
         emit FailAckPkgReceived(channelId, msgBytes);
     }
 
+    function prepareDeleteObject(
+        address,
+        uint256
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
+    function prepareDeleteObject(
+        address,
+        uint256,
+        uint256,
+        ExtraData memory
+    ) external payable returns (uint8, bytes memory, uint256, uint256, address) {
+        delegateAdditional();
+    }
+
     /*----------------- external function -----------------*/
     function versionInfo()
         external
@@ -94,7 +110,7 @@ contract ObjectHub is ObjectStorage, GnfdAccessControl, CmnHub, IObjectHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (500_003, "ObjectHub", "add _disableInitializers in constructor");
+        return (500_004, "ObjectHub", "support multi-message");
     }
 
     function grant(address, uint32, uint256) external override {
