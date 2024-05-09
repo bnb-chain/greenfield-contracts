@@ -140,7 +140,7 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (900_001, "MultiMessage", "init");
+        return (900_002, "MultiMessage", "support MAX_MESSAGE_COUNT and MAX_MESSAGE_BYTES");
     }
 
     function _getMultiMessageSequence(uint256 index, uint64 sequence) internal pure returns (uint64) {
