@@ -68,7 +68,7 @@ contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldE
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (1_000_001, "GreenfieldExecutor", "init");
+        return (1_000_002, "GreenfieldExecutor", "support MAX_MESSAGE_COUNT and MAX_MESSAGE_BYTES");
     }
 
     function handleSynPackage(uint8, bytes calldata) external pure returns (bytes memory responsePayload) {
