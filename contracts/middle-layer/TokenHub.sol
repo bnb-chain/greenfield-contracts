@@ -404,6 +404,6 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (300_002, "TokenHub", "add _disableInitializers in constructor");
+        return (300_003, "TokenHub", "support multi-message");
     }
 }
