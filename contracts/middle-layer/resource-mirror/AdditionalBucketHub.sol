@@ -73,7 +73,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
      */
     function createBucket(CreateBucketSynPackage memory synPkg) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreateBucket(
-            msg.sender,
+            _erc2771Sender(),
             synPkg
         );
         ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
@@ -102,7 +102,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         ExtraData memory extraData
     ) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreateBucket(
-            msg.sender,
+            _erc2771Sender(),
             synPkg,
             callbackGasLimit,
             extraData
@@ -128,7 +128,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
      */
     function deleteBucket(uint256 id) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteBucket(
-            msg.sender,
+            _erc2771Sender(),
             id
         );
 
@@ -158,7 +158,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         ExtraData memory extraData
     ) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteBucket(
-            msg.sender,
+            _erc2771Sender(),
             id,
             callbackGasLimit,
             extraData
@@ -199,7 +199,7 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
         (bool success, ) = TOKEN_HUB.call{ value: address(this).balance }("");
         require(success, "transfer to tokenHub failed");
 
-        emit CreateSubmitted(owner, msg.sender, synPkg.name);
+        emit CreateSubmitted(owner, sender, synPkg.name);
 
         return (BUCKET_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, sender);
     }

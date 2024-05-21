@@ -65,7 +65,7 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
      */
     function deleteObject(uint256 id) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteObject(
-            msg.sender,
+            _erc2771Sender(),
             id
         );
         ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
@@ -94,7 +94,7 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
         ExtraData memory extraData
     ) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteObject(
-            msg.sender,
+            _erc2771Sender(),
             id,
             callbackGasLimit,
             extraData

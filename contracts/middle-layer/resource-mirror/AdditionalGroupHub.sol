@@ -83,7 +83,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      */
     function createGroup(address owner, string memory name) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreateGroup(
-            msg.sender,
+            _erc2771Sender(),
             owner,
             name
         );
@@ -117,7 +117,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         ExtraData memory extraData
     ) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreateGroup(
-            msg.sender,
+            _erc2771Sender(),
             owner,
             name,
             callbackGasLimit,
@@ -145,7 +145,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      */
     function deleteGroup(uint256 id) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteGroup(
-            msg.sender,
+            _erc2771Sender(),
             id
         );
         ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
@@ -174,7 +174,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         ExtraData memory extraData
     ) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeleteGroup(
-            msg.sender,
+            _erc2771Sender(),
             id,
             callbackGasLimit,
             extraData
@@ -199,7 +199,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
      */
     function updateGroup(UpdateGroupSynPackage memory synPkg) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareUpdateGroup(
-            msg.sender,
+            _erc2771Sender(),
             synPkg
         );
 
@@ -229,7 +229,7 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         ExtraData memory extraData
     ) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareUpdateGroup(
-            msg.sender,
+            _erc2771Sender(),
             synPkg,
             callbackGasLimit,
             extraData
