@@ -22,8 +22,9 @@ abstract contract Config {
      * and msg.data (referred to as _msgData()) by appending additional calldata.
      * eip-2771 doc: https://eips.ethereum.org/EIPS/eip-2771
      * openzeppelin eip-2771 contract: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.0.2/contracts/metatx/ERC2771Forwarder.sol
+     * The ERC2771_FORWARDER contract deployed from: https://github.com/bnb-chain/ERC2771Forwarder.git
      */
-    address public constant ERC2771_FORWARDER = 0x6766AB8Eb4682b668A5c7a92AC48c54FBC91b351;
+    address public constant ERC2771_FORWARDER = 0x5e06E40B2c35157AE1ba0a63e2371a34EB8Bde8b;
 
     // contract address
     // will calculate their deployed addresses from deploy script
