@@ -95,7 +95,7 @@ abstract contract Config {
         }
     }
 
-    function isTrustedForwarder(address forwarder) public returns(bool) {
+    function isTrustedForwarder(address forwarder) public returns (bool) {
         return forwarder == ERC2771_FORWARDER;
     }
 

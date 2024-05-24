@@ -16,21 +16,18 @@ interface IERC2771Forwarder {
 
     function verify(ForwardRequestData calldata request) external view returns (bool);
 
-    function executeBatch(
-        ForwardRequestData[] calldata requests,
-        address payable refundReceiver
-    ) external payable;
+    function executeBatch(ForwardRequestData[] calldata requests, address payable refundReceiver) external payable;
 
     function eip712Domain()
-    external
-    view
-    returns (
-        bytes1 fields,
-        string memory name,
-        string memory version,
-        uint256 chainId,
-        address verifyingContract,
-        bytes32 salt,
-        uint256[] memory extensions
-    );
+        external
+        view
+        returns (
+            bytes1 fields,
+            string memory name,
+            string memory version,
+            uint256 chainId,
+            address verifyingContract,
+            bytes32 salt,
+            uint256[] memory extensions
+        );
 }
