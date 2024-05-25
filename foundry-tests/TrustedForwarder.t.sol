@@ -74,7 +74,7 @@ contract TrustedForwarderTest is Test, MultiMessage {
         vm.deal(address(this), 10000 ether);
     }
 
-    function testTrustedForwarder_case1() public {
+    function testTrustedForwarder() public {
         address expectSender = address(this);
         address wrongSender = ERC2771_FORWARDER;
         (
@@ -132,9 +132,12 @@ contract TrustedForwarderTest is Test, MultiMessage {
         vm.expectEmit(true, true, false, false, PERMISSION_HUB);
         emit CreateSubmitted(expectSender, expectSender, string(hex'1234'));
 
-
         ITrustedForwarder.Result[] memory res = forwarder.aggregate3Value{ value: totalValue }(calls);
         assertEq(res[0].success && res[1].success && res[2].success && !res[3].success, true, "invalid results");
+
+        bytes memory revertSelector = hex'08c379a0';
+        bytes memory revertData = abi.encode(bytes("no permission to create"));
+        assertEq(res[3].returnData, abi.encodePacked(revertSelector, revertData), "invalid createGroup revert data");
     }
 
     /*----------------- dApp function -----------------*/
