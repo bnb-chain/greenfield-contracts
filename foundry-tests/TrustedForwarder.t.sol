@@ -10,8 +10,12 @@ import "contracts/middle-layer/resource-mirror/MultiMessage.sol";
 import "contracts/middle-layer/resource-mirror/AdditionalBucketHub.sol";
 import "contracts/middle-layer/resource-mirror/GroupHub.sol";
 import "contracts/tokens/ERC721NonTransferable.sol";
+import "../contracts/middle-layer/resource-mirror/BucketHub.sol";
+import "../contracts/middle-layer/TokenHub.sol";
+import "../contracts/interface/ITrustedForwarder.sol";
+import "../contracts/middle-layer/resource-mirror/PermissionHub.sol";
 
-contract MultiMessageTest is Test, MultiMessage {
+contract TrustedForwarderTest is Test, MultiMessage {
     struct ParamChangePackage {
         string key;
         bytes values;
@@ -26,12 +30,18 @@ contract MultiMessageTest is Test, MultiMessage {
         uint256 indexed resourceId,
         bytes callbackData
     );
+    event TransferOutSuccess(address senderAddress, uint256 amount, uint256 relayFee, uint256 ackRelayFee);
 
     ERC721NonTransferable public permissionToken;
     MultiMessage public multiMessage;
     GovHub public govHub;
     GroupHub public groupHub;
+    BucketHub public bucketHub;
+    PermissionHub public permissionHub;
     CrossChain public crossChain;
+    TokenHub public tokenHub;
+    ITrustedForwarder public forwarder;
+    uint256 public totalRelayFee;
 
     receive() external payable {}
 
@@ -40,47 +50,91 @@ contract MultiMessageTest is Test, MultiMessage {
 
         govHub = GovHub(GOV_HUB);
         groupHub = GroupHub(GROUP_HUB);
+        bucketHub = BucketHub(BUCKET_HUB);
+        permissionHub = PermissionHub(PERMISSION_HUB);
         crossChain = CrossChain(CROSS_CHAIN);
+        tokenHub = TokenHub(payable(TOKEN_HUB));
         multiMessage = MultiMessage(MULTI_MESSAGE);
         permissionToken = ERC721NonTransferable(multiMessage.ERC721Token());
+        forwarder = ITrustedForwarder(ERC2771_FORWARDER);
+
+
+        (uint256 relayFee, uint256 minAckRelayFee) = crossChain.getRelayFees();
+        totalRelayFee = relayFee + minAckRelayFee;
 
         vm.label(GOV_HUB, "GOV_HUB");
         vm.label(MULTI_MESSAGE, "MULTI_MESSAGE");
         vm.label(CROSS_CHAIN, "CROSS_CHAIN");
         vm.label(GROUP_HUB, "GROUP_HUB");
+        vm.label(BUCKET_HUB, "BUCKET_HUB");
+        vm.label(PERMISSION_HUB, "PERMISSION_HUB");
+        vm.label(TOKEN_HUB, "TOKEN_HUB");
+        vm.label(ERC2771_FORWARDER, "ERC2771_FORWARDER");
 
         vm.deal(address(this), 10000 ether);
     }
 
-    function testSendMessages() public {
-        address[] memory _targets = new address[](2);
-        bytes[] memory _data = new bytes[](2);
-        uint256[] memory _values = new uint256[](2);
+    function testTrustedForwarder_case1() public {
+        address expectSender = address(this);
+        address wrongSender = ERC2771_FORWARDER;
+        (
+            bytes1 fields,
+            string memory name,
+            string memory version,
+            uint256 chainId,
+            address verifyingContract,
+            bytes32 salt,
+            uint256[] memory extensions
+        ) = forwarder.eip712Domain();
+        console.log("forwarder.name", name);
 
-        _targets[0] = GROUP_HUB;
-        _targets[1] = GROUP_HUB;
+        uint256 totalValue = 0;
+        ITrustedForwarder.Call3Value[] memory calls = new ITrustedForwarder.Call3Value[](4);
+        calls[0] = ITrustedForwarder.Call3Value({
+            target: address(groupHub),
+            allowFailure: false,
+            value: totalRelayFee,
+            callData: abi.encodeWithSignature("createGroup(address,string)", expectSender, "test1")
+        });
+        totalValue += calls[0].value;
 
-        _data[0] = abi.encodeWithSignature("prepareCreateGroup(address,address,string)", address(this), address(this), "test1");
-        _data[1] = abi.encodeWithSignature("prepareCreateGroup(address,address,string)", address(this), address(this), "test2");
+        uint256 transferOutAmt = 1 ether;
+        calls[1] = ITrustedForwarder.Call3Value({
+            target: address(tokenHub),
+            allowFailure: false,
+            value: totalRelayFee + transferOutAmt,
+            callData: abi.encodeWithSignature("transferOut(address,uint256)", expectSender, transferOutAmt)
+        });
+        totalValue += calls[1].value;
 
-        _values[0] = 0.1 ether;
-        _values[1] = 0.1 ether;
+        calls[2] = ITrustedForwarder.Call3Value({
+            target: address(permissionHub),
+            allowFailure: false,
+            value: totalRelayFee,
+            callData: abi.encodeWithSignature("createPolicy(bytes)", hex'1234')
+        });
+        totalValue += calls[2].value;
 
-        multiMessage.sendMessages{ value: 0.2 ether }(_targets, _data, _values);
-    }
+        calls[3] = ITrustedForwarder.Call3Value({
+            target: address(groupHub),
+            allowFailure: true,
+            value: totalRelayFee,
+            callData: abi.encodeWithSignature("createGroup(address,string)", wrongSender, "test2")
+        });
+        totalValue += calls[3].value;
 
-    function testDecode() public view {
-        bytes memory _data2 = hex'000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000e35fa931a00000000000000000000000000000000000000000000000000001626218b45860000000000000000000000000007fa9385be102ac3eac297483dd6233d62b3e149600000000000000000000000000000000000000000000000000000000000000e10200000000000000000000000000000000000000000000000000000000000000200000000000000000000000007fa9385be102ac3eac297483dd6233d62b3e1496000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000057465737431000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000';
-        (uint8 channelId, bytes memory msgBytes, uint256 relayFee, uint256 ackRelayFee, address sender) = abi.decode(
-            _data2,
-            (uint8, bytes, uint256, uint256, address)
-        );
+        vm.expectEmit(true, true, true, false, GROUP_HUB);
+        emit CreateSubmitted(expectSender, expectSender, "test1");
 
-        console.log("channelId: ", channelId);
-        console.logBytes(msgBytes);
-        console.log("relayFee: ", relayFee);
-        console.log("ackRelayFee: ", ackRelayFee);
-        console.log("sender: ", sender);
+        vm.expectEmit(true, true, false, false, TOKEN_HUB);
+        emit TransferOutSuccess(expectSender, transferOutAmt, 0, 0);
+
+        vm.expectEmit(true, true, false, false, PERMISSION_HUB);
+        emit CreateSubmitted(expectSender, expectSender, string(hex'1234'));
+
+
+        ITrustedForwarder.Result[] memory res = forwarder.aggregate3Value{ value: totalValue }(calls);
+        assertEq(res[0].success && res[1].success && res[2].success && !res[3].success, true, "invalid results");
     }
 
     /*----------------- dApp function -----------------*/

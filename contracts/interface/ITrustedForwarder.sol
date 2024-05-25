@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-interface IERC2771Forwarder {
+interface ITrustedForwarder {
     struct ForwardRequestData {
         address from;
         address to;
@@ -10,6 +10,18 @@ interface IERC2771Forwarder {
         uint48 deadline;
         bytes data;
         bytes signature;
+    }
+
+    struct Call3Value {
+        address target;
+        bool allowFailure;
+        uint256 value;
+        bytes callData;
+    }
+
+    struct Result {
+        bool success;
+        bytes returnData;
     }
 
     function execute(ForwardRequestData calldata request) external payable;
@@ -30,4 +42,6 @@ interface IERC2771Forwarder {
             bytes32 salt,
             uint256[] memory extensions
         );
+
+    function aggregate3Value(Call3Value[] calldata calls) external payable returns (Result[] memory returnData);
 }

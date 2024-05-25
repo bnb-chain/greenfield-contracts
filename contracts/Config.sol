@@ -28,20 +28,20 @@ abstract contract Config {
 
     // contract address
     // will calculate their deployed addresses from deploy script
-    address public constant PROXY_ADMIN = address(0);
-    address public constant GOV_HUB = address(0);
-    address public constant CROSS_CHAIN = address(0);
-    address public constant TOKEN_HUB = address(0);
-    address public constant LIGHT_CLIENT = address(0);
-    address public constant RELAYER_HUB = address(0);
-    address public constant BUCKET_HUB = address(0);
-    address public constant OBJECT_HUB = address(0);
-    address public constant GROUP_HUB = address(0);
-    address public constant EMERGENCY_OPERATOR = address(0);
-    address public constant EMERGENCY_UPGRADE_OPERATOR = address(0);
-    address public constant PERMISSION_HUB = address(0);
-    address public constant MULTI_MESSAGE = address(0);
-    address public constant GNFD_EXECUTOR = address(0);
+    address public constant PROXY_ADMIN = 0xB028Aeff726B6224D2af9F261DfCd5f064206773;
+    address public constant GOV_HUB = 0x8192a6eE35b223AbfDB3AaAB93d06F0B5F5c5F34;
+    address public constant CROSS_CHAIN = 0x76D7e4dE580C15087c09085E766335cdb93601a5;
+    address public constant TOKEN_HUB = 0xe1feAbDa7051dB60F990229d77eb5Ba04aDB301C;
+    address public constant LIGHT_CLIENT = 0x1C0D0f790F6C032A87991Ad08F7BbE1d2b29b974;
+    address public constant RELAYER_HUB = 0x3Ea2dce61C14FE52EeE766Ab5cf996a869Bee8a4;
+    address public constant BUCKET_HUB = 0x93bB122136839Ba8aD9eaeE038FA8f6eF8dfA592;
+    address public constant OBJECT_HUB = 0xd0BDe4e613632F6e292427873dBcD857c469f8e9;
+    address public constant GROUP_HUB = 0xd7dE3f38f192C32Dd04d0d774D9db43f190afA8E;
+    address public constant EMERGENCY_OPERATOR = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address public constant EMERGENCY_UPGRADE_OPERATOR = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    address public constant PERMISSION_HUB = 0x6edf5443ED7135f42f38868565189d9796E46564;
+    address public constant MULTI_MESSAGE = 0x60E8e8437637a33D5EfAB3cFbA1778CEC443271A;
+    address public constant GNFD_EXECUTOR = 0x522cAb29d30faf35C6730af9563Ea61dbB58344D;
 
     // PlaceHolder reserve for future usage
     uint256[50] private configSlots;
@@ -95,7 +95,7 @@ abstract contract Config {
         }
     }
 
-    function isTrustedForwarder(address forwarder) public returns (bool) {
+    function isTrustedForwarder(address forwarder) public pure returns (bool) {
         return forwarder == ERC2771_FORWARDER;
     }
 
