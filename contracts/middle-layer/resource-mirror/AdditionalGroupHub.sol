@@ -313,8 +313,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
 
             // make sure the extra data is as expected
             require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-            extraData.appAddress = _sender;
-
             CreateGroupSynPackage memory synPkg = CreateGroupSynPackage({
                 creator: _owner,
                 name: _name,
@@ -402,7 +400,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
         }
 
         // make sure the extra data is as expected
-        extraData.appAddress = _sender;
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: _id,
@@ -533,7 +530,6 @@ contract AdditionalGroupHub is GroupStorage, GnfdAccessControl {
 
         // make sure the extra data is as expected
         require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        extraData.appAddress = _sender;
         _synPkg.extraData = abi.encode(extraData);
 
         // transfer all the fee to tokenHub

@@ -136,7 +136,6 @@ contract AdditionalPermissionHub is PermissionStorage {
         address _sender = sender;
         // make sure the extra data is as expected
         require(_extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        _extraData.appAddress = _sender;
 
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();
@@ -208,7 +207,6 @@ contract AdditionalPermissionHub is PermissionStorage {
         address _sender = sender;
         // make sure the extra data is as expected
         require(_extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        _extraData.appAddress = _sender;
 
         // check relay fee
         (uint256 relayFee, uint256 minAckRelayFee) = ICrossChain(CROSS_CHAIN).getRelayFees();

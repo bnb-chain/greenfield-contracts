@@ -199,7 +199,6 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
             require(success, "transfer to tokenHub failed");
         }
 
-        extraData.appAddress = _sender;
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: _id,

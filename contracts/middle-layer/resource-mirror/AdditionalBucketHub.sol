@@ -234,7 +234,6 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
 
             // make sure the extra data is as expected
             require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-            extraData.appAddress = _sender;
             synPkg.extraData = abi.encode(extraData);
 
             emit CreateSubmitted(_owner, _sender, _name);
@@ -315,7 +314,6 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
 
         // make sure the extra data is as expected
         require(extraData.callbackData.length < maxCallbackDataLength, "callback data too long");
-        extraData.appAddress = _sender;
         CmnDeleteSynPackage memory synPkg = CmnDeleteSynPackage({
             operator: owner,
             id: _id,
