@@ -41,6 +41,8 @@ contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldE
      */
     function execute(uint8[] calldata _msgTypes, bytes[] calldata _msgBytes) external payable override returns (bool) {
         uint256 _length = _msgTypes.length;
+        address _msgSender = _erc2771Sender();
+
         require(_length > 0, "empty data");
         require(_length <= MAX_MESSAGE_COUNT, "too many messages");
         require(_length == _msgBytes.length, "length not match");
@@ -53,7 +55,7 @@ contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldE
         for (uint256 i = 0; i < _length; ++i) {
             require(_msgTypes[i] != 0, "invalid message type");
             require(_msgBytes[i].length <= MAX_MESSAGE_BYTES, "too large message bytes");
-            messages[i] = abi.encode(msg.sender, _msgTypes[i], _msgBytes[i]);
+            messages[i] = abi.encode(_msgSender, _msgTypes[i], _msgBytes[i]);
         }
 
         // send sync package
@@ -68,7 +70,7 @@ contract GreenfieldExecutor is Config, Initializable, IMiddleLayer, IGreenfieldE
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (1_000_002, "GreenfieldExecutor", "support MAX_MESSAGE_COUNT and MAX_MESSAGE_BYTES");
+        return (1_000_003, "GreenfieldExecutor", "support ERC2771Forwarder");
     }
 
     function handleSynPackage(uint8, bytes calldata) external pure returns (bytes memory responsePayload) {

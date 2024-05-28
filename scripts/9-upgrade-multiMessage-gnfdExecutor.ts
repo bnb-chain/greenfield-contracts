@@ -1,25 +1,29 @@
-import {MultiMessageDeployer} from '../typechain-types';
-import {setConstantsToConfig, toHuman} from './helper';
+import { MultiMessageDeployer } from '../typechain-types';
+import { setConstantsToConfig, toHuman } from './helper';
 import fs from 'fs';
-import {execSync} from 'child_process';
-import {waitTx} from '../test/helper';
+import { execSync } from 'child_process';
+import { waitTx } from '../test/helper';
 
-const {ethers, run} = require('hardhat');
+const { ethers, run } = require('hardhat');
 const log = console.log;
 
 const main = async () => {
     const commitId = await getCommitId();
 
-    const {chainId} = await ethers.provider.getNetwork();
+    const { chainId } = await ethers.provider.getNetwork();
     log('chainId', chainId);
-    const deployFile = `${__dirname}/../deployment/${chainId}-deployment.json`
+    const deployFile = `${__dirname}/../deployment/${chainId}-deployment.json`;
     let contracts: any = require(deployFile);
 
     const [operator] = await ethers.getSigners();
     const balance = await ethers.provider.getBalance(operator.address);
     log('operator.address: ', operator.address, toHuman(balance));
 
-    const multiMessageDeployer = (await deployContract('MultiMessageDeployer', contracts.Deployer, '0x' + commitId)) as MultiMessageDeployer;
+    const multiMessageDeployer = (await deployContract(
+        'MultiMessageDeployer',
+        contracts.Deployer,
+        '0x' + commitId
+    )) as MultiMessageDeployer;
     log('multiMessageDeployer deployed', multiMessageDeployer.address);
 
     contracts.MultiMessageDeployer = multiMessageDeployer.address;
@@ -50,11 +54,9 @@ const main = async () => {
     const implGreenfieldExecutor = await deployContract('GreenfieldExecutor');
     log('implGreenfieldExecutor deployed', implGreenfieldExecutor.address);
     await waitTx(
-        multiMessageDeployer.deploy(
-            implMultiMessage.address,
-            implGreenfieldExecutor.address,
-            {gasLimit: 5000000}
-        )
+        multiMessageDeployer.deploy(implMultiMessage.address, implGreenfieldExecutor.address, {
+            gasLimit: 5000000,
+        })
     );
 
     const implCrossChain = await deployContract('CrossChain');
@@ -92,19 +94,19 @@ const main = async () => {
             address: multiMessageDeployer.address,
             constructorArguments: [contracts.Deployer, '0x' + commitId],
         });
-        await run('verify:verify', {address: implMultiMessage.address});
-        await run('verify:verify', {address: implGreenfieldExecutor.address});
-        await run('verify:verify', {address: implCrossChain.address});
+        await run('verify:verify', { address: implMultiMessage.address });
+        await run('verify:verify', { address: implGreenfieldExecutor.address });
+        await run('verify:verify', { address: implCrossChain.address });
 
-        await run('verify:verify', {address: implGroupHub.address});
-        await run('verify:verify', {address: addGroupHub.address});
-        await run('verify:verify', {address: implBucketHub.address});
-        await run('verify:verify', {address: addBucketHub.address});
-        await run('verify:verify', {address: implObjectHub.address});
-        await run('verify:verify', {address: addObjectHub.address});
-        await run('verify:verify', {address: implPermissionHub.address});
-        await run('verify:verify', {address: addPermissionHub.address});
-        await run('verify:verify', {address: implTokenHub.address});
+        await run('verify:verify', { address: implGroupHub.address });
+        await run('verify:verify', { address: addGroupHub.address });
+        await run('verify:verify', { address: implBucketHub.address });
+        await run('verify:verify', { address: addBucketHub.address });
+        await run('verify:verify', { address: implObjectHub.address });
+        await run('verify:verify', { address: addObjectHub.address });
+        await run('verify:verify', { address: implPermissionHub.address });
+        await run('verify:verify', { address: addPermissionHub.address });
+        await run('verify:verify', { address: implTokenHub.address });
         log('contracts verified');
     } catch (e) {
         log('verify error', e);

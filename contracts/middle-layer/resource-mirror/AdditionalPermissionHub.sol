@@ -21,7 +21,7 @@ contract AdditionalPermissionHub is PermissionStorage {
 
     function createPolicy(bytes calldata _data) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreatePolicy(
-            msg.sender,
+            _erc2771Sender(),
             _data
         );
         ICrossChain(CROSS_CHAIN).sendSynPackage(_channelId, _msgBytes, _relayFee, _ackRelayFee);
@@ -37,7 +37,7 @@ contract AdditionalPermissionHub is PermissionStorage {
 
     function createPolicy(bytes calldata _data, ExtraData memory _extraData) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareCreatePolicy(
-            msg.sender,
+            _erc2771Sender(),
             _data,
             _extraData
         );
@@ -55,7 +55,7 @@ contract AdditionalPermissionHub is PermissionStorage {
 
     function deletePolicy(uint256 id) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeletePolicy(
-            msg.sender,
+            _erc2771Sender(),
             id
         );
 
@@ -71,7 +71,7 @@ contract AdditionalPermissionHub is PermissionStorage {
      */
     function deletePolicy(uint256 id, ExtraData memory _extraData) external payable returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareDeletePolicy(
-            msg.sender,
+            _erc2771Sender(),
             id,
             _extraData
         );

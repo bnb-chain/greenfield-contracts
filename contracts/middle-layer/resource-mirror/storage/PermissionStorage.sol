@@ -9,7 +9,7 @@ contract PermissionStorage is CmnStorage {
         address operator;
         /*
             @dev
-            data = rlp data for Object
+            data = protobuf encoded data for Object
             {
                 "principal": {
                     type: 1, // 1-account, 2-group

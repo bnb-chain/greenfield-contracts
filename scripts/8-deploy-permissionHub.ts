@@ -11,14 +11,18 @@ const main = async () => {
 
     const { chainId } = await ethers.provider.getNetwork();
     log('chainId', chainId);
-    const deployFile = `${__dirname}/../deployment/${chainId}-deployment.json`
+    const deployFile = `${__dirname}/../deployment/${chainId}-deployment.json`;
     let contracts: any = require(deployFile);
 
     const [operator] = await ethers.getSigners();
     const balance = await ethers.provider.getBalance(operator.address);
     log('operator.address: ', operator.address, toHuman(balance));
 
-    const permissionDeployer = (await deployContract('PermissionDeployer', contracts.Deployer, '0x' + commitId)) as PermissionDeployer;
+    const permissionDeployer = (await deployContract(
+        'PermissionDeployer',
+        contracts.Deployer,
+        '0x' + commitId
+    )) as PermissionDeployer;
     contracts.PermissionDeployer = permissionDeployer.address;
     contracts.PermissionHub = await permissionDeployer.proxyPermissionHub();
     await setConstantsToConfig({

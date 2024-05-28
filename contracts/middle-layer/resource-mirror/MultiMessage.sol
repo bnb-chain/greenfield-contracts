@@ -51,6 +51,7 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
         require(_length <= MAX_MESSAGE_COUNT, "too many messages");
         require(_length == _data.length, "length mismatch");
         require(_length == _values.length, "length mismatch");
+        address _msgSender = _erc2771Sender();
 
         // generate packages
         uint256 _totalValue = 0;
@@ -72,7 +73,7 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
                 result,
                 (uint8, bytes, uint256, uint256, address)
             );
-            require(msg.sender == _sender, "invalid sender");
+            require(_msgSender == _sender, "invalid sender");
 
             _totalRelayFee += _relayFee;
             _totalAckRelayFee += _ackRelayFee;
@@ -90,7 +91,7 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
             _totalAckRelayFee
         );
 
-        emit MultiMessageSent(msg.sender, _targets, _data, _values);
+        emit MultiMessageSent(_msgSender, _targets, _data, _values);
         return true;
     }
 
@@ -140,7 +141,7 @@ contract MultiMessage is MultiStorage, CmnHub, IMultiMessage {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (900_002, "MultiMessage", "support MAX_MESSAGE_COUNT and MAX_MESSAGE_BYTES");
+        return (900_003, "MultiMessage", "support ERC2771Forwarder");
     }
 
     function _getMultiMessageSequence(uint256 index, uint64 sequence) internal pure returns (uint64) {

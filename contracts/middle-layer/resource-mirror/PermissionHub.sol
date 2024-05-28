@@ -166,6 +166,6 @@ contract PermissionHub is PermissionStorage, CmnHub, IPermissionHub {
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (800_002, "PermissionHub", "support multi-message");
+        return (800_003, "PermissionHub", "support ERC2771Forwarder");
     }
 }
