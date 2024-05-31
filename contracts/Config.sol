@@ -15,6 +15,17 @@ abstract contract Config {
     uint8 public constant MULTI_MESSAGE_CHANNEL_ID = 0x08;
     uint8 public constant GNFD_EXECUTOR_CHANNEL_ID = 0x09;
 
+    /**
+     * @dev The eip-2771 defines a contract-level protocol for Recipient contracts to accept
+     * meta-transactions through trusted Forwarder contracts. No protocol changes are made.
+     * Recipient contracts are sent the effective msg.sender (referred to as _msgSender())
+     * and msg.data (referred to as _msgData()) by appending additional calldata.
+     * eip-2771 doc: https://eips.ethereum.org/EIPS/eip-2771
+     * openzeppelin eip-2771 contract: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.0.2/contracts/metatx/ERC2771Forwarder.sol
+     * The ERC2771_FORWARDER contract deployed from: https://github.com/bnb-chain/ERC2771Forwarder.git
+     */
+    address public constant ERC2771_FORWARDER = 0x5e06E40B2c35157AE1ba0a63e2371a34EB8Bde8b;
+
     // contract address
     // will calculate their deployed addresses from deploy script
     address public constant PROXY_ADMIN = address(0);
@@ -67,6 +78,32 @@ abstract contract Config {
     // Please note this is a weak check, don't use this when you need a strong verification.
     function _isContract(address account) internal view returns (bool) {
         return account.code.length > 0;
+    }
+
+    /**
+     * @dev Override for `msg.sender`. Defaults to the original `msg.sender` whenever
+     * a call is not performed by the trusted forwarder or the calldata length is less than
+     * 20 bytes (an address length).
+     */
+    function _erc2771Sender() internal view returns (address) {
+        uint256 calldataLength = msg.data.length;
+        uint256 contextSuffixLength = _contextSuffixLength();
+        if (isTrustedForwarder(msg.sender) && calldataLength >= contextSuffixLength) {
+            return address(bytes20(msg.data[calldataLength - contextSuffixLength:]));
+        } else {
+            return msg.sender;
+        }
+    }
+
+    function isTrustedForwarder(address forwarder) public pure returns (bool) {
+        return forwarder == ERC2771_FORWARDER;
+    }
+
+    /**
+     * @dev ERC-2771 specifies the context as being a single address (20 bytes).
+     */
+    function _contextSuffixLength() internal pure returns (uint256) {
+        return 20;
     }
 
     function versionInfo()

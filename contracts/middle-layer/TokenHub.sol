@@ -178,7 +178,7 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
      */
     function transferOut(address recipient, uint256 amount) external payable override returns (bool) {
         (uint8 _channelId, bytes memory _msgBytes, uint256 _relayFee, uint256 _ackRelayFee, ) = _prepareTransferOut(
-            msg.sender,
+            _erc2771Sender(),
             recipient,
             amount
         );
@@ -404,6 +404,6 @@ contract TokenHub is Config, ReentrancyGuardUpgradeable, IMiddleLayer, ITokenHub
         override
         returns (uint256 version, string memory name, string memory description)
     {
-        return (300_003, "TokenHub", "support multi-message");
+        return (300_004, "TokenHub", "support ERC2771Forwarder");
     }
 }
