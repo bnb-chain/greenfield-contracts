@@ -24,7 +24,7 @@ abstract contract Config {
      * openzeppelin eip-2771 contract: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.0.2/contracts/metatx/ERC2771Forwarder.sol
      * The ERC2771_FORWARDER contract deployed from: https://github.com/bnb-chain/ERC2771Forwarder.git
      */
-    address public constant ERC2771_FORWARDER = 0x5e06E40B2c35157AE1ba0a63e2371a34EB8Bde8b;
+    address public constant ERC2771_FORWARDER = 0xdb7d0bd38D223048B1cFf39700E4C5238e346f7F;
 
     // contract address
     // will calculate their deployed addresses from deploy script
