@@ -98,5 +98,8 @@
   "PermissionDeployer": "0x94F72d9fcD589fCD0A811c06fE53E2623Fbe40cD",
   "PermissionHub": "0xe1776006dBE9B60d9eA38C0dDb80b41f2657acE8",
   "AdditionalPermissionHub": "0x8FcA88A98b6f642512dfbd1364ed68A99bFfbF0A",
-  "PermissionToken": "0xE8d6aC02dB463c1463116c72A6164462B0660dEc"
+  "PermissionToken": "0xE8d6aC02dB463c1463116c72A6164462B0660dEc",
+  "MultiMessage": "0x26204702935e2D617EE75B795152B9623a7d9809",
+  "GreenfieldExecutor": "0xFa39D9111D927836b14D071d43e0aAD9cE83bBBf",
+  "TrustedForwarder": "0xdb7d0bd38D223048B1cFf39700E4C5238e346f7F"
 }

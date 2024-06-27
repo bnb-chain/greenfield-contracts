@@ -132,6 +132,17 @@ npm run deploy:bsc
 - Greenfield Storage dApp: https://dcellar.io/
 - Greenfield Explorer: http://greenfieldscan.com/
 
+### ERC2771Forwarder
+The eip-2771 defines a contract-level protocol for Recipient contracts to accept meta-transactions through trusted Forwarder contracts. No protocol changes are made.
+Recipient contracts are sent the effective `msg.sender` (referred to as _erc2771Sender()) and `msg.data` (referred to as _msgData()) by appending additional calldata.
+
+The trusted ERC2771_FORWARDER contract is deployed from: https://github.com/bnb-chain/ERC2771Forwarder.git
+> TrustedForwarder Address on All Chains: 0xdb7d0bd38D223048B1cFf39700E4C5238e346f7F
+
+More details, refer to 
+- [eip-2771](https://eips.ethereum.org/EIPS/eip-2771)
+- [Openzeppelin ERC2771Forwarder](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.0.2/contracts/metatx/ERC2771Forwarder.sol)
+
 ## Contract Entrypoint
 
 ### Mainnet
