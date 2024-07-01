@@ -38,6 +38,8 @@
     "@openzeppelin/contracts-upgradeable": "4.9.3"
   },
   "devDependencies": {
+    "@bnb-chain/bsc-cross-greenfield-sdk": "^0.0.2",
+    "@bnb-chain/greenfield-js-sdk": "^2.0.1",
     "@ethersproject/abi": "^5.4.7",
     "@ethersproject/providers": "^5.4.7",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
