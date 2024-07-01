@@ -10,14 +10,11 @@ import {
     PrincipalType,
 } from '@bnb-chain/greenfield-cosmos-types/greenfield/permission/common';
 import { Client } from '@bnb-chain/greenfield-js-sdk';
-
 import { ethers } from 'hardhat';
-import { bigint } from 'hardhat/internal/core/params/argumentTypes';
 
 const log = console.log;
 
 const main = async () => {
-    // GNFD_RPC    = "https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org:443"
     const GRPC_URL = 'https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org';
     const GREEN_CHAIN_ID = 'greenfield_5600-1';
     const client = Client.create(GRPC_URL, GREEN_CHAIN_ID);
@@ -31,11 +28,9 @@ const main = async () => {
     const demo = (await deployContract(operator, 'GreenfieldDemo')) as GreenfieldDemo;
     log('demo contract deployed!', demo.address);
     log(`https://testnet.bscscan.com/address/${demo.address}`);
-
     const CROSS_CHAIN = await demo.CROSS_CHAIN();
-    const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN)).connect(
-        operator
-    ) as ICrossChain;
+    const crossChain = (await ethers.getContractAt('ICrossChain', CROSS_CHAIN)) as ICrossChain;
+    const [relayFee, ackRelayFee] = await crossChain.callStatic.getRelayFees();
 
     // 2. createBucket
     const bucketName = 'test-' + demo.address.substring(2, 6).toLowerCase();
@@ -50,7 +45,6 @@ const main = async () => {
         flowRateLimit: '1000000000000000000',
     });
     const executorData = dataSetBucketFlowRateLimit[1];
-    const [relayFee, ackRelayFee] = await crossChain.callStatic.getRelayFees();
     const transferOutAmt = ethers.utils.parseEther('0.1');
     const value = transferOutAmt.add(relayFee.mul(3).add(ackRelayFee.mul(2)));
 
@@ -93,6 +87,7 @@ const main = async () => {
             value: uploaderEoaAccount,
         },
     }).finish();
+
     await waitTx(
         demo.createPolicy(policyDataToAllowUserOperateBucket, { value: relayFee.add(ackRelayFee) })
     );
