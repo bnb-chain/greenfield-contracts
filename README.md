@@ -1,7 +1,9 @@
 # Greenfield Contracts
+
 Greenfield Contracts is the bridge between Greenfield and BSC for cross-chain communication.
 
 ## Overview
+
 The Greenfield Blockchain provides a comprehensive set of resources that can be mirrored on the BNB Smart Chain (BSC).
 This includes buckets, objects, and groups, which can be stored and managed on the BSC as non-fungible tokens (NFTs)
 conforming to the ERC-721 standard.
@@ -22,6 +24,7 @@ when it comes to accessing and manipulating data, ultimately leading to a more s
 data management process.
 
 ## Key Contract
+
 1. **CrossChain**. The underlying cross-chain communication protocol. This contract is responsible for handling
    all aspects of cross-chain communication packages, including verification, encoding, decoding, routing, reward distribution.
 2. **GovHub**. This contract oversees all aspects of contract upgrades, parameter adjustments, and handles governance
@@ -35,18 +38,22 @@ data management process.
 6. **ObjectHub**. This contract is responsible for managing the `Greenfield` objects.
 
 ## Resource Operating Primitives
+
 A number of cross-chain primitives have been defined on BSC to enable developers to manage greenfield resources on the
 BSC directly, without the need for intermediaries.
 
 **BNB**:
+
 - transfer BNB bidirectionally between BSC and Greenfield
 
 **Bucket**:
+
 - create a bucket on BSC
 - delete a bucket on BSC
 - mirror bucket from Greenfield to BSC
 
 **Object**:
+
 - delete an object on BSC
 - mirror object from Greenfield to BSC
 - grant/revoke permissions of objects on BSC to accounts/groups
@@ -55,6 +62,7 @@ BSC directly, without the need for intermediaries.
 - Kick off the execution of an object on BSC (pending)
 
 **Group**:
+
 - create a group on BSC
 - delete a group on BSC
 - change group members on BSC
@@ -63,11 +71,10 @@ BSC directly, without the need for intermediaries.
 Users can also approve smart contracts to operate the aforementioned resources instead, check the
 [design](https://greenfield.bnbchain.org/docs/guide/dapp/permisson-control.html) for more details.
 
-
-
 ## Requirement
 
 set environment
+
 ```shell
 # require Node.js 14+
 cp .env.example .env
@@ -77,28 +84,33 @@ cp .env.example .env
 ```
 
 Install foundry:
+
 ```shell script
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
 ```
 
 Install dependencies:
+
 ```shell
 make install-dependencies
 ```
 
 ## Lint
+
 ```shell
 yarn lint:check
 yarn lint:write
 ```
 
 ## Build
+
 ```shell
 make build
 ```
 
 ## Deploy
+
 ```shell
 # modify the env variable `DeployerPrivateKey` to your own private key on BSC Testnet
 npm run deploy:testnet
@@ -110,36 +122,39 @@ npm run deploy:bsc
 ## Deployment
 
 ### Greenfield Contracts on BSC
+
 - BSC ChainID: 56
-- BSC RPC: https://bsc-dataseed1.binance.org
-- BSC Explorer: https://bscscan.com/
+- BSC RPC: <https://bsc-dataseed1.binance.org>
+- BSC Explorer: <https://bscscan.com/>
 
 - Greenfield ChainID: greenfield_1017-1
-- Greenfield RPC: https://greenfield-chain.bnbchain.org:443
-- Greenfield GRPC swagger: https://greenfield-chain.bnbchain.org/openapi
-- Greenfield Storage dApp: https://dcellar.io/
-- Greenfield Explorer: http://greenfieldscan.com/
-
+- Greenfield RPC: <https://greenfield-chain.bnbchain.org:443>
+- Greenfield GRPC swagger: <https://greenfield-chain.bnbchain.org/openapi>
+- Greenfield Storage dApp: <https://dcellar.io/>
+- Greenfield Explorer: <http://greenfieldscan.com/>
 
 ### Greenfield Contracts on BSC Testnet
+
 - BSC Testnet ChainID: 97
-- BSC Testnet RPC: https://data-seed-prebsc-1-s1.binance.org:8545/
-- BSC Testnet Explorer: https://testnet.bscscan.com/
+- BSC Testnet RPC: <https://data-seed-prebsc-1-s1.binance.org:8545/>
+- BSC Testnet Explorer: <https://testnet.bscscan.com/>
 
 - Greenfield ChainID: greenfield_5600-1
-- Greenfield RPC: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org
-- Greenfield GRPC swagger: https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org/openapi
-- Greenfield Storage dApp: https://dcellar.io/
-- Greenfield Explorer: http://greenfieldscan.com/
+- Greenfield RPC: <https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org>
+- Greenfield GRPC swagger: <https://gnfd-testnet-fullnode-tendermint-us.bnbchain.org/openapi>
+- Greenfield Storage dApp: <https://dcellar.io/>
+- Greenfield Explorer: <http://greenfieldscan.com/>
 
 ### ERC2771Forwarder
-The eip-2771 defines a contract-level protocol for Recipient contracts to accept meta-transactions through trusted Forwarder contracts. No protocol changes are made.
-Recipient contracts are sent the effective `msg.sender` (referred to as _erc2771Sender()) and `msg.data` (referred to as _msgData()) by appending additional calldata.
 
-The trusted ERC2771_FORWARDER contract is deployed from: https://github.com/bnb-chain/ERC2771Forwarder.git
+The eip-2771 defines a contract-level protocol for Recipient contracts to accept meta-transactions through trusted Forwarder contracts. No protocol changes are made.
+Recipient contracts are sent the effective `msg.sender` (referred to as _erc2771Sender()) and `msg.data` (referred to as_msgData()) by appending additional calldata.
+
+The trusted ERC2771_FORWARDER contract is deployed from: <https://github.com/bnb-chain/ERC2771Forwarder.git>
 > TrustedForwarder Address on All Chains: 0xdb7d0bd38D223048B1cFf39700E4C5238e346f7F
 
-More details, refer to 
+More details, refer to
+
 - [eip-2771](https://eips.ethereum.org/EIPS/eip-2771)
 - [Openzeppelin ERC2771Forwarder](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v5.0.2/contracts/metatx/ERC2771Forwarder.sol)
 
@@ -189,8 +204,8 @@ Extra:
 for full list of contracts, please refer to:
 [Deployment on BSC Testnet](https://github.com/bnb-chain/greenfield-contracts/blob/master/deployment/97-deployment.json)
 
-
 ## Verify on BSCScan
+
 ```shell
 # modify the env variable `BSCSCAN_APIKEY` to your own api-key created on https://bscscan.com/myapikey
 npm run verify:testnet
@@ -198,6 +213,7 @@ npm run verify:bsc
 ```
 
 ## Cross-Chain Transfer to GreenField
+
 ```shell
 # make sure the foundry dependency are installed 
 # 1. add private-key, receiver and BNB amount to ./foundry-scripts/transferOut.sh
@@ -213,6 +229,7 @@ ${the receiver you transfer to} 200000000000000000  \
 ```
 
 ## Cross-Chain Operation to GreenField
+
 ```shell
 # make sure the foundry dependency are installed 
 # group operation - add member to the group
@@ -243,6 +260,7 @@ ${object id to delete} \
 ```
 
 ## Inspect Transactions
+
 ```shell
 # 1. add your txHash to `InspectTxHashes` on `scripts/3-decode-events.ts`
 # 2. run script on BSC testnet
@@ -253,6 +271,7 @@ npx hardhat run scripts/3-decode-events.ts --network bsc
 ```
 
 ## Test
+
 ```shell
 # start a local chain
 anvil -b 1
@@ -262,8 +281,8 @@ npm run deploy:local
 forge t -vvv --ffi
 ```
 
-
 ## Large Transfer Unlock
+
 ```shell script
 npm install typescript ts-node -g
 
@@ -274,6 +293,7 @@ ts-node scripts/6-claim-unlock-bot.ts
 ```
 
 ## Contribution
+
 Thank you for considering helping with the source code! We appreciate contributions from anyone on the internet, no
 matter how small the fix may be.
 
@@ -284,6 +304,7 @@ to ensure that your changes align with the project's general philosophy. This ca
 parties and streamline the review and merge process.
 
 ## License
+
 The greenfield contracts (i.e. all code inside the `contracts` directory) are licensed under the
 [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.en.html), also
 included in our repository in the `COPYING` file.
