@@ -49,8 +49,10 @@ jobs:
           npx hardhat compile
       - name: Start Local Chain
         run: |
-          pm2 start --name local-chain "anvil -b 1 --block-base-fee-per-gas 0 -f https://bsc-dataseed.bnbchain.org --chain-id 31337"
-          sleep 10
+          pm2 start --name local-chain "anvil -b 1 --block-base-fee-per-gas 0 --chain-id 31337"
+          sleep 5
+          BYTECODE=$(cast code 0xdb7d0bd38D223048B1cFf39700E4C5238e346f7F --rpc-url https://bsc-dataseed.bnbchain.org)
+          cast rpc anvil_setCode 0xdb7d0bd38D223048B1cFf39700E4C5238e346f7F "$BYTECODE" --rpc-url http://127.0.0.1:8545
         env:
           PORT: 8545
       - name: Deploy on Local
