@@ -36,8 +36,8 @@ jobs:
           cp .env.example .env
           npm install
           npm install pm2 -g
-          pm2 start --name local-chain "anvil -b 1 --block-base-fee-per-gas 0 -f https://bsc-dataseed.bnbchain.org --fork-block-number 85542157 --chain-id 31337" 
-          sleep 5
+          pm2 start --name local-chain "anvil -b 1 --block-base-fee-per-gas 0 -f https://bsc-dataseed.bnbchain.org --fork-block-number 85542157 --chain-id 31337"
+          sleep 30
         env:
           PORT: 8545
 
