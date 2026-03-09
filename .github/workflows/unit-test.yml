@@ -43,9 +43,9 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          forge install --no-git --no-commit foundry-rs/forge-std@v1.5.6
-          forge install --no-git --no-commit openZeppelin/openzeppelin-contracts@v4.8.3
-          forge install --no-git --no-commit openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
+          forge install --no-git foundry-rs/forge-std@v1.5.6
+          forge install --no-git openZeppelin/openzeppelin-contracts@v4.8.3
+          forge install --no-git openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
       - name: Build project
         run: |
           npm run lint:check
