@@ -447,6 +447,12 @@ contract CrossChain is Config, Initializable, ICrossChain {
             }
 
             require(_isContract(handlerContract), "address is not a contract");
+
+            address oldHandler = channelHandlerMap[channelId];
+            if (oldHandler != address(0)) {
+                registeredContractChannelMap[oldHandler][channelId] = false;
+            }
+
             channelHandlerMap[channelId] = handlerContract;
             registeredContractChannelMap[handlerContract][channelId] = true;
             emit AddChannel(channelId, handlerContract);
