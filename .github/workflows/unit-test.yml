@@ -19,8 +19,8 @@ jobs:
       - uses: actions/checkout@master
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-      - uses: actions/cache@v1
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v4
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -31,26 +31,35 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
-      - name: Start Local Chain
+      - name: Prepare environment
         run: |
           cp .env.example .env
           npm install
           npm install pm2 -g
-          pm2 start --name local-chain "anvil -b 1 --block-base-fee-per-gas 0 -f https://bsc-dataseed.bnbchain.org --chain-id 31337"
-          sleep 5
-        env:
-          PORT: 8545
 
       - name: Install project dependencies
         run: |
-          forge install --no-git --no-commit foundry-rs/forge-std@v1.5.6
-          forge install --no-git --no-commit openZeppelin/openzeppelin-contracts@v4.8.3
-          forge install --no-git --no-commit openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
+          forge install --no-git foundry-rs/forge-std@v1.5.6
+          forge install --no-git openZeppelin/openzeppelin-contracts@v4.8.3
+          forge install --no-git openZeppelin/openzeppelin-contracts-upgradeable@v4.8.3
       - name: Build project
         run: |
           npm run lint:check
           forge build
           npx hardhat compile
+      - name: Start Local Chain
+        run: |
+          pm2 start --name local-chain "anvil -b 1 --block-base-fee-per-gas 0 --chain-id 31337"
+          sleep 5
+          FORWARDER=0xdb7d0bd38D223048B1cFf39700E4C5238e346f7F
+          EXPECTED_HASH=0xfb025c7430ed8d9c7a1cd8b8c4516ce75178efc34d67e590a4e2ef395b0d8b93
+          BYTECODE=$(cast code "$FORWARDER" --rpc-url https://bsc-dataseed.bnbchain.org)
+          if [ "$BYTECODE" = "0x" ]; then echo "Empty bytecode for ERC2771Forwarder" && exit 1; fi
+          ACTUAL_HASH=$(cast keccak "$BYTECODE")
+          if [ "$ACTUAL_HASH" != "$EXPECTED_HASH" ]; then echo "ERC2771Forwarder bytecode hash mismatch: expected=$EXPECTED_HASH actual=$ACTUAL_HASH" && exit 1; fi
+          cast rpc anvil_setCode "$FORWARDER" "$BYTECODE" --rpc-url http://127.0.0.1:8545
+        env:
+          PORT: 8545
       - name: Deploy on Local
         run: |
           npx hardhat run scripts/1-deploy.ts --network local
