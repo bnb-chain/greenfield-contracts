@@ -46,13 +46,17 @@ const main = async () => {
     });
     const executorData = dataSetBucketFlowRateLimit[1];
     const transferOutAmt = ethers.utils.parseEther('0.1');
-    const value = transferOutAmt.add(relayFee.mul(3).add(ackRelayFee.mul(2)));
+    const gasPrice =  10000000000n;
+    const callbackGasLimit = 500000n
+    const value = transferOutAmt + 3n * relayFee + 2n * ackRelayFee + callbackGasLimit * gasPrice;
+    const failureHandleStrategy = 2
+ 
 
     log('- transfer out to demo contract on greenfield', toHuman(transferOutAmt));
     log('- create bucket', bucketName);
     log('send crosschain tx!');
     const receipt = await waitTx(
-        demo.createBucket(bucketName, transferOutAmt, executorData, { value })
+        demo.createBucket(bucketName, transferOutAmt, executorData,callbackGasLimit, failureHandleStrategy ,{ value })
     );
     log(`https://testnet.bscscan.com/tx/${receipt.transactionHash}`);
 
@@ -60,7 +64,7 @@ const main = async () => {
     log('waiting for bucket created..., about 1 minute');
     await sleep(60); // waiting bucket created
 
-    const bucketInfo = await client.bucket.getBucketMeta({ bucketName });
+    const bucketInfo = await client.bucket.getBucketMeta({ bucketName, });
     const bucketId = bucketInfo.body!.GfSpGetBucketMetaResponse.Bucket.BucketInfo.Id;
     log('bucket created, bucket id', bucketId);
     const hexBucketId = `0x000000000000000000000000000000000000000000000000000000000000${BigInt(
@@ -89,7 +93,7 @@ const main = async () => {
     }).finish();
 
     await waitTx(
-        demo.createPolicy(policyDataToAllowUserOperateBucket, { value: relayFee.add(ackRelayFee) })
+        demo.createPolicy(policyDataToAllowUserOperateBucket,callbackGasLimit, failureHandleStrategy, { value: 3n * relayFee + 2n * ackRelayFee + callbackGasLimit * gasPrice})
     );
 
     log(
