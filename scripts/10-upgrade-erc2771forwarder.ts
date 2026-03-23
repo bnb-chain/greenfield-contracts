@@ -43,7 +43,6 @@ const main = async () => {
     const implGreenfieldExecutor = await deployContract('GreenfieldExecutor');
     log('new implGreenfieldExecutor deployed', implGreenfieldExecutor.address);
 
-
     const addGroupHub = await deployContract('AdditionalGroupHub');
     log('new addGroupHub deployed', addGroupHub.address);
 

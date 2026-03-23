@@ -206,6 +206,6 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
             extraData: abi.encode(extraData)
         });
 
-        return (OBJECT_CHANNEL_ID, abi.encodePacked(TYPE_CREATE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
+        return (OBJECT_CHANNEL_ID, abi.encodePacked(TYPE_DELETE, abi.encode(synPkg)), relayFee, _ackRelayFee, _sender);
     }
 }
