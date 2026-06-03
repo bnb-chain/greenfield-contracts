@@ -35,9 +35,10 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
             expireTime = block.timestamp + 30 days; // 30 days in default
         }
 
+        address sender = _erc2771Sender();
         if (acCode & AUTH_CODE_DELETE != 0) {
             acCode = acCode & ~AUTH_CODE_DELETE;
-            grantRole(ROLE_DELETE, account, expireTime);
+            _grantRole(ROLE_DELETE, sender, account, expireTime);
         }
 
         require(acCode == 0, "invalid authorization code");
@@ -50,9 +51,10 @@ contract AdditionalObjectHub is ObjectStorage, GnfdAccessControl {
      * @param acCode The authorization code
      */
     function revoke(address account, uint32 acCode) external {
+        address sender = _erc2771Sender();
         if (acCode & AUTH_CODE_DELETE != 0) {
             acCode = acCode & ~AUTH_CODE_DELETE;
-            revokeRole(ROLE_DELETE, account);
+            _revokeRole(ROLE_DELETE, sender, account);
         }
 
         require(acCode == 0, "invalid authorization code");

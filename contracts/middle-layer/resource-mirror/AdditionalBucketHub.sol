@@ -35,13 +35,14 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
             expireTime = block.timestamp + 30 days; // 30 days in default
         }
 
+        address sender = _erc2771Sender();
         if (acCode & AUTH_CODE_CREATE != 0) {
             acCode = acCode & ~AUTH_CODE_CREATE;
-            grantRole(ROLE_CREATE, account, expireTime);
+            _grantRole(ROLE_CREATE, sender, account, expireTime);
         }
         if (acCode & AUTH_CODE_DELETE != 0) {
             acCode = acCode & ~AUTH_CODE_DELETE;
-            grantRole(ROLE_DELETE, account, expireTime);
+            _grantRole(ROLE_DELETE, sender, account, expireTime);
         }
 
         require(acCode == 0, "invalid authorization code");
@@ -54,13 +55,14 @@ contract AdditionalBucketHub is BucketStorage, GnfdAccessControl {
      * @param acCode The authorization code
      */
     function revoke(address account, uint32 acCode) external {
+        address sender = _erc2771Sender();
         if (acCode & AUTH_CODE_CREATE != 0) {
             acCode = acCode & ~AUTH_CODE_CREATE;
-            revokeRole(ROLE_CREATE, account);
+            _revokeRole(ROLE_CREATE, sender, account);
         }
         if (acCode & AUTH_CODE_DELETE != 0) {
             acCode = acCode & ~AUTH_CODE_DELETE;
-            revokeRole(ROLE_DELETE, account);
+            _revokeRole(ROLE_DELETE, sender, account);
         }
 
         require(acCode == 0, "invalid authorization code");
