@@ -28,20 +28,20 @@ abstract contract Config {
 
     // contract address
     // will calculate their deployed addresses from deploy script
-    address public constant PROXY_ADMIN = address(0);
-    address public constant GOV_HUB = address(0);
-    address public constant CROSS_CHAIN = address(0);
-    address public constant TOKEN_HUB = address(0);
-    address public constant LIGHT_CLIENT = address(0);
-    address public constant RELAYER_HUB = address(0);
-    address public constant BUCKET_HUB = address(0);
-    address public constant OBJECT_HUB = address(0);
-    address public constant GROUP_HUB = address(0);
-    address public constant EMERGENCY_OPERATOR = address(0);
-    address public constant EMERGENCY_UPGRADE_OPERATOR = address(0);
-    address public constant PERMISSION_HUB = address(0);
-    address public constant MULTI_MESSAGE = address(0);
-    address public constant GNFD_EXECUTOR = address(0);
+    address public constant PROXY_ADMIN = 0xB5c9893CEC74436F7680e46E4e90b70Af9Bdc7f6;
+    address public constant GOV_HUB = 0x8C7ebfb59a44d09e56F98E450573D2d584498f4A;
+    address public constant CROSS_CHAIN = 0x6E9B61D2AD72e6e3aC88C2Fc4dCD5F4ea5853DE6;
+    address public constant TOKEN_HUB = 0xB088d503269c1D4e743F27360eD7afBB94c01B22;
+    address public constant LIGHT_CLIENT = 0x248aE9D73910e59170D880998Ff66Cc127b6905a;
+    address public constant RELAYER_HUB = 0x25Fd6a6D5cad2c62191088455c9bcA8B51BC3e7a;
+    address public constant BUCKET_HUB = 0x66d054B771f1B721Fd814fE557AFD52500958463;
+    address public constant OBJECT_HUB = 0x5C55490744B368E2653249D919a007fcF9699839;
+    address public constant GROUP_HUB = 0x268fB0cB71006c7e962DCf47ef3e693515826A0d;
+    address public constant EMERGENCY_OPERATOR = 0xdEe90cF12372FEf962eBe36287EE5a399F4fFCF2;
+    address public constant EMERGENCY_UPGRADE_OPERATOR = 0xdEe90cF12372FEf962eBe36287EE5a399F4fFCF2;
+    address public constant PERMISSION_HUB = 0xE99d321578439CFB2E7faB8e5ED3E46BaD6e99E3;
+    address public constant MULTI_MESSAGE = 0xDa4291455871b5935A4daCB981B4c309053fE69A;
+    address public constant GNFD_EXECUTOR = 0x173dc30DbB8a15C43574DBaD5C7ccE4D508b64aE;
 
     // PlaceHolder reserve for future usage
     uint256[50] private configSlots;

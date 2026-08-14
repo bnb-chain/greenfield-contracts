@@ -9,7 +9,7 @@ const log = console.log;
 const unit = ethers.constants.WeiPerEther;
 
 let enableCrossChainTransfer = true;
-const gnfdChainId = 9000;
+const gnfdChainId = parseInt(process.env.GNFD_CHAIN_ID || '9000');
 let emergencyOperator = ''; // suspend / reopen / cancelTransfer
 let emergencyUpgradeOperator = ''; // update params / upgrade contracts
 const initConsensusState: any = {
@@ -57,8 +57,11 @@ const initConsensusState: any = {
         '0x677265656e6669656c645f393030302d313734310000000000000000000000000000000000000001af6b801dda578dddfa4da1d5d67fd1b32510db24ec271346fc573e9242b01c9a112b51dda2d336246bdc0cc51407ba0cb0e5087be0db5f1cdc3285bbaa8e647500000000000003e84202722cf6a34d727be762b46825b0d26b6263a0a9355ebf3c24bedac5a357a56feeb2cd8b6fed9f14cca15c3091f523b9fb21183b4bb31eb482a0321885e3f57072156448e2b2f7d9a3e7b668757d9cc0bbd28cd674c34ed1c2ed75c5de3b6a8f8cad4600000000000003e8668a0acd8f6db5cae959a0e02132f4d6a672c4d7a4726b542012cc8023ee07b29ab3971cc999d8751bbd16f23413968afcdb070ed66ab47e6e1842bf875bef21dfc5b8af6813bfd82860d361e339bd1ae2f801b6d6ee46b8497a3d51c80b50b6160ea1cc00000000000003e80dfa99423d3084c596c5e3bd6bcb4f654516517b8d4786703c56b300b70f085c0d0482e5d6a3c7208883f0ec8abd2de893f71d18e8f919e7ab198499201d87f92c57ebce83ed2b763bb872e9bc148fb216fd5c93b18819670d9a946ae4b3075672d726b800000000000003e824aab6f85470ff73e3048c64083a09e980d4cb7f8146d231a7b2051c5f7a9c07ab6e6bfe277bd5f4a94f901fe6ee7a6b6bd8479e9e5e448de4b1b33d5ddd74194c86b3852cc140a3f08a9c4149efd45643202f8bef2ad7eecf53e58951c6df6fd932004b00000000000003e84998f6ef8d999a0f36a851bfa29dbcf0364dd65695c286deb3f1657664859d59876bf1ec5a288f6e66e18b37b8a2a1e6ee4a3ef8fa50784d8b758d0c3e70a7cdfe65ab5d',
 };
 
-const initConsensusStateBytes = initConsensusState.consensusStateBytes;
+const initConsensusStateBytes = process.env.CONSENSUS_STATE_BYTES || initConsensusState.consensusStateBytes;
 const main = async () => {
+    if (process.env.CONSENSUS_STATE_BYTES) {
+        log('Using CONSENSUS_STATE_BYTES from environment');
+    }
     const commitId = await getCommitId();
     const [operator] = await ethers.getSigners();
     const balance = await ethers.provider.getBalance(operator.address);
@@ -309,17 +312,19 @@ const main = async () => {
 
     tx = await operator.sendTransaction({
         to: proxyTokenHub,
-        value: unit.mul(1000),
+        value: unit.mul(10),
     });
     await tx.wait(1);
     log('balance of TokenHub', await ethers.provider.getBalance(proxyTokenHub));
 
-    const validators = initConsensusState.validators;
-    for (let i = 0; i < validators.length; i++) {
-        const relayer = validators[i].relayerAddress;
+    const relayerAddresses = process.env.RELAYER_ADDRESSES
+        ? JSON.parse(process.env.RELAYER_ADDRESSES)
+        : initConsensusState.validators.map((v: any) => v.relayerAddress);
+    for (let i = 0; i < relayerAddresses.length; i++) {
+        const relayer = relayerAddresses[i];
         tx = await operator.sendTransaction({
             to: ethers.utils.getAddress(relayer),
-            value: unit.mul(100),
+            value: unit.mul(1),
         });
         await tx.wait(1);
     }
